@@ -30,8 +30,10 @@ export function chunkContent(content: string): Chunk[] {
   let current: string[] = [];
   let currentTokens = 0;
 
-  let i = 0;
-  while (i < sentences.length) {
+  // Every iteration consumes exactly one sentence (i always advances), so
+  // this terminates even if a single sentence alone exceeds CHUNK_TOKENS or
+  // the carried-over overlap plus the next sentence still overflows.
+  for (let i = 0; i < sentences.length; i++) {
     const sentence = sentences[i];
     const sentenceTokens = estimateTokens(sentence);
 
@@ -47,12 +49,10 @@ export function chunkContent(content: string): Chunk[] {
       }
       current = overlapSentences;
       currentTokens = overlapTokens;
-      continue;
     }
 
     current.push(sentence);
     currentTokens += sentenceTokens;
-    i++;
   }
 
   if (current.length > 0) chunks.push(finalize(current));
