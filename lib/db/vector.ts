@@ -1,55 +1,13 @@
-import { Pool } from "pg";
-import { EMBEDDING_DIMENSIONS } from "@/lib/ai/provider";
+import { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
+import { prisma } from "./client";
 
 // All raw pgvector SQL lives here and nowhere else (CLAUDE.md section 4).
-// Phase 0 uses a standalone `phase0_documents` table scoped by `site`
-// instead of the full multi-tenant Document model — there is no tenant
-// concept yet, this is purely to prove retrieval quality.
-
-let pool: Pool | null = null;
-
-function getPool(): Pool {
-  if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) throw new Error("DATABASE_URL is not set");
-    pool = new Pool({ connectionString });
-  }
-  return pool;
-}
-
-let schemaReady: Promise<void> | null = null;
-
-export function ensureSchema(): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = (async () => {
-      const client = await getPool().connect();
-      try {
-        await client.query("CREATE EXTENSION IF NOT EXISTS vector");
-        await client.query(`
-          CREATE TABLE IF NOT EXISTS phase0_documents (
-            id SERIAL PRIMARY KEY,
-            site TEXT NOT NULL,
-            source_url TEXT NOT NULL,
-            title TEXT,
-            content TEXT NOT NULL,
-            token_count INT NOT NULL,
-            embedding vector(${EMBEDDING_DIMENSIONS}) NOT NULL,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-          )
-        `);
-        await client.query(
-          `CREATE INDEX IF NOT EXISTS phase0_documents_site_idx ON phase0_documents (site)`
-        );
-      } finally {
-        client.release();
-      }
-    })();
-  }
-  return schemaReady;
-}
+// Every query is explicitly scoped by tenantId — Prisma's query extension
+// (lib/db/scoped.ts) can't help here since this bypasses the Prisma Client
+// query layer entirely, so the WHERE "tenantId" = ... clause is load-bearing.
 
 export interface DocumentChunk {
-  site: string;
   sourceUrl: string;
   title: string | null;
   content: string;
@@ -57,38 +15,37 @@ export interface DocumentChunk {
   embedding: number[];
 }
 
-export async function clearSite(site: string): Promise<void> {
-  await ensureSchema();
-  await getPool().query("DELETE FROM phase0_documents WHERE site = $1", [site]);
+function toVectorLiteral(embedding: number[]): string {
+  return `[${embedding.join(",")}]`;
 }
 
-export async function insertChunks(chunks: DocumentChunk[]): Promise<void> {
-  if (chunks.length === 0) return;
-  await ensureSchema();
-  const client = await getPool().connect();
-  try {
-    await client.query("BEGIN");
-    for (const chunk of chunks) {
-      await client.query(
-        `INSERT INTO phase0_documents (site, source_url, title, content, token_count, embedding)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          chunk.site,
-          chunk.sourceUrl,
-          chunk.title,
-          chunk.content,
-          chunk.tokenCount,
-          `[${chunk.embedding.join(",")}]`,
-        ]
-      );
-    }
-    await client.query("COMMIT");
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+const INSERT_BATCH_SIZE = 200;
+
+/** Deletes all existing documents for a tenant and inserts the new set, atomically. */
+export async function replaceDocuments(tenantId: string, chunks: DocumentChunk[]): Promise<void> {
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`DELETE FROM "Document" WHERE "tenantId" = ${tenantId}`;
+
+      // Batched multi-row INSERTs instead of one round-trip per chunk — with
+      // hundreds of chunks, per-row awaits blew past the interactive
+      // transaction's default 5s timeout on Neon's network latency.
+      for (let i = 0; i < chunks.length; i += INSERT_BATCH_SIZE) {
+        const batch = chunks.slice(i, i + INSERT_BATCH_SIZE);
+        const rows = batch.map(
+          (chunk) => Prisma.sql`(
+            ${randomUUID()}, ${tenantId}, ${chunk.sourceUrl}, ${chunk.title}, ${chunk.content},
+            ${chunk.tokenCount}, ${toVectorLiteral(chunk.embedding)}::vector
+          )`
+        );
+        await tx.$executeRaw`
+          INSERT INTO "Document" (id, "tenantId", "sourceUrl", title, content, "tokenCount", embedding)
+          VALUES ${Prisma.join(rows)}
+        `;
+      }
+    },
+    { timeout: 30_000 }
+  );
 }
 
 export interface SimilarityMatch {
@@ -101,26 +58,19 @@ export interface SimilarityMatch {
 const SIMILARITY_FLOOR = 0.3;
 
 export async function similaritySearch(
-  site: string,
+  tenantId: string,
   queryEmbedding: number[],
   topK = 5
 ): Promise<SimilarityMatch[]> {
-  await ensureSchema();
-  const vectorLiteral = `[${queryEmbedding.join(",")}]`;
-  const res = await getPool().query(
-    `SELECT source_url, title, content, 1 - (embedding <=> $1) AS similarity
-     FROM phase0_documents
-     WHERE site = $2
-     ORDER BY embedding <=> $1
-     LIMIT $3`,
-    [vectorLiteral, site, topK]
-  );
-  return res.rows
-    .map((row) => ({
-      sourceUrl: row.source_url as string,
-      title: row.title as string | null,
-      content: row.content as string,
-      similarity: Number(row.similarity),
-    }))
-    .filter((match) => match.similarity >= SIMILARITY_FLOOR);
+  const vectorLiteral = toVectorLiteral(queryEmbedding);
+  const rows = await prisma.$queryRaw<
+    { sourceUrl: string; title: string | null; content: string; similarity: number }[]
+  >`
+    SELECT "sourceUrl", title, content, 1 - (embedding <=> ${vectorLiteral}::vector) AS similarity
+    FROM "Document"
+    WHERE "tenantId" = ${tenantId}
+    ORDER BY embedding <=> ${vectorLiteral}::vector
+    LIMIT ${topK}
+  `;
+  return rows.filter((row) => row.similarity >= SIMILARITY_FLOOR);
 }

@@ -49,14 +49,29 @@ export async function chatComplete(messages: ChatMessage[]): Promise<string> {
   return res.choices[0]?.message?.content ?? "";
 }
 
-export async function* chatStream(messages: ChatMessage[]): AsyncGenerator<string> {
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export async function* chatStream(messages: ChatMessage[]): AsyncGenerator<string, TokenUsage, void> {
   const stream = await getClient().chat.completions.create({
     model: CHAT_MODEL,
     messages,
     stream: true,
+    stream_options: { include_usage: true },
   });
+
+  let usage: TokenUsage = { inputTokens: 0, outputTokens: 0 };
   for await (const chunk of stream) {
     const delta = chunk.choices[0]?.delta?.content;
     if (delta) yield delta;
+    if (chunk.usage) {
+      usage = {
+        inputTokens: chunk.usage.prompt_tokens,
+        outputTokens: chunk.usage.completion_tokens,
+      };
+    }
   }
+  return usage;
 }
