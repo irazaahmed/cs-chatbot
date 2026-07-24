@@ -22,6 +22,9 @@
 /public/widget.js
 /widget/dist
 
+# payment proof screenshots — private, never committed (VPS local disk in prod)
+/uploads
+
 # misc
 .DS_Store
 *.pem
@@ -32,8 +35,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — .env.example is the template and should be committed
 .env*
+!.env.example
 
 # vercel
 .vercel

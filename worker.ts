@@ -13,8 +13,11 @@ import { chunkContent } from "./lib/crawl/chunk";
 import { embedTexts } from "./lib/ai/embed";
 import { replaceDocuments, type DocumentChunk } from "./lib/db/vector";
 import { planPageCap } from "./lib/billing/status";
+import { applyStatusLadder } from "./lib/billing/ladder";
 
 const POLL_INTERVAL_MS = 5000;
+const STATUS_LADDER_INTERVAL_TICKS = 60; // ~5 minutes at 5s/tick — billing status isn't urgent
+let tickCount = 0;
 
 async function claimNextJob(): Promise<Job | null> {
   return prisma.$transaction(async (tx) => {
@@ -75,6 +78,16 @@ async function processJob(job: Job): Promise<void> {
 }
 
 async function tick(): Promise<void> {
+  if (tickCount % STATUS_LADDER_INTERVAL_TICKS === 0) {
+    try {
+      const changed = await applyStatusLadder();
+      if (changed > 0) console.log(`[worker] status ladder updated ${changed} tenant(s)`);
+    } catch (err) {
+      console.error("[worker] status ladder check failed:", err instanceof Error ? err.message : err);
+    }
+  }
+  tickCount++;
+
   let job: Job | null = null;
   try {
     job = await claimNextJob();
