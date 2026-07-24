@@ -30,9 +30,8 @@ function startOfCurrentMonthUtc(): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 }
 
-/** Counts visitor-authored messages this calendar month against the plan cap. */
-export async function checkMonthlyUsage(tenantId: string, planId: string): Promise<GateResult> {
-  const cap = PLAN_CAPS[planId] ?? PLAN_CAPS.starter;
+/** Counts visitor-authored messages this calendar month for a tenant. */
+export async function getMonthlyMessageUsage(tenantId: string): Promise<number> {
   const periodStart = startOfCurrentMonthUtc();
 
   const rows = await prisma.$queryRaw<{ usage: bigint }[]>`
@@ -43,7 +42,13 @@ export async function checkMonthlyUsage(tenantId: string, planId: string): Promi
     WHERE "tenantId" = ${tenantId} AND "createdAt" >= ${periodStart}
   `;
 
-  const usage = Number(rows[0]?.usage ?? 0);
+  return Number(rows[0]?.usage ?? 0);
+}
+
+export async function checkMonthlyUsage(tenantId: string, planId: string): Promise<GateResult> {
+  const cap = PLAN_CAPS[planId] ?? PLAN_CAPS.starter;
+  const usage = await getMonthlyMessageUsage(tenantId);
+
   if (usage >= cap.messagesPerMonth) {
     return {
       allowed: false,
@@ -55,4 +60,8 @@ export async function checkMonthlyUsage(tenantId: string, planId: string): Promi
 
 export function planPageCap(planId: string): number {
   return (PLAN_CAPS[planId] ?? PLAN_CAPS.starter).pages;
+}
+
+export function planMessageCap(planId: string): number {
+  return (PLAN_CAPS[planId] ?? PLAN_CAPS.starter).messagesPerMonth;
 }
