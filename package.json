@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed-tenant": "tsx --env-file=.env scripts/seed-tenant.ts"
+    "seed-tenant": "tsx --env-file=.env scripts/seed-tenant.ts",
+    "build:widget": "node widget/build.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.0",
@@ -27,6 +28,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
+    "esbuild": "^0.28.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
     "prisma": "^7.9.0",

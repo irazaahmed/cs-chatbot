@@ -3,9 +3,11 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/client";
 import { isOriginAllowed } from "@/lib/security/origin";
 import { checkRateLimit } from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/ip";
 import { checkTenantStatus, checkMonthlyUsage } from "@/lib/billing/status";
 import { retrieveContext, buildMessages, hasUsableContext } from "@/lib/ai/rag";
 import { chatStream, type ChatMessage } from "@/lib/ai/provider";
+import { corsHeaders, corsPreflightResponse } from "@/lib/security/cors";
 
 // Prisma's node-postgres adapter needs Node APIs, not the Edge runtime.
 export const runtime = "nodejs";
@@ -41,16 +43,6 @@ function parseHistory(raw: unknown): StoredMessage[] {
   return messages;
 }
 
-function getClientIp(request: Request): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) return forwardedFor.split(",")[0].trim();
-  return "unknown";
-}
-
-function disabledResponse(message: string): Response {
-  return Response.json({ disabled: true, message }, { status: 200 });
-}
-
 const SSE_HEADERS = {
   "Content-Type": "text/event-stream",
   "Cache-Control": "no-cache",
@@ -61,22 +53,31 @@ function sseEvent(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }
 
+export async function OPTIONS(request: Request): Promise<Response> {
+  return corsPreflightResponse(request);
+}
+
 export async function POST(request: Request): Promise<Response> {
+  const origin = request.headers.get("origin");
+  const cors = corsHeaders(origin);
+  const json = (data: unknown, status: number) =>
+    Response.json(data, { status, headers: cors });
+  const disabledResponse = (message: string) => json({ disabled: true, message }, 200);
+
   let body: z.infer<typeof ChatRequestSchema>;
   try {
     body = ChatRequestSchema.parse(await request.json());
   } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
+    return json({ error: "Invalid request body" }, 400);
   }
 
   const tenant = await prisma.tenant.findUnique({ where: { publicKey: body.publicKey } });
   if (!tenant) {
-    return Response.json({ error: "Not found" }, { status: 404 });
+    return json({ error: "Not found" }, 404);
   }
 
-  const origin = request.headers.get("origin");
   if (!isOriginAllowed(origin, tenant.allowedDomains)) {
-    return Response.json({ error: "Origin not allowed" }, { status: 403 });
+    return json({ error: "Origin not allowed" }, 403);
   }
 
   const statusGate = checkTenantStatus(tenant.status);
@@ -92,7 +93,7 @@ export async function POST(request: Request): Promise<Response> {
   const ip = getClientIp(request);
   const rateResult = await checkRateLimit(tenant.id, ip);
   if (!rateResult.allowed) {
-    return Response.json({ error: rateResult.reason }, { status: 429 });
+    return json({ error: rateResult.reason }, 429);
   }
 
   const existingConversation = await prisma.conversation.findFirst({
@@ -179,5 +180,5 @@ export async function POST(request: Request): Promise<Response> {
     },
   });
 
-  return new Response(stream, { headers: SSE_HEADERS });
+  return new Response(stream, { headers: { ...SSE_HEADERS, ...cors } });
 }

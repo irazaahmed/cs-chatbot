@@ -19,6 +19,8 @@
 
 # production
 /build
+/public/widget.js
+/widget/dist
 
 # misc
 .DS_Store
