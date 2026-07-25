@@ -5,6 +5,7 @@ import { readSSE } from "@/lib/client/sse";
 import { Reveal } from "@/components/ui/Reveal";
 import { GlowCard } from "@/components/ui/GlowCard";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { JsonLd } from "@/components/JsonLd";
 
 interface ProgressState {
   done: number;
@@ -45,6 +46,36 @@ const steps = [
   { n: "2", label: "Chat with the preview" },
   { n: "3", label: "Sign in & verify your domain" },
   { n: "4", label: "Paste one script tag — live" },
+];
+
+// Answers double as visible copy and FAQPage structured data below — keep
+// them in sync, don't let the JSON-LD drift from what's on the page.
+const faqs = [
+  {
+    question: "Is it free to create a chatbot for my website?",
+    answer:
+      "Yes. Paste your URL and chat with a working preview with no signup and no card. Creating your account and running a full crawl on your own site is free too — you only pay if you outgrow the free plan's page and message limits.",
+  },
+  {
+    question: "How do I create a chatbot for my website?",
+    answer:
+      "Paste your website's URL above. We read your pages, and you can chat with a bot trained on them right away. Like it? Sign in, verify you own the domain, and paste one script tag on your site — that's the whole setup.",
+  },
+  {
+    question: "Do I need to know how to code?",
+    answer:
+      "No. The whole flow is copy, paste, done — no coding, no developer, no setup call. Installing the widget is one script tag, the same way you'd add Google Analytics.",
+  },
+  {
+    question: "Will the chatbot make up answers about my business?",
+    answer:
+      "No. It only answers from content it actually crawled off your website, with a source link under every answer. If your site doesn't cover something, it says so instead of guessing.",
+  },
+  {
+    question: "Does it support Urdu or Roman Urdu?",
+    answer:
+      "Yes. The chatbot replies the way your customers actually type — English, اردو, or Roman Urdu — which most website chatbots built for Pakistani businesses don't handle well.",
+  },
 ];
 
 export default function LandingPage() {
@@ -159,8 +190,35 @@ export default function LandingPage() {
     }
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://chatbot.cybrumsolutions.dev/#product",
+        name: "CS Chatbot",
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        description:
+          "Create a free AI chatbot for your website. Trained only on your own content, cites its sources, and supports English, Urdu, and Roman Urdu.",
+        url: "https://chatbot.cybrumsolutions.dev",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "PKR", description: "Free preview and free plan to get started" },
+        provider: { "@type": "Organization", name: "Cybrum Solutions", url: CYBRUM_URL },
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: faqs.map((f) => ({
+          "@type": "Question",
+          name: f.question,
+          acceptedAnswer: { "@type": "Answer", text: f.answer },
+        })),
+      },
+    ],
+  };
+
   return (
     <div className="relative flex min-h-screen flex-col">
+      <JsonLd data={jsonLd} />
       {/* Ambient backdrop */}
       <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-background">
         <div className="absolute inset-0 bg-grid-lines opacity-40" />
@@ -197,12 +255,12 @@ export default function LandingPage() {
           <Reveal>
             <span className="inline-flex items-center gap-2.5 rounded-full border border-accent/25 bg-accent/5 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-accent-bright">
               <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-accent-bright shadow-[0_0_8px_var(--color-accent)]" />
-              Try it before you sign up
+              Free to try — no signup
             </span>
           </Reveal>
           <Reveal delay={0.08}>
             <h1 className="mt-6 font-heading text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
-              A chatbot trained on{" "}
+              Create a free chatbot trained on{" "}
               <span className="text-shimmer">your website</span>, in one minute
             </h1>
           </Reveal>
@@ -367,6 +425,41 @@ export default function LandingPage() {
             </Reveal>
           ))}
         </div>
+
+        {/* FAQ */}
+        <div className="divider-animated mx-auto mt-16 h-px w-full max-w-3xl" />
+        <Reveal className="mx-auto mt-16 max-w-2xl">
+          <h2 className="text-center font-heading text-2xl font-semibold tracking-tight">
+            Frequently asked questions
+          </h2>
+          <div className="mt-8 space-y-3">
+            {faqs.map((f) => (
+              <details
+                key={f.question}
+                className="group glass rounded-2xl p-5 open:pb-5"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-foreground">
+                  {f.question}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                    className="shrink-0 text-muted transition-transform duration-300 group-open:rotate-180"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-muted">{f.answer}</p>
+              </details>
+            ))}
+          </div>
+        </Reveal>
       </main>
 
       {/* Footer */}

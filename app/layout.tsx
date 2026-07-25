@@ -14,10 +14,40 @@ const inter = Inter({
   display: "swap",
 });
 
+const BASE_URL = "https://chatbot.cybrumsolutions.dev";
+
 export const metadata: Metadata = {
-  title: "CS Chatbot — AI chatbot trained on your website",
+  metadataBase: new URL(BASE_URL),
+  title: "CS Chatbot — Create a Free AI Chatbot for Your Website",
   description:
-    "Paste your website URL and chat with a bot trained on your own content, in one minute. A Cybrum Solutions product.",
+    "Create a free AI chatbot for your website in minutes. Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Answers only from your own content, in English, Urdu, or Roman Urdu.",
+  keywords: [
+    "create a chatbot",
+    "create free chatbot",
+    "free chatbot for website",
+    "AI chatbot for website",
+    "chatbot for website free",
+    "easy way to create a chatbot",
+    "website chatbot builder",
+    "no-code chatbot builder",
+    "Roman Urdu chatbot",
+    "chatbot for small business Pakistan",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "CS Chatbot — Create a Free AI Chatbot for Your Website",
+    description:
+      "Paste your URL, watch it learn your site, and chat instantly — no signup, no card. A Cybrum Solutions product.",
+    url: BASE_URL,
+    siteName: "CS Chatbot",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CS Chatbot — Create a Free AI Chatbot for Your Website",
+    description:
+      "Paste your URL, watch it learn your site, and chat instantly — no signup, no card.",
+  },
 };
 
 export default function RootLayout({
