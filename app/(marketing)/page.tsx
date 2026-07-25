@@ -176,7 +176,7 @@ export default function LandingPage() {
             </svg>
           </span>
           <span className="font-heading text-lg font-semibold tracking-tight">
-            Cybrum<span className="text-accent"> Chatbot</span>
+            Cybrum Solutions<span className="text-accent"> Chatbot</span>
           </span>
         </a>
         <a

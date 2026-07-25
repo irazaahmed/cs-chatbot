@@ -15,7 +15,7 @@ export default function LoginPage() {
           </svg>
         </span>
         <h1 className="mt-5 font-heading text-2xl font-semibold tracking-tight">
-          Cybrum<span className="text-accent"> Chatbot</span>
+          Cybrum Solutions<span className="text-accent"> Chatbot</span>
         </h1>
         <p className="mt-2 text-sm text-muted">Sign in to manage your chatbot.</p>
         <form
