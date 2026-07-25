@@ -201,7 +201,11 @@ export default async function AdminPage() {
                 <tbody>
                   {overview.map((t) => (
                     <tr key={t.id} className="border-t border-border transition-colors hover:bg-accent/5">
-                      <td className="px-4 py-3 font-medium text-foreground">{t.name}</td>
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        <Link href={`/admin/tenants/${t.id}`} className="hover:text-accent-bright hover:underline">
+                          {t.name}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3 text-muted">{t.ownerEmail}</td>
                       <td className="max-w-[14rem] truncate px-4 py-3 text-muted">
                         <a href={t.websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:text-accent-bright">

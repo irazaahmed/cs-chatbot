@@ -1,0 +1,274 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/admin/current";
+import { prisma } from "@/lib/db/client";
+import { planPageCap, planMessageCap, getMonthlyMessageUsage } from "@/lib/billing/status";
+import { PLAN_IDS, isPlanId } from "@/lib/billing/plans";
+
+const STATUS_IDS = ["trialing", "active", "past_due", "suspended", "canceled"] as const;
+type StatusId = (typeof STATUS_IDS)[number];
+function isStatusId(v: string): v is StatusId {
+  return (STATUS_IDS as readonly string[]).includes(v);
+}
+
+const STATUS_PILLS: Record<string, string> = {
+  trialing: "border-border bg-surface/60 text-muted",
+  active: "border-emerald-400/30 bg-emerald-400/10 text-success-text",
+  past_due: "border-amber-400/30 bg-amber-400/10 text-warning-text",
+  suspended: "border-red-400/30 bg-red-400/10 text-danger-text",
+  canceled: "border-red-400/30 bg-red-400/10 text-danger-text",
+  submitted: "border-amber-400/30 bg-amber-400/10 text-warning-text",
+  verified: "border-emerald-400/30 bg-emerald-400/10 text-success-text",
+  rejected: "border-red-400/30 bg-red-400/10 text-danger-text",
+};
+
+async function updateTenant(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+
+  const statusRaw = String(formData.get("status"));
+  const planRaw = String(formData.get("planId"));
+  const periodEndRaw = String(formData.get("periodEnd") ?? "").trim();
+
+  if (!isStatusId(statusRaw) || !isPlanId(planRaw)) return;
+
+  await prisma.tenant.update({
+    where: { id },
+    data: {
+      status: statusRaw,
+      planId: planRaw,
+      periodEnd: periodEndRaw ? new Date(periodEndRaw) : null,
+    },
+  });
+
+  revalidatePath(`/admin/tenants/${id}`);
+  revalidatePath("/admin");
+}
+
+export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin();
+  const { id } = await params;
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id },
+    include: { owner: { select: { email: true, name: true, createdAt: true } } },
+  });
+  if (!tenant) notFound();
+
+  const [payments, conversationCount, leadCount, pages, messagesThisMonth] = await Promise.all([
+    prisma.payment.findMany({ where: { tenantId: id }, orderBy: { periodStart: "desc" } }),
+    prisma.conversation.count({ where: { tenantId: id } }),
+    prisma.lead.count({ where: { tenantId: id } }),
+    prisma.document.findMany({ where: { tenantId: id }, select: { sourceUrl: true }, distinct: ["sourceUrl"] }),
+    getMonthlyMessageUsage(id),
+  ]);
+
+  const periodEndValue = tenant.periodEnd ? tenant.periodEnd.toISOString().slice(0, 10) : "";
+
+  return (
+    <div className="relative min-h-screen p-6 sm:p-8">
+      <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-background">
+        <div className="absolute inset-0 bg-grid-lines opacity-30" />
+        <div className="glow-orb animate-float-slow absolute right-[-14%] top-[-12%] h-[30rem] w-[30rem] [--glow:color-mix(in_srgb,var(--color-accent)_9%,transparent)]" />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <Link href="/admin" className="text-sm text-muted transition-colors hover:text-accent-bright">
+            ← All tenants
+          </Link>
+          <h1 className="mt-1 font-heading text-2xl font-semibold tracking-tight">{tenant.name}</h1>
+          <a
+            href={tenant.websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-muted transition-colors hover:text-accent-bright"
+          >
+            {tenant.websiteUrl}
+          </a>
+        </div>
+        <span
+          className={`inline-flex h-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${STATUS_PILLS[tenant.status] ?? "border-border bg-surface/60 text-muted"}`}
+        >
+          {tenant.status}
+        </span>
+      </div>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-3">
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted">Owner</h2>
+          <dl className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Email</dt>
+              <dd className="text-right text-foreground">{tenant.owner.email}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Signed up</dt>
+              <dd className="tabular-nums text-foreground">{tenant.owner.createdAt.toLocaleDateString()}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted">Verification</h2>
+          <dl className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Verified</dt>
+              <dd className="text-foreground">{tenant.verified ? `yes (${tenant.verifyMethod})` : "no"}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Allowed domains</dt>
+              <dd className="text-right text-foreground">
+                {tenant.allowedDomains.length ? tenant.allowedDomains.join(", ") : "—"}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted">Usage</h2>
+          <dl className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Pages</dt>
+              <dd className="tabular-nums text-foreground">
+                {pages.length} / {planPageCap(tenant.planId)}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Messages (this month)</dt>
+              <dd className="tabular-nums text-foreground">
+                {messagesThisMonth} / {planMessageCap(tenant.planId)}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Conversations</dt>
+              <dd className="tabular-nums text-foreground">{conversationCount}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">Leads captured</dt>
+              <dd className="tabular-nums text-foreground">{leadCount}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+
+      <div className="mt-6 glass rounded-2xl p-6">
+        <h2 className="font-heading font-semibold">Manage subscription</h2>
+        <p className="mt-1 text-sm text-muted">
+          For manual overrides — comps, corrections, or acting on a support request. Approving a
+          submitted payment (below) is still the normal path for a real payment.
+        </p>
+        <form action={updateTenant} className="mt-4 flex flex-wrap items-end gap-4">
+          <input type="hidden" name="id" value={tenant.id} />
+          <div>
+            <label className="block text-xs font-medium text-muted">Status</label>
+            <select
+              name="status"
+              defaultValue={tenant.status}
+              className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-sm text-foreground outline-none"
+            >
+              {STATUS_IDS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted">Plan</label>
+            <select
+              name="planId"
+              defaultValue={tenant.planId}
+              className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-sm capitalize text-foreground outline-none"
+            >
+              {PLAN_IDS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted">Period ends</label>
+            <input
+              type="date"
+              name="periodEnd"
+              defaultValue={periodEndValue}
+              className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-sm text-foreground outline-none"
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn-sheen rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)]"
+          >
+            Save
+          </button>
+        </form>
+      </div>
+
+      <div className="mt-6">
+        <h2 className="font-heading font-semibold">Payment history</h2>
+        {payments.length === 0 ? (
+          <p className="mt-3 rounded-2xl border border-border bg-card/60 p-6 text-sm text-muted backdrop-blur-sm">
+            No payments submitted yet.
+          </p>
+        ) : (
+          <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-surface/80 text-left text-muted">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Reference</th>
+                    <th className="px-4 py-3 font-medium">Plan</th>
+                    <th className="px-4 py-3 font-medium">Amount</th>
+                    <th className="px-4 py-3 font-medium">Method</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Submitted</th>
+                    <th className="px-4 py-3 font-medium">Reviewed</th>
+                    <th className="px-4 py-3 font-medium">Proof</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((p) => (
+                    <tr key={p.id} className="border-t border-border">
+                      <td className="px-4 py-3 font-mono text-accent-bright">{p.invoiceRef}</td>
+                      <td className="px-4 py-3 capitalize text-muted">{p.planId}</td>
+                      <td className="px-4 py-3 tabular-nums text-foreground">
+                        Rs. {p.amountPKR.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 capitalize text-muted">{p.method}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${STATUS_PILLS[p.status] ?? "border-border bg-surface/60 text-muted"}`}
+                        >
+                          {p.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-muted">{p.periodStart.toLocaleDateString()}</td>
+                      <td className="px-4 py-3 tabular-nums text-muted">
+                        {p.reviewedAt ? p.reviewedAt.toLocaleDateString() : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <a
+                          href={`/api/admin/payments/${p.id}/proof`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent-bright hover:text-accent"
+                        >
+                          View
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
