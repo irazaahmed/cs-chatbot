@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
 
-## Getting Started
+# 💬 CS Chatbot
 
-First, run the development server:
+### Create a free AI chatbot trained on your own website — in about a minute.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+No signup. No card. No setup call. Paste your URL, watch it read your site, and start chatting.
+
+## 👉 [**Try it live on your own website →**](https://chatbot.cybrumsolutions.dev)
+
+**[chatbot.cybrumsolutions.dev](https://chatbot.cybrumsolutions.dev)**
+
+<sub>A product by [Cybrum Solutions](https://www.cybrumsolutions.dev) · [Learn more](https://www.cybrumsolutions.dev/products/chatbot)</sub>
+
+</div>
+
+---
+
+## What is it?
+
+CS Chatbot turns any website into a smart assistant that answers visitors' questions **using only that website's real content** — not a generic AI that makes things up about your business.
+
+Paste your URL and, right on the landing page, you can watch it crawl your pages and then chat with a working bot trained on them — **before you sign up for anything.** Like it? Sign in, verify you own the domain, and drop **one script tag** on your site. That's the whole install, the same way you'd add Google Analytics.
+
+## Why it's different
+
+- **🎯 Answers from your content only** — every reply is grounded in your actual pages, with a source link under each answer. When your site doesn't cover something, it says so and offers a human instead of guessing.
+- **⚡ Live in minutes, not weeks** — no developer, no scope document, no waiting. Copy, paste, done.
+- **🌐 English, اردو & Roman Urdu built in** — it replies the way your customers actually type, which most chatbots built for a global audience never handle well.
+- **📥 Captures leads while it chats** — turns a visitor's question into a lead in your dashboard.
+- **🛡️ Never breaks your site** — the widget loads async, runs inside a Shadow DOM, and silently removes itself if anything ever goes wrong. It can't slow or break the host page.
+
+## How it works
+
+1. **Paste your URL** — no signup, no card.
+2. **Watch it read your site** — live crawl, right in front of you.
+3. **Chat with the preview** — ask it what a real visitor would.
+4. **Sign in & verify your domain** — one click with Google, then prove you own the site.
+5. **Paste one script tag** — and it's live.
+
+```html
+<script
+  src="https://cdn.cybrumsolutions.dev/widget.js"
+  data-key="pk_live_xxx"
+  data-position="bottom-right"
+  defer
+></script>
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Plans
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Every plan includes the full product. They differ only in how many pages the bot learns and how many visitor messages it answers each month.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Plan | Pages | Messages / month |
+|---|---|---|
+| Starter | 15 | 500 |
+| Pro | 50 | 2,000 |
+| Business | 200 | 10,000 |
 
-## Learn More
+There's a free preview and a free tier to start on — you can try the whole thing on your own real website before entering a card number anywhere.
 
-To learn more about Next.js, take a look at the following resources:
+## Tech
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Built to run on a plain Ubuntu VPS with `npm run build && npm start` — no vendor lock-in.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Next.js 16** (App Router, TypeScript) · **Tailwind CSS**
+- **PostgreSQL + pgvector** for RAG retrieval · **Prisma** ORM
+- **Auth.js** (Google) · **OpenAI** (mini/nano class) via a single provider abstraction
+- **Vanilla-TypeScript widget** bundled with esbuild, Shadow-DOM isolated, <30KB gzipped
+- Standalone **worker** process for crawling & indexing (Postgres `jobs` table, no Redis)
 
-## Deploy on Vercel
+The app and the worker run as **two separate processes from one codebase**: the app serves the site and answers chats instantly, while the worker handles the heavy, minutes-long crawling in the background so it never slows the site down.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+<div align="center">
+
+**Ready to see what it says about your business?**
+
+## [**chatbot.cybrumsolutions.dev**](https://chatbot.cybrumsolutions.dev)
+
+<sub>Built by [Cybrum Solutions](https://www.cybrumsolutions.dev) — AI agents, automation & chatbots.</sub>
+
+</div>
