@@ -28,8 +28,19 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${inter.variable} h-full antialiased`}
     >
+      <head>
+        {/* Apply the saved theme before paint to avoid a flash. Supports
+            light / dark / system; defaults to dark (brand) when unset —
+            same mechanism as the Cybrum Solutions marketing site. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=localStorage.getItem('cs-theme')||'dark';var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

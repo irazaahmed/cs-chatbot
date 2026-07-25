@@ -5,8 +5,9 @@
    marketing site so the product carries the same brand (blue + black).
    Tailwind v4 CSS-first config: utilities like bg-background,
    text-accent, font-heading are generated from these tokens.
-   Dark is the default; the light overrides below follow the visitor's
-   OS preference automatically (prefers-color-scheme), same as the
+   Dark is the default; [data-theme="light"] overrides below apply when
+   the navbar theme toggle (or the visitor's OS preference, via the
+   inline script in app/layout.tsx) picks light — same mechanism as the
    marketing site.
 ------------------------------------------------------------------- */
 @theme {
@@ -34,25 +35,37 @@
 }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 }
 
 /* Light theme: same surfaces/text as the Cybrum Solutions marketing site's
-   light mode. Auto-applied from the OS/browser preference — no toggle. */
-@media (prefers-color-scheme: light) {
-  :root {
-    --color-background: #f4f7fc;
-    --color-surface: #ffffff;
-    --color-card: #ffffff;
-    --color-border: #dbe3f0;
+   light mode. Applied via [data-theme="light"] on <html>, set by
+   ThemeToggle (or the inline before-paint script for "system"/first visit). */
+[data-theme="light"] {
+  color-scheme: light;
 
-    --color-accent: #1773d6;
-    --color-accent-bright: #1565c0;
-    --color-accent-dim: #6aa5e6;
+  --color-background: #f4f7fc;
+  --color-surface: #ffffff;
+  --color-card: #ffffff;
+  --color-border: #dbe3f0;
 
-    --color-foreground: #101727;
-    --color-muted: #54607a;
-  }
+  --color-accent: #1773d6;
+  --color-accent-bright: #1565c0;
+  --color-accent-dim: #6aa5e6;
+
+  --color-foreground: #101727;
+  --color-muted: #54607a;
+}
+
+/* Theme-toggle icon swap (driven by data-theme, no JS state needed). */
+.theme-toggle-moon {
+  display: none;
+}
+[data-theme="light"] .theme-toggle-sun {
+  display: none;
+}
+[data-theme="light"] .theme-toggle-moon {
+  display: inline-block;
 }
 
 html,

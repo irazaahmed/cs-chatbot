@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { checkIsAdmin } from "@/lib/admin/current";
 import { signOut } from "@/auth";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const TABS = [
   { href: "/playground", label: "Playground" },
@@ -33,7 +34,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
             </svg>
           </span>
-          <p className="truncate font-heading font-semibold tracking-tight">{tenant.name}</p>
+          <p className="min-w-0 flex-1 truncate font-heading font-semibold tracking-tight">{tenant.name}</p>
+          <ThemeToggle />
         </div>
 
         <nav className="flex flex-col gap-1 border-t border-border pt-4">
@@ -88,12 +90,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Mobile / tablet top bar: horizontal scrollable nav instead of the fixed sidebar */}
       <div className="fixed inset-x-0 top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between px-4 pt-3">
-          <p className="truncate font-heading text-sm font-semibold tracking-tight">{tenant.name}</p>
-          {isAdmin && (
-            <Link href="/admin" className="text-xs font-medium text-accent-bright">
-              Admin
-            </Link>
-          )}
+          <p className="min-w-0 flex-1 truncate font-heading text-sm font-semibold tracking-tight">{tenant.name}</p>
+          <div className="flex shrink-0 items-center gap-3">
+            {isAdmin && (
+              <Link href="/admin" className="text-xs font-medium text-accent-bright">
+                Admin
+              </Link>
+            )}
+            <ThemeToggle />
+          </div>
         </div>
         <nav className="scrollbar-none flex gap-1.5 overflow-x-auto px-4 py-3">
           {TABS.map((tab) => (

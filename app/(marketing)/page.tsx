@@ -4,6 +4,7 @@ import { useState, useRef, FormEvent } from "react";
 import { readSSE } from "@/lib/client/sse";
 import { Reveal } from "@/components/ui/Reveal";
 import { GlowCard } from "@/components/ui/GlowCard";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface ProgressState {
   done: number;
@@ -179,12 +180,15 @@ export default function LandingPage() {
             CS<span className="text-accent"> Chatbot</span>
           </span>
         </a>
-        <a
-          href="/login"
-          className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-accent"
-        >
-          Sign in
-        </a>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <a
+            href="/login"
+            className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-accent"
+          >
+            Sign in
+          </a>
+        </div>
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 pb-20 sm:px-8">
