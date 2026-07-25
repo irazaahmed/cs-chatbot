@@ -6,9 +6,9 @@ import { prisma } from "@/lib/db/client";
 // chat-gating one, and belongs with /api/config in a later phase).
 
 const PLAN_CAPS: Record<string, { pages: number; messagesPerMonth: number }> = {
-  starter: { pages: 50, messagesPerMonth: 1000 },
-  pro: { pages: 300, messagesPerMonth: 5000 },
-  business: { pages: 1000, messagesPerMonth: 20000 },
+  starter: { pages: 15, messagesPerMonth: 500 },
+  pro: { pages: 50, messagesPerMonth: 2000 },
+  business: { pages: 200, messagesPerMonth: 10000 },
 };
 
 const DISABLED_STATUSES = new Set(["suspended", "canceled"]);

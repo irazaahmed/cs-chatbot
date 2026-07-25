@@ -219,7 +219,7 @@ export default function LandingPage() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://yourbusiness.com"
-                className="glass h-14 flex-1 rounded-full px-6 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
+                className="glass h-14 w-full flex-1 appearance-none rounded-full px-6 text-base text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
               />
               <button
                 type="submit"

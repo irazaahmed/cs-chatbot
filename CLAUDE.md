@@ -286,9 +286,9 @@ verification. Everything else does.
 
 | Plan | Pages | Messages/month |
 |---|---|---|
-| starter | 50 | 1,000 |
-| pro | 300 | 5,000 |
-| business | 1,000 | 20,000 |
+| starter | 15 | 500 |
+| pro | 50 | 2,000 |
+| business | 200 | 10,000 |
 
 ---
 
