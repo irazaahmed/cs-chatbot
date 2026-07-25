@@ -156,10 +156,6 @@ export default async function BillingPage({
                 <dd className="text-black dark:text-zinc-50">{instructions.easyPaisa}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-zinc-600 dark:text-zinc-400">Raast</dt>
-                <dd className="text-black dark:text-zinc-50">{instructions.raast}</dd>
-              </div>
-              <div className="flex justify-between">
                 <dt className="text-zinc-600 dark:text-zinc-400">Bank</dt>
                 <dd className="text-right text-black dark:text-zinc-50">
                   {instructions.bankName}
@@ -184,7 +180,6 @@ export default async function BillingPage({
                 >
                   <option value="jazzcash">JazzCash</option>
                   <option value="easypaisa">EasyPaisa</option>
-                  <option value="raast">Raast</option>
                   <option value="bank">Bank transfer</option>
                 </select>
               </div>

@@ -6,7 +6,6 @@
 export interface PaymentInstructions {
   jazzCash: string;
   easyPaisa: string;
-  raast: string;
   bankAccountTitle: string;
   bankAccountNumber: string;
   bankIban: string;
@@ -17,8 +16,7 @@ export function getPaymentInstructions(): PaymentInstructions {
   return {
     jazzCash: process.env.PAYMENT_JAZZCASH_NUMBER || "0300-0000000 (set PAYMENT_JAZZCASH_NUMBER)",
     easyPaisa: process.env.PAYMENT_EASYPAISA_NUMBER || "0300-0000000 (set PAYMENT_EASYPAISA_NUMBER)",
-    raast: process.env.PAYMENT_RAAST_ID || "0300-0000000 (set PAYMENT_RAAST_ID)",
-    bankAccountTitle: process.env.PAYMENT_BANK_ACCOUNT_TITLE || "Cybrum Solutions",
+    bankAccountTitle: process.env.PAYMENT_BANK_ACCOUNT_TITLE || "Ahmed Raza",
     bankAccountNumber: process.env.PAYMENT_BANK_ACCOUNT_NUMBER || "0000000000000 (set PAYMENT_BANK_ACCOUNT_NUMBER)",
     bankIban: process.env.PAYMENT_BANK_IBAN || "PK00XXXX0000000000000000 (set PAYMENT_BANK_IBAN)",
     bankName: process.env.PAYMENT_BANK_NAME || "Bank name (set PAYMENT_BANK_NAME)",
