@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://chatbot.cybrumsolutions.dev";
+const BASE_URL = "https://www.chatbot.cybrumsolutions.dev";
 
 export default function robots(): MetadataRoute.Robots {
   return {

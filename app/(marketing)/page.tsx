@@ -195,13 +195,13 @@ export default function LandingPage() {
     "@graph": [
       {
         "@type": "SoftwareApplication",
-        "@id": "https://chatbot.cybrumsolutions.dev/#product",
+        "@id": "https://www.chatbot.cybrumsolutions.dev/#product",
         name: "CS Chatbot",
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         description:
           "Create a free AI chatbot for your website. Trained only on your own content, cites its sources, and supports English, Urdu, and Roman Urdu.",
-        url: "https://chatbot.cybrumsolutions.dev",
+        url: "https://www.chatbot.cybrumsolutions.dev",
         offers: { "@type": "Offer", price: "0", priceCurrency: "PKR", description: "Free preview and free plan to get started" },
         provider: { "@type": "Organization", name: "Cybrum Solutions", url: CYBRUM_URL },
       },

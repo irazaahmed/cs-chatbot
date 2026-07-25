@@ -14,7 +14,7 @@ const inter = Inter({
   display: "swap",
 });
 
-const BASE_URL = "https://chatbot.cybrumsolutions.dev";
+const BASE_URL = "https://www.chatbot.cybrumsolutions.dev";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
