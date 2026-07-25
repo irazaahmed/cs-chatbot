@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
@@ -26,9 +27,14 @@ const LANGUAGES = [
   { value: "roman_ur", label: "Roman Urdu" },
 ];
 
-export default async function CustomizePage() {
+export default async function CustomizePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
   const { tenant } = await getCurrentTenant();
   const brand = parseBrandConfig(tenant.brandConfig);
+  const { saved } = await searchParams;
 
   async function saveSettings(formData: FormData) {
     "use server";
@@ -50,6 +56,7 @@ export default async function CustomizePage() {
       },
     });
     revalidatePath("/customize");
+    redirect("/customize?saved=1");
   }
 
   const inputClass =
@@ -62,24 +69,31 @@ export default async function CustomizePage() {
         Control how your chatbot looks and behaves.
       </p>
 
+      {saved && (
+        <p className="mt-4 max-w-xl rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-3 text-sm text-success-text">
+          Changes saved.
+        </p>
+      )}
+
       <form
         action={saveSettings}
         className="glass mt-6 max-w-xl space-y-5 rounded-3xl p-7"
       >
         <div>
-          <label className="block text-sm font-medium">Bot name</label>
-          <input name="botName" defaultValue={brand.botName} maxLength={50} className={inputClass} />
+          <label htmlFor="botName" className="block text-sm font-medium">Bot name</label>
+          <input id="botName" name="botName" defaultValue={brand.botName} maxLength={50} className={inputClass} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Greeting</label>
-          <input name="greeting" defaultValue={brand.greeting} maxLength={200} className={inputClass} />
+          <label htmlFor="greeting" className="block text-sm font-medium">Greeting</label>
+          <input id="greeting" name="greeting" defaultValue={brand.greeting} maxLength={200} className={inputClass} />
         </div>
 
         <div className="flex flex-wrap gap-4">
           <div>
-            <label className="block text-sm font-medium">Color</label>
+            <label htmlFor="color" className="block text-sm font-medium">Color</label>
             <input
+              id="color"
               name="color"
               type="color"
               defaultValue={brand.color}
@@ -87,8 +101,9 @@ export default async function CustomizePage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium">Position</label>
+            <label htmlFor="position" className="block text-sm font-medium">Position</label>
             <select
+              id="position"
               name="position"
               defaultValue={brand.position}
               className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none"
@@ -98,8 +113,9 @@ export default async function CustomizePage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium">Language</label>
+            <label htmlFor="language" className="block text-sm font-medium">Language</label>
             <select
+              id="language"
               name="language"
               defaultValue={tenant.language}
               className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none"
@@ -114,11 +130,12 @@ export default async function CustomizePage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium">System prompt</label>
+          <label htmlFor="systemPrompt" className="block text-sm font-medium">System prompt</label>
           <p className="mt-1 text-xs text-muted">
             Instructions for how your bot should behave. It always answers only from your site content.
           </p>
           <textarea
+            id="systemPrompt"
             name="systemPrompt"
             defaultValue={tenant.systemPrompt}
             rows={5}

@@ -96,8 +96,9 @@ export function PlanPicker({
         <input type="hidden" name="planId" value={planId} />
 
         <div>
-          <label className="block text-sm font-medium">Paid via</label>
+          <label htmlFor="method" className="block text-sm font-medium">Paid via</label>
           <select
+            id="method"
             name="method"
             className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none"
           >
@@ -108,13 +109,14 @@ export function PlanPicker({
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Sender name</label>
-          <input name="senderName" required className={inputClass} />
+          <label htmlFor="senderName" className="block text-sm font-medium">Sender name</label>
+          <input id="senderName" name="senderName" required className={inputClass} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Amount paid (PKR)</label>
+          <label htmlFor="amountPKR" className="block text-sm font-medium">Amount paid (PKR)</label>
           <input
+            id="amountPKR"
             name="amountPKR"
             type="number"
             min="1"
@@ -126,8 +128,9 @@ export function PlanPicker({
         </div>
 
         <div>
-          <label className="block text-sm font-medium">Payment screenshot</label>
+          <label htmlFor="screenshot" className="block text-sm font-medium">Payment screenshot</label>
           <input
+            id="screenshot"
             name="screenshot"
             type="file"
             accept="image/jpeg,image/png,image/webp"

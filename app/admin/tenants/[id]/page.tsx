@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/current";
 import { prisma } from "@/lib/db/client";
@@ -45,11 +45,19 @@ async function updateTenant(formData: FormData) {
 
   revalidatePath(`/admin/tenants/${id}`);
   revalidatePath("/admin");
+  redirect(`/admin/tenants/${id}?saved=1`);
 }
 
-export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TenantDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string }>;
+}) {
   await requireAdmin();
   const { id } = await params;
+  const { saved } = await searchParams;
 
   const tenant = await prisma.tenant.findUnique({
     where: { id },
@@ -154,6 +162,12 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
+      {saved && (
+        <p className="mt-6 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-3 text-sm text-success-text">
+          Changes saved.
+        </p>
+      )}
+
       <div className="mt-6 glass rounded-2xl p-6">
         <h2 className="font-heading font-semibold">Manage subscription</h2>
         <p className="mt-1 text-sm text-muted">
@@ -163,8 +177,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         <form action={updateTenant} className="mt-4 flex flex-wrap items-end gap-4">
           <input type="hidden" name="id" value={tenant.id} />
           <div>
-            <label className="block text-xs font-medium text-muted">Status</label>
+            <label htmlFor="status" className="block text-xs font-medium text-muted">Status</label>
             <select
+              id="status"
               name="status"
               defaultValue={tenant.status}
               className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-sm text-foreground outline-none"
@@ -177,8 +192,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted">Plan</label>
+            <label htmlFor="planId" className="block text-xs font-medium text-muted">Plan</label>
             <select
+              id="planId"
               name="planId"
               defaultValue={tenant.planId}
               className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-sm capitalize text-foreground outline-none"
@@ -191,8 +207,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-muted">Period ends</label>
+            <label htmlFor="periodEnd" className="block text-xs font-medium text-muted">Period ends</label>
             <input
+              id="periodEnd"
               type="date"
               name="periodEnd"
               defaultValue={periodEndValue}

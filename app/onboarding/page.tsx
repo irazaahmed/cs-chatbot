@@ -72,19 +72,21 @@ export default async function OnboardingPage() {
         <h1 className="mt-4 font-heading text-2xl font-semibold tracking-tight">Set up your chatbot</h1>
         <p className="mt-2 text-sm text-muted">Tell us about your business.</p>
 
-        <label className="mt-6 block text-sm font-medium">
+        <label htmlFor="name" className="mt-6 block text-sm font-medium">
           Business name
         </label>
         <input
+          id="name"
           name="name"
           required
           className="mt-1.5 w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
         />
 
-        <label className="mt-4 block text-sm font-medium">
+        <label htmlFor="websiteUrl" className="mt-4 block text-sm font-medium">
           Website URL
         </label>
         <input
+          id="websiteUrl"
           name="websiteUrl"
           type="url"
           required
