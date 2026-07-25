@@ -72,37 +72,37 @@ export default function PlaygroundPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Playground</h1>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+      <h1 className="font-heading text-2xl font-semibold tracking-tight">Playground</h1>
+      <p className="mt-1 text-sm text-muted">
         Test your chatbot exactly as a visitor would see it.
       </p>
 
-      <div className="mt-6 flex h-[560px] flex-col rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex-1 space-y-4 overflow-y-auto p-4">
+      <div className="glass mt-6 flex h-[560px] flex-col overflow-hidden rounded-3xl">
+        <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {messages.length === 0 && (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-muted">
               Ask a question a visitor might ask about your business.
             </p>
           )}
           {messages.map((m, i) => (
             <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
               <div
-                className={`inline-block max-w-[85%] rounded-2xl px-4 py-2 text-left ${
+                className={`inline-block max-w-[85%] rounded-2xl px-4 py-2.5 text-left text-[15px] leading-relaxed ${
                   m.role === "user"
-                    ? "bg-black text-white dark:bg-zinc-50 dark:text-black"
-                    : "bg-zinc-100 text-black dark:bg-zinc-800 dark:text-zinc-50"
+                    ? "rounded-br-sm bg-accent text-white"
+                    : "rounded-tl-sm border border-border bg-surface/80 text-foreground"
                 }`}
               >
-                <p className="whitespace-pre-wrap">{m.content || "..."}</p>
+                <p className="whitespace-pre-wrap">{m.content || "…"}</p>
                 {m.citations && m.citations.length > 0 && (
-                  <div className="mt-2 space-y-0.5 border-t border-black/10 pt-2 dark:border-white/10">
+                  <div className="mt-2 space-y-0.5 border-t border-border pt-2">
                     {m.citations.map((c) => (
                       <a
                         key={c}
                         href={c}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block truncate text-xs text-zinc-500 underline dark:text-zinc-400"
+                        className="block truncate text-xs text-accent-bright underline decoration-accent/40 underline-offset-2 transition-colors hover:text-accent"
                       >
                         {c}
                       </a>
@@ -114,7 +114,7 @@ export default function PlaygroundPage() {
           ))}
           <div ref={messagesEndRef} />
         </div>
-        <div className="flex gap-2 border-t border-zinc-200 p-3 dark:border-zinc-800">
+        <div className="flex gap-2 border-t border-border p-3.5">
           <input
             type="text"
             value={input}
@@ -125,15 +125,15 @@ export default function PlaygroundPage() {
                 submitMessage();
               }
             }}
-            placeholder="Type a message..."
+            placeholder="Type a message…"
             disabled={sending}
-            className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+            className="h-11 flex-1 rounded-full border border-border bg-surface/60 px-5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
           />
           <button
             type="button"
             onClick={submitMessage}
             disabled={sending}
-            className="rounded-lg bg-black px-4 py-2 font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-black dark:hover:bg-zinc-200"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-accent px-5 font-medium text-white transition-all duration-300 hover:bg-accent-bright disabled:opacity-50"
           >
             Send
           </button>

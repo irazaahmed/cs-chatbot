@@ -44,7 +44,7 @@ async function main() {
       status: "active",
       planId,
       brandConfig: {
-        color: "#4f46e5",
+        color: "#1e88e8",
         botName: "Assistant",
         greeting: "Hi! How can I help?",
         position: "bottom-right",

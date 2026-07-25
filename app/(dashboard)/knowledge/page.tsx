@@ -57,10 +57,10 @@ export default async function KnowledgePage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Knowledge</h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">Knowledge</h1>
+          <p className="mt-1 text-sm text-muted">
             {pages.size} page(s), {documents.length} chunk(s) indexed.
           </p>
         </div>
@@ -68,7 +68,7 @@ export default async function KnowledgePage() {
           <button
             type="submit"
             disabled={!tenant.verified}
-            className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-40 dark:bg-zinc-50 dark:text-black"
+            className="btn-sheen rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)] disabled:opacity-40"
           >
             Recrawl site
           </button>
@@ -76,46 +76,55 @@ export default async function KnowledgePage() {
       </div>
 
       {latestJob && (
-        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-3 flex items-center gap-2 text-xs text-muted">
+          {latestJob.status === "running" && (
+            <span className="flex items-center gap-1">
+              <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright" />
+              <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.15s]" />
+              <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.3s]" />
+            </span>
+          )}
           Last crawl: {latestJob.status}
           {latestJob.status === "running" && progress ? ` (${progress.done}/${progress.total})` : ""}
         </p>
       )}
 
-      <div className="mt-6 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+      <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
         {pages.size === 0 ? (
-          <p className="p-6 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="p-6 text-sm text-muted">
             No pages indexed yet.{" "}
             {tenant.verified ? "Trigger a crawl above." : "Verify your domain first on the Install tab."}
           </p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-zinc-100 text-left text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-              <tr>
-                <th className="px-4 py-2 font-medium">Page</th>
-                <th className="px-4 py-2 font-medium">Chunks</th>
-                <th className="px-4 py-2 font-medium">Tokens</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from(pages.entries()).map(([url, info]) => (
-                <tr key={url} className="border-t border-zinc-200 dark:border-zinc-800">
-                  <td className="px-4 py-2">
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-black underline dark:text-zinc-50"
-                    >
-                      {info.title || url}
-                    </a>
-                  </td>
-                  <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">{info.chunkCount}</td>
-                  <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">{info.tokenCount}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-surface/80 text-left text-muted">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Page</th>
+                  <th className="px-5 py-3 font-medium">Chunks</th>
+                  <th className="px-5 py-3 font-medium">Tokens</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {Array.from(pages.entries()).map(([url, info]) => (
+                  <tr key={url} className="border-t border-border transition-colors hover:bg-accent/5">
+                    <td className="px-5 py-3">
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground underline decoration-accent/40 underline-offset-2 transition-colors hover:text-accent-bright"
+                      >
+                        {info.title || url}
+                      </a>
+                    </td>
+                    <td className="px-5 py-3 tabular-nums text-muted">{info.chunkCount}</td>
+                    <td className="px-5 py-3 tabular-nums text-muted">{info.tokenCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

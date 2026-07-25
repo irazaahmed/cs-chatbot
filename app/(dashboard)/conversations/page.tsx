@@ -6,8 +6,8 @@ export default async function ConversationsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Conversations</h1>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+      <h1 className="font-heading text-2xl font-semibold tracking-tight">Conversations</h1>
+      <p className="mt-1 text-sm text-muted">
         Every conversation your chatbot has had with visitors.
       </p>
       <div className="mt-6">

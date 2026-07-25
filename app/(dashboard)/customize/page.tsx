@@ -13,7 +13,7 @@ interface BrandConfig {
 function parseBrandConfig(raw: unknown): BrandConfig {
   const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   return {
-    color: typeof obj.color === "string" ? obj.color : "#4f46e5",
+    color: typeof obj.color === "string" ? obj.color : "#1e88e8",
     botName: typeof obj.botName === "string" ? obj.botName : "Assistant",
     greeting: typeof obj.greeting === "string" ? obj.greeting : "Hi! How can I help?",
     position: typeof obj.position === "string" ? obj.position : "bottom-right",
@@ -33,7 +33,7 @@ export default async function CustomizePage() {
   async function saveSettings(formData: FormData) {
     "use server";
     const brandConfig: BrandConfig = {
-      color: String(formData.get("color") ?? "#4f46e5"),
+      color: String(formData.get("color") ?? "#1e88e8"),
       botName: String(formData.get("botName") ?? "Assistant").slice(0, 50),
       greeting: String(formData.get("greeting") ?? "Hi! How can I help?").slice(0, 200),
       position: formData.get("position") === "bottom-left" ? "bottom-left" : "bottom-right",
@@ -52,61 +52,57 @@ export default async function CustomizePage() {
     revalidatePath("/customize");
   }
 
+  const inputClass =
+    "mt-1.5 w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]";
+
   return (
     <div>
-      <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Customize</h1>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+      <h1 className="font-heading text-2xl font-semibold tracking-tight">Customize</h1>
+      <p className="mt-1 text-sm text-muted">
         Control how your chatbot looks and behaves.
       </p>
 
-      <form action={saveSettings} className="mt-6 max-w-xl space-y-5">
+      <form
+        action={saveSettings}
+        className="glass mt-6 max-w-xl space-y-5 rounded-3xl p-7"
+      >
         <div>
-          <label className="block text-sm font-medium text-black dark:text-zinc-50">Bot name</label>
-          <input
-            name="botName"
-            defaultValue={brand.botName}
-            maxLength={50}
-            className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
+          <label className="block text-sm font-medium">Bot name</label>
+          <input name="botName" defaultValue={brand.botName} maxLength={50} className={inputClass} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black dark:text-zinc-50">Greeting</label>
-          <input
-            name="greeting"
-            defaultValue={brand.greeting}
-            maxLength={200}
-            className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          />
+          <label className="block text-sm font-medium">Greeting</label>
+          <input name="greeting" defaultValue={brand.greeting} maxLength={200} className={inputClass} />
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <div>
-            <label className="block text-sm font-medium text-black dark:text-zinc-50">Color</label>
+            <label className="block text-sm font-medium">Color</label>
             <input
               name="color"
               type="color"
               defaultValue={brand.color}
-              className="mt-1 h-10 w-16 rounded border border-zinc-300 dark:border-zinc-700"
+              className="mt-1.5 h-11 w-16 cursor-pointer rounded-xl border border-border bg-surface/60"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-black dark:text-zinc-50">Position</label>
+            <label className="block text-sm font-medium">Position</label>
             <select
               name="position"
               defaultValue={brand.position}
-              className="mt-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none"
             >
               <option value="bottom-right">Bottom right</option>
               <option value="bottom-left">Bottom left</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-black dark:text-zinc-50">Language</label>
+            <label className="block text-sm font-medium">Language</label>
             <select
               name="language"
               defaultValue={tenant.language}
-              className="mt-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+              className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none"
             >
               {LANGUAGES.map((l) => (
                 <option key={l.value} value={l.value}>
@@ -118,8 +114,8 @@ export default async function CustomizePage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-black dark:text-zinc-50">System prompt</label>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <label className="block text-sm font-medium">System prompt</label>
+          <p className="mt-1 text-xs text-muted">
             Instructions for how your bot should behave. It always answers only from your site content.
           </p>
           <textarea
@@ -127,13 +123,13 @@ export default async function CustomizePage() {
             defaultValue={tenant.systemPrompt}
             rows={5}
             maxLength={4000}
-            className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            className={inputClass}
           />
         </div>
 
         <button
           type="submit"
-          className="rounded-lg bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-black dark:hover:bg-zinc-200"
+          className="btn-sheen rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)]"
         >
           Save changes
         </button>

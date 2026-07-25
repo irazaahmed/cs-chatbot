@@ -9,12 +9,27 @@ import { saveProofFile } from "@/lib/billing/proof-storage";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  trialing: { label: "Trial", className: "text-zinc-600 dark:text-zinc-400" },
-  active: { label: "Active", className: "text-green-600 dark:text-green-400" },
-  past_due: { label: "Past due", className: "text-amber-600 dark:text-amber-400" },
-  suspended: { label: "Suspended", className: "text-red-600 dark:text-red-400" },
-  canceled: { label: "Canceled", className: "text-red-600 dark:text-red-400" },
+const STATUS_PILLS: Record<string, { label: string; className: string }> = {
+  trialing: {
+    label: "Trial",
+    className: "border-border bg-surface/60 text-muted",
+  },
+  active: {
+    label: "Active",
+    className: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+  },
+  past_due: {
+    label: "Past due",
+    className: "border-amber-400/30 bg-amber-400/10 text-amber-200",
+  },
+  suspended: {
+    label: "Suspended",
+    className: "border-red-400/30 bg-red-400/10 text-red-300",
+  },
+  canceled: {
+    label: "Canceled",
+    className: "border-red-400/30 bg-red-400/10 text-red-300",
+  },
 };
 
 export default async function BillingPage({
@@ -95,25 +110,35 @@ export default async function BillingPage({
     redirect("/billing");
   }
 
-  const statusInfo = STATUS_LABELS[tenant.status] ?? { label: tenant.status, className: "text-zinc-600" };
+  const statusPill = STATUS_PILLS[tenant.status] ?? {
+    label: tenant.status,
+    className: "border-border bg-surface/60 text-muted",
+  };
+
+  const inputClass =
+    "mt-1.5 w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]";
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Billing</h1>
+      <h1 className="font-heading text-2xl font-semibold tracking-tight">Billing</h1>
 
-      <div className="mt-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+      <div className="glass mt-5 rounded-2xl p-6">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-600 dark:text-zinc-400">Status</span>
-          <span className={`font-medium ${statusInfo.className}`}>{statusInfo.label}</span>
+          <span className="text-muted">Status</span>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-medium ${statusPill.className}`}
+          >
+            {statusPill.label}
+          </span>
         </div>
-        <div className="mt-2 flex items-center justify-between text-sm">
-          <span className="text-zinc-600 dark:text-zinc-400">Plan</span>
-          <span className="font-medium capitalize text-black dark:text-zinc-50">{tenant.planId}</span>
+        <div className="mt-3 flex items-center justify-between text-sm">
+          <span className="text-muted">Plan</span>
+          <span className="font-medium capitalize">{tenant.planId}</span>
         </div>
         {tenant.periodEnd && (
-          <div className="mt-2 flex items-center justify-between text-sm">
-            <span className="text-zinc-600 dark:text-zinc-400">Current period ends</span>
-            <span className="font-medium text-black dark:text-zinc-50">
+          <div className="mt-3 flex items-center justify-between text-sm">
+            <span className="text-muted">Current period ends</span>
+            <span className="font-medium tabular-nums">
               {tenant.periodEnd.toLocaleDateString()}
             </span>
           </div>
@@ -121,14 +146,14 @@ export default async function BillingPage({
       </div>
 
       {pendingPayment ? (
-        <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+        <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 text-sm text-amber-200">
           Payment <span className="font-mono">{pendingPayment.invoiceRef}</span> submitted and awaiting
           approval. Your access is already extended while we review it — no action needed.
         </div>
       ) : (
         <>
           {error && (
-            <p className="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+            <p className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-red-300">
               {error === "2"
                 ? "That file couldn't be saved — use a JPEG, PNG, or WEBP under 5MB."
                 : error === "3"
@@ -137,46 +162,46 @@ export default async function BillingPage({
             </p>
           )}
 
-          <div className="mt-6 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-            <h2 className="font-medium text-black dark:text-zinc-50">
+          <div className="glass mt-6 rounded-3xl p-7">
+            <h2 className="font-heading text-lg font-semibold tracking-tight">
               Pay Rs. {price.toLocaleString()} for the {tenant.planId} plan
             </h2>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mt-1.5 text-sm text-muted">
               Put this reference in your transaction remarks:{" "}
-              <span className="font-mono font-medium text-black dark:text-zinc-50">{invoiceRef}</span>
+              <span className="rounded-md border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono text-sm font-medium text-accent-bright">
+                {invoiceRef}
+              </span>
             </p>
 
-            <dl className="mt-4 space-y-1 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-zinc-600 dark:text-zinc-400">JazzCash</dt>
-                <dd className="text-black dark:text-zinc-50">{instructions.jazzCash}</dd>
+            <dl className="mt-5 space-y-2 text-sm">
+              <div className="flex justify-between rounded-xl bg-surface/60 px-4 py-2.5">
+                <dt className="text-muted">JazzCash</dt>
+                <dd className="font-medium tabular-nums">{instructions.jazzCash}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-600 dark:text-zinc-400">EasyPaisa</dt>
-                <dd className="text-black dark:text-zinc-50">{instructions.easyPaisa}</dd>
+              <div className="flex justify-between rounded-xl bg-surface/60 px-4 py-2.5">
+                <dt className="text-muted">EasyPaisa</dt>
+                <dd className="font-medium tabular-nums">{instructions.easyPaisa}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-600 dark:text-zinc-400">Bank</dt>
-                <dd className="text-right text-black dark:text-zinc-50">
+              <div className="flex justify-between gap-6 rounded-xl bg-surface/60 px-4 py-2.5">
+                <dt className="text-muted">Bank</dt>
+                <dd className="text-right font-medium">
                   {instructions.bankName}
                   <br />
                   {instructions.bankAccountTitle} — {instructions.bankAccountNumber}
                   <br />
-                  {instructions.bankIban}
+                  <span className="tabular-nums">{instructions.bankIban}</span>
                 </dd>
               </div>
             </dl>
 
-            <form action={submitPayment} className="mt-6 space-y-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+            <form action={submitPayment} className="mt-6 space-y-4 border-t border-border pt-5">
               <input type="hidden" name="invoiceRef" value={invoiceRef} />
 
               <div>
-                <label className="block text-sm font-medium text-black dark:text-zinc-50">
-                  Paid via
-                </label>
+                <label className="block text-sm font-medium">Paid via</label>
                 <select
                   name="method"
-                  className="mt-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none"
                 >
                   <option value="jazzcash">JazzCash</option>
                   <option value="easypaisa">EasyPaisa</option>
@@ -185,46 +210,36 @@ export default async function BillingPage({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-black dark:text-zinc-50">
-                  Sender name
-                </label>
-                <input
-                  name="senderName"
-                  required
-                  className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-                />
+                <label className="block text-sm font-medium">Sender name</label>
+                <input name="senderName" required className={inputClass} />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-black dark:text-zinc-50">
-                  Amount paid (PKR)
-                </label>
+                <label className="block text-sm font-medium">Amount paid (PKR)</label>
                 <input
                   name="amountPKR"
                   type="number"
                   min="1"
                   defaultValue={price}
                   required
-                  className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-black dark:text-zinc-50">
-                  Payment screenshot
-                </label>
+                <label className="block text-sm font-medium">Payment screenshot</label>
                 <input
                   name="screenshot"
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   required
-                  className="mt-1 w-full text-sm text-zinc-600 dark:text-zinc-400"
+                  className="mt-1.5 w-full text-sm text-muted file:mr-4 file:rounded-full file:border-0 file:bg-accent/15 file:px-4 file:py-2 file:text-sm file:font-medium file:text-accent-bright hover:file:bg-accent/25"
                 />
               </div>
 
               <button
                 type="submit"
-                className="rounded-lg bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-black dark:hover:bg-zinc-200"
+                className="btn-sheen rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)]"
               >
                 Submit payment
               </button>

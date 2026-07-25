@@ -1,26 +1,284 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------
+   Cybrum Chatbot: design tokens, ported from the Cybrum Solutions
+   marketing site so the product carries the same brand (blue + black).
+   Tailwind v4 CSS-first config: utilities like bg-background,
+   text-accent, font-heading are generated from these tokens.
+   The app is dark-only by design (brand look, no theme toggle).
+------------------------------------------------------------------- */
+@theme {
+  /* Surfaces */
+  --color-background: #0a0d14;
+  --color-surface: #11151f;
+  --color-card: #141926;
+  --color-border: #222a3a;
+
+  /* Brand accent (sampled from the Cybrum logo blue) */
+  --color-accent: #1e88e8;
+  --color-accent-bright: #46a4ff;
+  --color-accent-dim: #1564b0;
+
+  /* Text */
+  --color-foreground: #e9edf5;
+  --color-muted: #97a3b6;
+
+  /* Typography */
+  --font-heading: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Motion */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+  color: #fff;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+}
+
+/* ------------------------------------------------------------------
+   Utilities (same names as the marketing site)
+------------------------------------------------------------------- */
+
+/* Faint perspective grid lines */
+@utility bg-grid-lines {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-accent) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-accent) 8%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* Blue gradient text for emphasis */
+@utility text-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-foreground) 0%,
+    var(--color-accent-bright) 60%,
+    var(--color-accent) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Animated gradient text that continuously pans */
+@utility text-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-foreground) 20%,
+    var(--color-accent-bright) 45%,
+    #ffffff 50%,
+    var(--color-accent-bright) 55%,
+    var(--color-foreground) 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+
+/* Frosted glass surface */
+@utility glass {
+  background: color-mix(in srgb, var(--color-card) 70%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+}
+
+/* Soft accent glow (behind hero / CTAs) */
+@utility glow-accent {
+  box-shadow: 0 0 40px -8px color-mix(in srgb, var(--color-accent) 60%, transparent);
+}
+
+/* Ambient glow orbs: pre-computed radial gradients (no blur() filters,
+   which force scrolling onto the main thread on integrated GPUs). */
+.glow-orb {
+  border-radius: 9999px;
+  background: radial-gradient(
+    closest-side,
+    var(--glow, color-mix(in srgb, var(--color-accent) 12%, transparent)),
+    transparent 72%
+  );
+}
+
+/* Primary-button sheen: a light streak sweeps across on hover */
+.btn-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.btn-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 65%
+  );
+  transform: translateX(-150%);
+  transition: transform 0.7s var(--ease-out-soft);
+  pointer-events: none;
+}
+.btn-sheen:hover::after {
+  transform: translateX(150%);
+}
+
+/* Animated section divider: the gradient slowly pans through the line */
+.divider-animated {
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-accent) 45%, transparent) 35%,
+    color-mix(in srgb, var(--color-accent-bright) 70%, transparent) 50%,
+    color-mix(in srgb, var(--color-accent) 45%, transparent) 65%,
+    transparent
+  );
+  background-size: 220% 100%;
+  animation: divider-pan 7s ease-in-out infinite;
+}
+
+/* Typing-indicator dots (widget preview, loading states) */
+.pv-dot {
+  animation: dot-blink 1.2s ease-in-out infinite;
+}
+
+/* Scroll-reveal: .reveal starts hidden, .reveal-visible animates in.
+   Driven by a small IntersectionObserver component (no dependency). */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s var(--ease-out-soft),
+    transform 0.6s var(--ease-out-soft);
+  transition-delay: var(--reveal-delay, 0s);
+}
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.animate-float-slow {
+  animation: float-slow 14s ease-in-out infinite;
+}
+.animate-float-slower {
+  animation: float-slower 20s ease-in-out infinite;
+}
+.animate-float-y {
+  animation: float-y 5s ease-in-out infinite;
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2.4s ease-in-out infinite;
+}
+
+/* Branded keyboard focus ring (mouse clicks stay clean via :focus-visible). */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------
+   Keyframes
+------------------------------------------------------------------- */
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes divider-pan {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes dot-blink {
+  0%, 100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(4%, -6%) scale(1.08);
+  }
+}
+
+@keyframes float-slower {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-5%, 5%) scale(1.12);
+  }
+}
+
+@keyframes float-y {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(0.94);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Accessibility: respect reduced motion
+------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }

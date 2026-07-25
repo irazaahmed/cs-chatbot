@@ -28,7 +28,7 @@ async function createTenant(formData: FormData) {
       allowedDomains: [],
       verifyToken: randomBytes(16).toString("hex"),
       brandConfig: {
-        color: "#4f46e5",
+        color: "#1e88e8",
         botName: "Assistant",
         greeting: "Hi! How can I help?",
         position: "bottom-right",
@@ -48,24 +48,33 @@ export default async function OnboardingPage() {
   if (existing) redirect("/playground");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-black">
+    <div className="relative flex min-h-screen items-center justify-center px-4">
+      <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-background">
+        <div className="absolute inset-0 bg-grid-lines opacity-40" />
+        <div className="glow-orb animate-float-slow absolute left-1/2 top-1/3 h-[30rem] w-[30rem] -translate-x-1/2 -translate-y-1/2 [--glow:color-mix(in_srgb,var(--color-accent)_14%,transparent)]" />
+      </div>
+
       <form
         action={createTenant}
-        className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-900"
+        className="glass w-full max-w-md rounded-3xl p-8 shadow-[0_24px_70px_-30px_var(--color-accent)]"
       >
-        <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">Set up your chatbot</h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Tell us about your business.</p>
+        <span className="inline-flex items-center gap-2.5 rounded-full border border-accent/25 bg-accent/5 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-accent-bright">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent-bright shadow-[0_0_8px_var(--color-accent)]" />
+          Step 1 of 2
+        </span>
+        <h1 className="mt-4 font-heading text-2xl font-semibold tracking-tight">Set up your chatbot</h1>
+        <p className="mt-2 text-sm text-muted">Tell us about your business.</p>
 
-        <label className="mt-6 block text-sm font-medium text-black dark:text-zinc-50">
+        <label className="mt-6 block text-sm font-medium">
           Business name
         </label>
         <input
           name="name"
           required
-          className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+          className="mt-1.5 w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
         />
 
-        <label className="mt-4 block text-sm font-medium text-black dark:text-zinc-50">
+        <label className="mt-4 block text-sm font-medium">
           Website URL
         </label>
         <input
@@ -73,12 +82,12 @@ export default async function OnboardingPage() {
           type="url"
           required
           placeholder="https://yourbusiness.com"
-          className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-black dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+          className="mt-1.5 w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
         />
 
         <button
           type="submit"
-          className="mt-6 w-full rounded-lg bg-black px-4 py-3 font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-black dark:hover:bg-zinc-200"
+          className="btn-sheen mt-7 w-full rounded-full bg-accent px-4 py-3 font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_36px_-6px_var(--color-accent)]"
         >
           Continue
         </button>

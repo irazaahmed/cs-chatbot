@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/current";
 import { prisma } from "@/lib/db/client";
@@ -53,62 +54,82 @@ export default async function AdminPage() {
   const tenantById = new Map(tenants.map((t) => [t.id, t]));
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6 dark:bg-black">
-      <h1 className="text-xl font-semibold text-black dark:text-zinc-50">Payment approvals</h1>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Verify each reference against your real bank statement before approving — the screenshot
-        is a supporting document, not proof (CLAUDE.md section 9).
-      </p>
+    <div className="relative min-h-screen p-6 sm:p-8">
+      <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-background">
+        <div className="absolute inset-0 bg-grid-lines opacity-30" />
+        <div className="glow-orb animate-float-slow absolute right-[-14%] top-[-12%] h-[30rem] w-[30rem] [--glow:color-mix(in_srgb,var(--color-accent)_9%,transparent)]" />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">Payment approvals</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted">
+            Verify each reference against your real bank statement before approving — the screenshot
+            is a supporting document, not proof.
+          </p>
+        </div>
+        <Link
+          href="/playground"
+          className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm text-foreground transition-colors hover:border-accent"
+        >
+          Back to dashboard
+        </Link>
+      </div>
 
       {payments.length === 0 ? (
-        <p className="mt-6 rounded-lg border border-zinc-200 p-6 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+        <p className="mt-6 rounded-2xl border border-border bg-card/60 p-6 text-sm text-muted backdrop-blur-sm">
           Nothing pending.
         </p>
       ) : (
-        <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-5">
           {payments.map((payment) => {
             const tenant = tenantById.get(payment.tenantId);
             return (
-              <div
-                key={payment.id}
-                className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
-              >
-                <div className="flex items-start justify-between">
+              <div key={payment.id} className="glass rounded-2xl p-6">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-medium text-black dark:text-zinc-50">
+                    <p className="font-heading font-semibold">
                       {tenant?.name ?? payment.tenantId}
                     </p>
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">{tenant?.websiteUrl}</p>
+                    <p className="text-sm text-muted">{tenant?.websiteUrl}</p>
                   </div>
                   <a
                     href={`/api/admin/payments/${payment.id}/proof`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 underline dark:text-blue-400"
+                    className="rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-sm text-accent-bright transition-colors hover:bg-accent/20"
                   >
                     View screenshot
                   </a>
                 </div>
 
-                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                  <dt className="text-zinc-600 dark:text-zinc-400">Reference</dt>
-                  <dd className="font-mono text-black dark:text-zinc-50">{payment.invoiceRef}</dd>
-                  <dt className="text-zinc-600 dark:text-zinc-400">Amount</dt>
-                  <dd className="text-black dark:text-zinc-50">
-                    Rs. {payment.amountPKR.toLocaleString()}
-                  </dd>
-                  <dt className="text-zinc-600 dark:text-zinc-400">Method</dt>
-                  <dd className="text-black dark:text-zinc-50">{payment.method}</dd>
-                  <dt className="text-zinc-600 dark:text-zinc-400">Sender name</dt>
-                  <dd className="text-black dark:text-zinc-50">{payment.senderName}</dd>
+                <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+                  <div>
+                    <dt className="text-xs uppercase tracking-wider text-muted">Reference</dt>
+                    <dd className="mt-0.5 font-mono text-accent-bright">{payment.invoiceRef}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wider text-muted">Amount</dt>
+                    <dd className="mt-0.5 font-medium tabular-nums">
+                      Rs. {payment.amountPKR.toLocaleString()}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wider text-muted">Method</dt>
+                    <dd className="mt-0.5 capitalize">{payment.method}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wider text-muted">Sender name</dt>
+                    <dd className="mt-0.5">{payment.senderName}</dd>
+                  </div>
                 </dl>
 
-                <div className="mt-4 flex items-center gap-3">
+                <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
                   <form action={approvePayment}>
                     <input type="hidden" name="id" value={payment.id} />
                     <button
                       type="submit"
-                      className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                      className="rounded-full bg-emerald-500 px-5 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-emerald-400 hover:shadow-[0_0_24px_-6px_rgb(16,185,129)]"
                     >
                       Approve
                     </button>
@@ -118,11 +139,11 @@ export default async function AdminPage() {
                     <input
                       name="note"
                       placeholder="Reason (optional)"
-                      className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                      className="rounded-full border border-border bg-surface/60 px-4 py-2 text-sm text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
                     />
                     <button
                       type="submit"
-                      className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                      className="rounded-full border border-red-400/40 px-5 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10"
                     >
                       Reject
                     </button>
