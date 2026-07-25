@@ -297,7 +297,7 @@ export default function LandingPage() {
         )}
 
         {error && (
-          <p className="mx-auto mt-5 max-w-2xl rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-center text-sm text-red-300">
+          <p className="mx-auto mt-5 max-w-2xl rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-center text-sm text-danger-text">
             {error}
           </p>
         )}

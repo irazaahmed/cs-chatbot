@@ -26,6 +26,14 @@
   --color-foreground: #e9edf5;
   --color-muted: #97a3b6;
 
+  /* Status text — paired with a translucent bg-*-400/10 + border-*-400/30
+     of the same hue (those stay legible on both themes at low opacity).
+     Only the text itself needs a theme-aware swap: pale 300/200 shades
+     read fine on dark surfaces but fail contrast on light ones. */
+  --color-danger-text: #fca5a5;
+  --color-success-text: #6ee7b7;
+  --color-warning-text: #fde68a;
+
   /* Typography */
   --font-heading: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -55,6 +63,10 @@
 
   --color-foreground: #101727;
   --color-muted: #54607a;
+
+  --color-danger-text: #b91c1c;
+  --color-success-text: #047857;
+  --color-warning-text: #92400e;
 }
 
 /* Theme-toggle icon swap (driven by data-theme, no JS state needed). */
@@ -80,6 +92,12 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Browsers default <button> to cursor: default, not pointer (unlike <a>).
+   Every button in this app is clickable, so make that obvious on hover. */
+button:not(:disabled) {
+  cursor: pointer;
 }
 
 ::selection {

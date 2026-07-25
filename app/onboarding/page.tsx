@@ -8,6 +8,13 @@ async function createTenant(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
+  // One tenant per account. The page-load check below redirects away before
+  // this form ever renders for a returning user, but that doesn't stop a
+  // resubmitted/double-clicked form from racing a second tenant into
+  // existence — check again here, at the point that actually writes.
+  const existing = await prisma.tenant.findFirst({ where: { ownerId: session.user.id } });
+  if (existing) redirect("/playground");
+
   const name = String(formData.get("name") ?? "").trim();
   const websiteUrlInput = String(formData.get("websiteUrl") ?? "").trim();
   if (!name || !websiteUrlInput) return;

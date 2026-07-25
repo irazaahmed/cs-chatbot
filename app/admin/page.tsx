@@ -2,8 +2,17 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/current";
 import { prisma } from "@/lib/db/client";
+import { getTenantsOverview } from "@/lib/admin/overview";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const STATUS_PILLS: Record<string, string> = {
+  trialing: "border-border bg-surface/60 text-muted",
+  active: "border-emerald-400/30 bg-emerald-400/10 text-success-text",
+  past_due: "border-amber-400/30 bg-amber-400/10 text-warning-text",
+  suspended: "border-red-400/30 bg-red-400/10 text-danger-text",
+  canceled: "border-red-400/30 bg-red-400/10 text-danger-text",
+};
 
 async function approvePayment(formData: FormData) {
   "use server";
@@ -52,6 +61,8 @@ export default async function AdminPage() {
     select: { id: true, name: true, websiteUrl: true },
   });
   const tenantById = new Map(tenants.map((t) => [t.id, t]));
+
+  const overview = await getTenantsOverview();
 
   return (
     <div className="relative min-h-screen p-6 sm:p-8">
@@ -147,7 +158,7 @@ export default async function AdminPage() {
                     />
                     <button
                       type="submit"
-                      className="rounded-full border border-red-400/40 px-5 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/10"
+                      className="rounded-full border border-red-400/40 px-5 py-2 text-sm font-medium text-danger-text transition-colors hover:bg-red-500/10"
                     >
                       Reject
                     </button>
@@ -158,6 +169,80 @@ export default async function AdminPage() {
           })}
         </div>
       )}
+
+      <div className="mt-12">
+        <h2 className="font-heading text-xl font-semibold tracking-tight">All tenants</h2>
+        <p className="mt-1 max-w-2xl text-sm text-muted">
+          Every signup — verification, plan, usage, and where they stand on billing, in one place.
+        </p>
+
+        {overview.length === 0 ? (
+          <p className="mt-4 rounded-2xl border border-border bg-card/60 p-6 text-sm text-muted backdrop-blur-sm">
+            No signups yet.
+          </p>
+        ) : (
+          <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-surface/80 text-left text-muted">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Business</th>
+                    <th className="px-4 py-3 font-medium">Owner</th>
+                    <th className="px-4 py-3 font-medium">Website</th>
+                    <th className="px-4 py-3 font-medium">Verified</th>
+                    <th className="px-4 py-3 font-medium">Plan</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Pages</th>
+                    <th className="px-4 py-3 font-medium">Msgs (mo)</th>
+                    <th className="px-4 py-3 font-medium">Last active</th>
+                    <th className="px-4 py-3 font-medium">Period ends</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overview.map((t) => (
+                    <tr key={t.id} className="border-t border-border transition-colors hover:bg-accent/5">
+                      <td className="px-4 py-3 font-medium text-foreground">{t.name}</td>
+                      <td className="px-4 py-3 text-muted">{t.ownerEmail}</td>
+                      <td className="max-w-[14rem] truncate px-4 py-3 text-muted">
+                        <a href={t.websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:text-accent-bright">
+                          {t.websiteUrl}
+                        </a>
+                      </td>
+                      <td className="px-4 py-3">
+                        {t.verified ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-medium text-success-text">
+                            {t.verifyMethod ?? "yes"}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-0.5 text-xs font-medium text-warning-text">
+                            no
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 capitalize text-muted">{t.planId}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${STATUS_PILLS[t.status] ?? "border-border bg-surface/60 text-muted"}`}
+                        >
+                          {t.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-muted">{t.pageCount}</td>
+                      <td className="px-4 py-3 tabular-nums text-muted">{t.messagesThisMonth}</td>
+                      <td className="px-4 py-3 text-muted">
+                        {t.lastActiveAt ? t.lastActiveAt.toLocaleDateString() : "never"}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-muted">
+                        {t.periodEnd ? t.periodEnd.toLocaleDateString() : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

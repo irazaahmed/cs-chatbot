@@ -67,7 +67,7 @@ export default async function InstallPage({
           </p>
 
           {error && (
-            <p className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-red-300">
+            <p className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-danger-text">
               Verification failed. Make sure the change is live, then try again.
             </p>
           )}
@@ -127,13 +127,13 @@ export default async function InstallPage({
 
           <div className="mt-6">
             {widgetDetected === true && (
-              <p className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-medium text-emerald-300">
+              <p className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-medium text-success-text">
                 <span className="h-2 w-2 animate-pulse-soft rounded-full bg-emerald-400" />
                 Widget detected on your site.
               </p>
             )}
             {widgetDetected === false && (
-              <p className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-200">
+              <p className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-warning-text">
                 <span className="h-2 w-2 rounded-full bg-amber-400" />
                 Widget not detected yet. Add the script tag above, then refresh this page.
               </p>

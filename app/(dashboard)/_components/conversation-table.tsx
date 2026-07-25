@@ -56,12 +56,12 @@ export async function ConversationTable({ tenantId, answeredOnly }: { tenantId: 
                 <td className="px-5 py-3 tabular-nums text-muted">{messageCount(c.messages)}</td>
                 <td className="px-5 py-3">
                   {c.answered ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-medium text-success-text">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                       Yes
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-400/30 bg-red-400/10 px-2.5 py-0.5 text-xs font-medium text-red-300">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-400/30 bg-red-400/10 px-2.5 py-0.5 text-xs font-medium text-danger-text">
                       <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
                       No
                     </span>

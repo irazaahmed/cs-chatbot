@@ -12,19 +12,19 @@ const STATUS_PILLS: Record<string, { label: string; className: string }> = {
   },
   active: {
     label: "Active",
-    className: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+    className: "border-emerald-400/30 bg-emerald-400/10 text-success-text",
   },
   past_due: {
     label: "Past due",
-    className: "border-amber-400/30 bg-amber-400/10 text-amber-200",
+    className: "border-amber-400/30 bg-amber-400/10 text-warning-text",
   },
   suspended: {
     label: "Suspended",
-    className: "border-red-400/30 bg-red-400/10 text-red-300",
+    className: "border-red-400/30 bg-red-400/10 text-danger-text",
   },
   canceled: {
     label: "Canceled",
-    className: "border-red-400/30 bg-red-400/10 text-red-300",
+    className: "border-red-400/30 bg-red-400/10 text-danger-text",
   },
 };
 
@@ -78,14 +78,14 @@ export default async function BillingPage({
       </div>
 
       {pendingPayment ? (
-        <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 text-sm text-amber-200">
+        <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 text-sm text-warning-text">
           Payment <span className="font-mono">{pendingPayment.invoiceRef}</span> submitted and awaiting
           approval. Your access is already extended while we review it — no action needed.
         </div>
       ) : (
         <>
           {error && (
-            <p className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-red-300">
+            <p className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-danger-text">
               {error === "2"
                 ? "That file couldn't be saved — use a JPEG, PNG, or WEBP under 5MB."
                 : error === "3"

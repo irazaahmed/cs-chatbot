@@ -8,7 +8,11 @@ import { prisma } from "@/lib/db/client";
 // our own User table in sync on every login instead.
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [Google],
-  session: { strategy: "jwt" },
+  // Long-lived, sliding session: the JWT is re-issued on every request
+  // within maxAge (default updateAge is 24h), so an active user effectively
+  // never gets signed out — only an explicit "Sign out" or 180 days of
+  // total inactivity ends the session.
+  session: { strategy: "jwt", maxAge: 180 * 24 * 60 * 60 },
   pages: { signIn: "/login" },
   callbacks: {
     async signIn({ user }) {

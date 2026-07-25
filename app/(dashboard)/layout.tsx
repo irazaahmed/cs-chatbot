@@ -129,7 +129,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       <main className="min-w-0 flex-1 p-6 pt-[7.5rem] sm:p-8 lg:pt-8">
         {!tenant.verified && (
-          <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-amber-200">
+          <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-warning-text">
             Your domain isn&apos;t verified yet. Visit the{" "}
             <Link href="/install" className="font-medium underline underline-offset-2">
               Install
@@ -138,7 +138,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         )}
         {tenant.status === "past_due" && (
-          <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-amber-200">
+          <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-warning-text">
             Your payment is past due. Your chatbot still works, but visit{" "}
             <Link href="/billing" className="font-medium underline underline-offset-2">
               Billing
@@ -147,7 +147,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         )}
         {(tenant.status === "suspended" || tenant.status === "canceled") && (
-          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3.5 text-sm text-red-300">
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3.5 text-sm text-danger-text">
             Your chatbot is currently {tenant.status === "canceled" ? "canceled" : "suspended"} and
             not responding to visitors. Visit{" "}
             <Link href="/billing" className="font-medium underline underline-offset-2">
