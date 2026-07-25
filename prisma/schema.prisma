@@ -108,6 +108,7 @@ model Payment {
   id          String    @id @default(cuid())
   tenantId    String
   invoiceRef  String    @unique
+  planId      String    @default("starter") // plan the tenant is paying to be on; applied to Tenant.planId on approval
   amountPKR   Int
   method      String
   senderName  String

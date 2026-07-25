@@ -17,7 +17,7 @@ async function approvePayment(formData: FormData) {
     prisma.payment.update({ where: { id }, data: { status: "verified", reviewedAt: now } }),
     prisma.tenant.update({
       where: { id: payment.tenantId },
-      data: { status: "active", periodEnd: new Date(now.getTime() + 30 * DAY_MS) },
+      data: { status: "active", planId: payment.planId, periodEnd: new Date(now.getTime() + 30 * DAY_MS) },
     }),
   ]);
   revalidatePath("/admin");
@@ -107,6 +107,10 @@ export default async function AdminPage() {
                   <div>
                     <dt className="text-xs uppercase tracking-wider text-muted">Reference</dt>
                     <dd className="mt-0.5 font-mono text-accent-bright">{payment.invoiceRef}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wider text-muted">Plan requested</dt>
+                    <dd className="mt-0.5 font-medium capitalize">{payment.planId}</dd>
                   </div>
                   <div>
                     <dt className="text-xs uppercase tracking-wider text-muted">Amount</dt>
