@@ -281,11 +281,11 @@ export default function LandingPage() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://yourbusiness.com"
-                className="h-14 w-full flex-1 appearance-none rounded-full border border-border bg-surface px-6 text-base text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
+                className="h-14 min-h-[3.5rem] w-full shrink-0 appearance-none rounded-full border border-border bg-surface px-6 text-base text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)] sm:flex-1 sm:shrink"
               />
               <button
                 type="submit"
-                className="btn-sheen inline-flex h-14 items-center justify-center gap-2 rounded-full bg-accent px-8 font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_36px_-6px_var(--color-accent)]"
+                className="btn-sheen inline-flex h-14 min-h-[3.5rem] shrink-0 items-center justify-center gap-2 rounded-full bg-accent px-8 font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_36px_-6px_var(--color-accent)]"
               >
                 Preview my chatbot
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
