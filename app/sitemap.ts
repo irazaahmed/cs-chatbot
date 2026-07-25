@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const BASE_URL = "https://www.chatbot.cybrumsolutions.dev";
+const BASE_URL = "https://chatbot.cybrumsolutions.dev";
 
 // Only the public, indexable routes — dashboard/admin pages require auth
 // and must stay out of the sitemap.
