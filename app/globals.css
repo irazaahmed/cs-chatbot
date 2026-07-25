@@ -328,6 +328,178 @@ h1, h2, h3, h4 {
 }
 
 /* ------------------------------------------------------------------
+   Preloader splash: the CS Chatbot mark with an orbiting loading arc.
+   Ported from the Cybrum Solutions marketing site so the product shares
+   the same brand entrance. Rendered in the root layout, covers the page
+   from first paint, fades out once loaded.
+------------------------------------------------------------------- */
+.preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  background: var(--color-background);
+  transition:
+    opacity 0.6s var(--ease-out-soft),
+    visibility 0.6s;
+}
+.preloader-leave {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Splash already played this session (flag set by the inline head script):
+   hide it before hydration so repeat page loads paint content immediately. */
+html[data-splash="seen"] .preloader {
+  display: none;
+}
+
+.preloader-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 9.5rem;
+  height: 9.5rem;
+  transition:
+    transform 0.6s var(--ease-out-soft),
+    opacity 0.6s ease;
+}
+.preloader-leave .preloader-stage {
+  transform: scale(1.12);
+  opacity: 0;
+}
+
+/* soft breathing glow behind the mark */
+.preloader-stage::before {
+  content: "";
+  position: absolute;
+  inset: 1.25rem;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-accent) 28%, transparent) 0%,
+    transparent 70%
+  );
+  animation: preloader-glow 2.6s ease-in-out infinite;
+}
+
+.preloader-logo {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: var(--color-accent-bright);
+  animation: preloader-breathe 2.6s ease-in-out infinite;
+}
+
+/* main loading arc: a tapered conic sweep, masked down to a thin ring */
+.preloader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 210deg,
+    color-mix(in srgb, var(--color-accent) 55%, transparent) 300deg,
+    var(--color-accent-bright) 360deg
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3px),
+    #000 calc(100% - 2px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 3px),
+    #000 calc(100% - 2px)
+  );
+  animation: preloader-spin 1.15s linear infinite;
+}
+
+/* faint counter-rotating outer orbit for depth */
+.preloader-ring-outer {
+  inset: -0.9rem;
+  opacity: 0.4;
+  background: conic-gradient(
+    from 180deg,
+    transparent 0deg,
+    transparent 250deg,
+    color-mix(in srgb, var(--color-accent) 70%, transparent) 360deg
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 2px),
+    #000 calc(100% - 1px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 2px),
+    #000 calc(100% - 1px)
+  );
+  animation: preloader-spin 2.8s linear infinite reverse;
+}
+
+.preloader-word {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.45em;
+  text-indent: 0.45em;
+  color: var(--color-foreground);
+  animation: preloader-fade-up 0.9s var(--ease-out-soft) both;
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s var(--ease-out-soft);
+}
+.preloader-word-sub {
+  color: var(--color-accent-bright);
+}
+.preloader-leave .preloader-word {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+@keyframes preloader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes preloader-breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+@keyframes preloader-glow {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+@keyframes preloader-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ------------------------------------------------------------------
    Accessibility: respect reduced motion
 ------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
