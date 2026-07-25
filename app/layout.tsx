@@ -48,6 +48,9 @@ export const metadata: Metadata = {
     description:
       "Paste your URL, watch it learn your site, and chat instantly — no signup, no card.",
   },
+  verification: {
+    google: "B-ewPtxWvI8ES5EEiQ89Q-rEYdQF82AbE_5uJu4ZRPc",
+  },
 };
 
 export default function RootLayout({
