@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Cybrum Chatbot — AI chatbot trained on your website",
+  title: "CS Chatbot — AI chatbot trained on your website",
   description:
     "Paste your website URL and chat with a bot trained on your own content, in one minute. A Cybrum Solutions product.",
 };

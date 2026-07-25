@@ -5,7 +5,9 @@
    marketing site so the product carries the same brand (blue + black).
    Tailwind v4 CSS-first config: utilities like bg-background,
    text-accent, font-heading are generated from these tokens.
-   The app is dark-only by design (brand look, no theme toggle).
+   Dark is the default; the light overrides below follow the visitor's
+   OS preference automatically (prefers-color-scheme), same as the
+   marketing site.
 ------------------------------------------------------------------- */
 @theme {
   /* Surfaces */
@@ -32,7 +34,25 @@
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
+}
+
+/* Light theme: same surfaces/text as the Cybrum Solutions marketing site's
+   light mode. Auto-applied from the OS/browser preference — no toggle. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-background: #f4f7fc;
+    --color-surface: #ffffff;
+    --color-card: #ffffff;
+    --color-border: #dbe3f0;
+
+    --color-accent: #1773d6;
+    --color-accent-bright: #1565c0;
+    --color-accent-dim: #6aa5e6;
+
+    --color-foreground: #101727;
+    --color-muted: #54607a;
+  }
 }
 
 html,
@@ -98,6 +118,16 @@ h1, h2, h3, h4 {
   background-clip: text;
   color: transparent;
   animation: shimmer 6s linear infinite;
+}
+
+/* Hide scrollbar on horizontally-scrollable strips (mobile nav) while
+   keeping native touch/wheel scrolling. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Frosted glass surface */

@@ -26,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="glow-orb animate-float-slow absolute right-[-14%] top-[-12%] h-[30rem] w-[30rem] [--glow:color-mix(in_srgb,var(--color-accent)_9%,transparent)]" />
       </div>
 
-      <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-4 backdrop-blur-sm">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-4 backdrop-blur-sm lg:flex">
         <div className="flex items-center gap-2.5 px-2 pb-4">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent-bright">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -85,7 +85,44 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </a>
       </aside>
 
-      <main className="min-w-0 flex-1 p-6 sm:p-8">
+      {/* Mobile / tablet top bar: horizontal scrollable nav instead of the fixed sidebar */}
+      <div className="fixed inset-x-0 top-0 z-30 border-b border-border bg-surface/80 backdrop-blur-md lg:hidden">
+        <div className="flex items-center justify-between px-4 pt-3">
+          <p className="truncate font-heading text-sm font-semibold tracking-tight">{tenant.name}</p>
+          {isAdmin && (
+            <Link href="/admin" className="text-xs font-medium text-accent-bright">
+              Admin
+            </Link>
+          )}
+        </div>
+        <nav className="scrollbar-none flex gap-1.5 overflow-x-auto px-4 py-3">
+          {TABS.map((tab) => (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className="shrink-0 rounded-full border border-border px-3.5 py-1.5 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-foreground"
+            >
+              {tab.label}
+            </Link>
+          ))}
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/login" });
+            }}
+            className="shrink-0"
+          >
+            <button
+              type="submit"
+              className="rounded-full border border-border px-3.5 py-1.5 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-foreground"
+            >
+              Sign out
+            </button>
+          </form>
+        </nav>
+      </div>
+
+      <main className="min-w-0 flex-1 p-6 pt-[7.5rem] sm:p-8 lg:pt-8">
         {!tenant.verified && (
           <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-amber-200">
             Your domain isn&apos;t verified yet. Visit the{" "}
