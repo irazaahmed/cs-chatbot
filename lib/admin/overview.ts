@@ -11,7 +11,7 @@ export interface TenantOverviewRow {
   status: string;
   periodEnd: Date | null;
   pageCount: number;
-  messagesThisMonth: number;
+  conversationsThisMonth: number;
   conversationCount: number;
   lastActiveAt: Date | null;
   signedUpAt: Date;
@@ -46,9 +46,7 @@ export async function getTenantsOverview(): Promise<TenantOverviewRow[]> {
       GROUP BY "tenantId"
     `,
     prisma.$queryRaw<{ tenantId: string; usage: bigint }[]>`
-      SELECT "tenantId", COALESCE(SUM(
-        (SELECT count(*) FROM jsonb_array_elements(messages) elem WHERE elem->>'role' = 'user')
-      ), 0) AS usage
+      SELECT "tenantId", COUNT(DISTINCT "sessionId") AS usage
       FROM "Conversation"
       WHERE "createdAt" >= ${periodStart}
       GROUP BY "tenantId"
@@ -71,7 +69,7 @@ export async function getTenantsOverview(): Promise<TenantOverviewRow[]> {
       status: t.status,
       periodEnd: t.periodEnd,
       pageCount: pageByTenant.get(t.id) ?? 0,
-      messagesThisMonth: usageByTenant.get(t.id) ?? 0,
+      conversationsThisMonth: usageByTenant.get(t.id) ?? 0,
       conversationCount: convoByTenant.get(t.id)?.count ?? 0,
       lastActiveAt: convoByTenant.get(t.id)?.last ?? null,
       signedUpAt: t.owner.createdAt,

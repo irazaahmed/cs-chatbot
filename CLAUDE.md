@@ -284,11 +284,17 @@ verification. Everything else does.
 
 ### Plan caps
 
-| Plan | Pages | Messages/month |
+| Plan | Pages | Conversations/month |
 |---|---|---|
-| starter | 15 | 500 |
-| pro | 50 | 2,000 |
-| business | 200 | 10,000 |
+| starter | 100 | 200 |
+| pro | 500 | 800 |
+| business | unlimited (100,000 internally) | 3,000 |
+
+The billing unit is a **conversation** — one visitor chat session (one
+`sessionId`), not an individual message. Each plan is sold in three billing
+cycles: monthly (base), quarterly (10% off 3 months), yearly (20% off 12
+months). Prices and caps live in `lib/billing/plans.ts` (the single source of
+truth); env vars `PLAN_PRICE_PKR_<PLAN>_<CYCLE>` override the compiled defaults.
 
 ---
 

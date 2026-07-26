@@ -1,15 +1,17 @@
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
-import { getMonthlyMessageUsage, planMessageCap, planPageCap } from "@/lib/billing/status";
+import { getMonthlyConversationUsage } from "@/lib/billing/status";
+import { planConversationCap, planPageCap, UNLIMITED_PAGE_CAP } from "@/lib/billing/plans";
 
 function UsageBar({ label, used, cap }: { label: string; used: number; cap: number }) {
-  const pct = Math.min(100, (used / Math.max(1, cap)) * 100);
+  const unlimited = cap >= UNLIMITED_PAGE_CAP;
+  const pct = unlimited ? 0 : Math.min(100, (used / Math.max(1, cap)) * 100);
   return (
     <div className="glass rounded-2xl p-6">
       <div className="flex items-baseline justify-between text-sm">
         <span className="font-heading font-semibold">{label}</span>
         <span className="tabular-nums text-muted">
-          {used.toLocaleString()} / {cap.toLocaleString()}
+          {used.toLocaleString()} / {unlimited ? "∞" : cap.toLocaleString()}
         </span>
       </div>
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface">
@@ -29,12 +31,12 @@ function UsageBar({ label, used, cap }: { label: string; used: number; cap: numb
 export default async function UsagePage() {
   const { tenant } = await getCurrentTenant();
 
-  const [messageUsage, pageCount] = await Promise.all([
-    getMonthlyMessageUsage(tenant.id),
+  const [conversationUsage, pageCount] = await Promise.all([
+    getMonthlyConversationUsage(tenant.id),
     prisma.document.findMany({ where: { tenantId: tenant.id }, select: { sourceUrl: true }, distinct: ["sourceUrl"] }),
   ]);
 
-  const messageCap = planMessageCap(tenant.planId);
+  const conversationCap = planConversationCap(tenant.planId);
   const pageCap = planPageCap(tenant.planId);
 
   return (
@@ -48,7 +50,7 @@ export default async function UsagePage() {
       </p>
 
       <div className="mt-6 space-y-5">
-        <UsageBar label="Messages this month" used={messageUsage} cap={messageCap} />
+        <UsageBar label="Conversations this month" used={conversationUsage} cap={conversationCap} />
         <UsageBar label="Pages indexed" used={pageCount.length} cap={pageCap} />
       </div>
     </div>

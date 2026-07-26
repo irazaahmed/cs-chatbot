@@ -3,8 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/current";
 import { prisma } from "@/lib/db/client";
-import { planPageCap, planMessageCap, getMonthlyMessageUsage } from "@/lib/billing/status";
-import { PLAN_IDS, isPlanId } from "@/lib/billing/plans";
+import { getMonthlyConversationUsage } from "@/lib/billing/status";
+import { PLAN_IDS, isPlanId, planPageCap, planConversationCap, formatPages } from "@/lib/billing/plans";
 
 const STATUS_IDS = ["trialing", "active", "past_due", "suspended", "canceled"] as const;
 type StatusId = (typeof STATUS_IDS)[number];
@@ -65,12 +65,12 @@ export default async function TenantDetailPage({
   });
   if (!tenant) notFound();
 
-  const [payments, conversationCount, leadCount, pages, messagesThisMonth] = await Promise.all([
+  const [payments, conversationCount, leadCount, pages, conversationsThisMonth] = await Promise.all([
     prisma.payment.findMany({ where: { tenantId: id }, orderBy: { periodStart: "desc" } }),
     prisma.conversation.count({ where: { tenantId: id } }),
     prisma.lead.count({ where: { tenantId: id } }),
     prisma.document.findMany({ where: { tenantId: id }, select: { sourceUrl: true }, distinct: ["sourceUrl"] }),
-    getMonthlyMessageUsage(id),
+    getMonthlyConversationUsage(id),
   ]);
 
   const periodEndValue = tenant.periodEnd ? tenant.periodEnd.toISOString().slice(0, 10) : "";
@@ -141,17 +141,17 @@ export default async function TenantDetailPage({
             <div className="flex justify-between gap-4">
               <dt className="text-muted">Pages</dt>
               <dd className="tabular-nums text-foreground">
-                {pages.length} / {planPageCap(tenant.planId)}
+                {pages.length} / {formatPages(planPageCap(tenant.planId)).replace(" pages", "")}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-muted">Messages (this month)</dt>
+              <dt className="text-muted">Conversations (this month)</dt>
               <dd className="tabular-nums text-foreground">
-                {messagesThisMonth} / {planMessageCap(tenant.planId)}
+                {conversationsThisMonth} / {planConversationCap(tenant.planId)}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-muted">Conversations</dt>
+              <dt className="text-muted">Conversations (total)</dt>
               <dd className="tabular-nums text-foreground">{conversationCount}</dd>
             </div>
             <div className="flex justify-between gap-4">

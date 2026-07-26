@@ -239,6 +239,12 @@ export default function LandingPage() {
           </span>
         </a>
         <div className="flex items-center gap-3">
+          <a
+            href="/pricing"
+            className="hidden rounded-full px-4 py-2 text-sm font-medium text-muted transition-colors hover:text-foreground sm:inline-block"
+          >
+            Pricing
+          </a>
           <ThemeToggle />
           <a
             href="/login"
@@ -260,14 +266,16 @@ export default function LandingPage() {
           </Reveal>
           <Reveal delay={0.08}>
             <h1 className="mt-6 font-heading text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
-              Create a free chatbot trained on{" "}
-              <span className="text-shimmer">your website</span>, in one minute
+              Stop losing customers who leave before{" "}
+              <span className="text-shimmer">you reply</span>.
             </h1>
           </Reveal>
           <Reveal delay={0.16}>
             <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
-              Paste your URL. We&apos;ll read your site and let you chat with it
-              right here — no signup, no card, no setup call.
+              Cheaper than one support hire, answering every visitor 24/7.
+            </p>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-muted/80">
+              Paste your URL and chat with a bot trained on your site — no signup, no card.
             </p>
           </Reveal>
         </div>
@@ -477,6 +485,9 @@ export default function LandingPage() {
             </a>
           </p>
           <div className="flex items-center gap-5">
+            <a href="/pricing" className="transition-colors hover:text-foreground">
+              Pricing
+            </a>
             <a href={`${CYBRUM_URL}/products/chatbot`} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground">
               About this product
             </a>

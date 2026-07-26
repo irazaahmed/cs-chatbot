@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { saveProofFile } from "@/lib/billing/proof-storage";
-import { isPlanId } from "@/lib/billing/plans";
+import { isPlanId, isBillingCycle, cycleMonths, addMonths } from "@/lib/billing/plans";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -24,6 +24,8 @@ export async function submitPayment(formData: FormData) {
   const invoiceRefValue = String(formData.get("invoiceRef") ?? "").trim();
   const planIdRaw = String(formData.get("planId") ?? "");
   const planId = isPlanId(planIdRaw) ? planIdRaw : "starter";
+  const cycleRaw = String(formData.get("billingCycle") ?? "");
+  const billingCycle = isBillingCycle(cycleRaw) ? cycleRaw : "monthly";
   const file = formData.get("screenshot") as File | null;
 
   if (!senderName || !invoiceRefValue || !Number.isFinite(amountPKR) || amountPKR <= 0 || !file || file.size === 0) {
@@ -46,13 +48,16 @@ export async function submitPayment(formData: FormData) {
         tenantId: tenant.id,
         invoiceRef: invoiceRefValue,
         planId,
+        billingCycle,
         amountPKR,
         method,
         senderName,
         proofUrl: proofFilename,
         status: "submitted",
         periodStart: now,
-        periodEnd: new Date(now.getTime() + 30 * DAY_MS),
+        // The purchased period the payment covers (informational until an admin
+        // approves) — one/three/twelve months depending on the chosen cycle.
+        periodEnd: addMonths(now, cycleMonths(billingCycle)),
       },
     });
   } catch {

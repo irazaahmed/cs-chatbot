@@ -85,7 +85,7 @@ export async function POST(request: Request): Promise<Response> {
     return disabledResponse(statusGate.message ?? "Chat is temporarily unavailable.");
   }
 
-  const usageGate = await checkMonthlyUsage(tenant.id, tenant.planId);
+  const usageGate = await checkMonthlyUsage(tenant.id, tenant.planId, body.sessionId);
   if (!usageGate.allowed) {
     return disabledResponse(usageGate.message ?? "This chatbot has reached its monthly limit.");
   }

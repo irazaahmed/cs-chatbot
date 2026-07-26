@@ -3,8 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/current";
 import { prisma } from "@/lib/db/client";
 import { getTenantsOverview } from "@/lib/admin/overview";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { isBillingCycle, cycleMonths, addMonths, CYCLE_META } from "@/lib/billing/plans";
 
 const STATUS_PILLS: Record<string, string> = {
   trialing: "border-border bg-surface/60 text-muted",
@@ -22,11 +21,12 @@ async function approvePayment(formData: FormData) {
   if (!payment || payment.status !== "submitted") return;
 
   const now = new Date();
+  const cycle = isBillingCycle(payment.billingCycle) ? payment.billingCycle : "monthly";
   await prisma.$transaction([
     prisma.payment.update({ where: { id }, data: { status: "verified", reviewedAt: now } }),
     prisma.tenant.update({
       where: { id: payment.tenantId },
-      data: { status: "active", planId: payment.planId, periodEnd: new Date(now.getTime() + 30 * DAY_MS) },
+      data: { status: "active", planId: payment.planId, periodEnd: addMonths(now, cycleMonths(cycle)) },
     }),
   ]);
   revalidatePath("/admin");
@@ -121,7 +121,12 @@ export default async function AdminPage() {
                   </div>
                   <div>
                     <dt className="text-xs uppercase tracking-wider text-muted">Plan requested</dt>
-                    <dd className="mt-0.5 font-medium capitalize">{payment.planId}</dd>
+                    <dd className="mt-0.5 font-medium capitalize">
+                      {payment.planId}
+                      <span className="ml-1.5 text-xs font-normal text-muted">
+                        ({CYCLE_META[isBillingCycle(payment.billingCycle) ? payment.billingCycle : "monthly"].label})
+                      </span>
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-xs uppercase tracking-wider text-muted">Amount</dt>
@@ -193,7 +198,7 @@ export default async function AdminPage() {
                     <th className="px-4 py-3 font-medium">Plan</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium">Pages</th>
-                    <th className="px-4 py-3 font-medium">Msgs (mo)</th>
+                    <th className="px-4 py-3 font-medium">Convos (mo)</th>
                     <th className="px-4 py-3 font-medium">Last active</th>
                     <th className="px-4 py-3 font-medium">Period ends</th>
                   </tr>
@@ -232,7 +237,7 @@ export default async function AdminPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 tabular-nums text-muted">{t.pageCount}</td>
-                      <td className="px-4 py-3 tabular-nums text-muted">{t.messagesThisMonth}</td>
+                      <td className="px-4 py-3 tabular-nums text-muted">{t.conversationsThisMonth}</td>
                       <td className="px-4 py-3 text-muted">
                         {t.lastActiveAt ? t.lastActiveAt.toLocaleDateString() : "never"}
                       </td>

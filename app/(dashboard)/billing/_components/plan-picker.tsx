@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { PlanOption } from "@/lib/billing/plans";
+import type { PlanOption, BillingCycle } from "@/lib/billing/plans";
+import { BILLING_CYCLES, CYCLE_META, formatPages } from "@/lib/billing/plans";
 import type { PaymentInstructions } from "@/lib/billing/instructions";
 import { submitPayment } from "@/lib/billing/actions";
 
@@ -21,18 +22,37 @@ export function PlanPicker({
 }) {
   const initial = plans.find((p) => p.id === defaultPlanId) ?? plans[0];
   const [planId, setPlanId] = useState(initial.id);
-  const [amountPKR, setAmountPKR] = useState(initial.pricePKR);
+  const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const [amountPKR, setAmountPKR] = useState(initial.prices.monthly);
 
   const plan = plans.find((p) => p.id === planId) ?? initial;
 
-  function choosePlan(next: PlanOption) {
-    setPlanId(next.id);
-    setAmountPKR(next.pricePKR);
+  function selectPlan(nextPlan: PlanOption, nextCycle: BillingCycle) {
+    setPlanId(nextPlan.id);
+    setCycle(nextCycle);
+    setAmountPKR(nextPlan.prices[nextCycle]);
   }
 
   return (
     <div className="glass mt-6 rounded-3xl p-7">
-      <h2 className="font-heading text-lg font-semibold tracking-tight">Choose a plan</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-heading text-lg font-semibold tracking-tight">Choose a plan</h2>
+        <div className="inline-flex rounded-full border border-border bg-surface/60 p-1 text-xs font-medium">
+          {BILLING_CYCLES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => selectPlan(plan, c)}
+              className={`rounded-full px-3.5 py-1.5 transition-colors ${
+                cycle === c ? "bg-accent text-white" : "text-muted hover:text-foreground"
+              }`}
+            >
+              {CYCLE_META[c].label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {plans.map((p) => {
           const active = p.id === planId;
@@ -40,7 +60,7 @@ export function PlanPicker({
             <button
               key={p.id}
               type="button"
-              onClick={() => choosePlan(p)}
+              onClick={() => selectPlan(p, cycle)}
               className={`rounded-2xl border p-4 text-left transition-colors ${
                 active
                   ? "border-accent bg-accent/10 shadow-[0_0_0_1px_var(--color-accent)]"
@@ -49,11 +69,11 @@ export function PlanPicker({
             >
               <p className="font-heading font-semibold capitalize">{p.label}</p>
               <p className="mt-1 text-lg font-semibold tabular-nums text-accent-bright">
-                Rs. {p.pricePKR.toLocaleString()}
-                <span className="text-xs font-normal text-muted"> /mo</span>
+                Rs {p.prices[cycle].toLocaleString()}
+                <span className="text-xs font-normal text-muted"> /{CYCLE_META[cycle].label.toLowerCase()}</span>
               </p>
               <p className="mt-2 text-xs leading-relaxed text-muted">
-                {p.pageCap.toLocaleString()} pages · {p.messageCap.toLocaleString()} messages/mo
+                {formatPages(p.pageCap)} · {p.conversationCap.toLocaleString()} conversations/mo
               </p>
             </button>
           );
@@ -61,7 +81,8 @@ export function PlanPicker({
       </div>
 
       <h2 className="mt-6 font-heading text-lg font-semibold tracking-tight">
-        Pay Rs. {plan.pricePKR.toLocaleString()} for the {plan.label} plan
+        Pay Rs {plan.prices[cycle].toLocaleString()} for the {plan.label} plan
+        <span className="text-sm font-normal text-muted"> ({CYCLE_META[cycle].label.toLowerCase()})</span>
       </h2>
       <p className="mt-1.5 text-sm text-muted">
         Put this reference in your transaction remarks:{" "}
@@ -94,6 +115,7 @@ export function PlanPicker({
       <form action={submitPayment} className="mt-6 space-y-4 border-t border-border pt-5">
         <input type="hidden" name="invoiceRef" value={invoiceRef} />
         <input type="hidden" name="planId" value={planId} />
+        <input type="hidden" name="billingCycle" value={cycle} />
 
         <div>
           <label htmlFor="method" className="block text-sm font-medium">Paid via</label>

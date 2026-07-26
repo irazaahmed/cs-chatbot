@@ -12,7 +12,7 @@ import { crawlSite } from "./lib/crawl/crawler";
 import { chunkContent } from "./lib/crawl/chunk";
 import { embedTexts } from "./lib/ai/embed";
 import { replaceDocuments, type DocumentChunk } from "./lib/db/vector";
-import { planPageCap } from "./lib/billing/status";
+import { planPageCap } from "./lib/billing/plans";
 import { applyStatusLadder } from "./lib/billing/ladder";
 
 const POLL_INTERVAL_MS = 5000;

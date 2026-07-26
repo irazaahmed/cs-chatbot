@@ -1,15 +1,15 @@
 import { prisma } from "@/lib/db/client";
+import { planConversationCap } from "@/lib/billing/plans";
 
-// Plan caps from CLAUDE.md section 6. Status ladder from section 9 — only
-// suspended/canceled block chat here; past_due still works normally (the
-// forced "Powered by" branding at day 3 is a widget/config concern, not a
-// chat-gating one, and belongs with /api/config in a later phase).
-
-const PLAN_CAPS: Record<string, { pages: number; messagesPerMonth: number }> = {
-  starter: { pages: 15, messagesPerMonth: 500 },
-  pro: { pages: 50, messagesPerMonth: 2000 },
-  business: { pages: 200, messagesPerMonth: 10000 },
-};
+// Status ladder from CLAUDE.md section 9 — only suspended/canceled block chat
+// here; past_due still works normally (the forced "Powered by" branding at day
+// 3 is a widget/config concern, handled in /api/config). Plan caps live in
+// plans.ts, the single source of truth.
+//
+// The usage unit is a *conversation* — one visitor chat session (one
+// sessionId), not an individual message. A session maps to exactly one
+// Conversation row (the chat route appends to it), so counting distinct
+// sessions started this month is the monthly usage.
 
 const DISABLED_STATUSES = new Set(["suspended", "canceled"]);
 
@@ -30,14 +30,12 @@ function startOfCurrentMonthUtc(): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 }
 
-/** Counts visitor-authored messages this calendar month for a tenant. */
-export async function getMonthlyMessageUsage(tenantId: string): Promise<number> {
+/** Counts distinct visitor conversations (chat sessions) started this month. */
+export async function getMonthlyConversationUsage(tenantId: string): Promise<number> {
   const periodStart = startOfCurrentMonthUtc();
 
   const rows = await prisma.$queryRaw<{ usage: bigint }[]>`
-    SELECT COALESCE(SUM(
-      (SELECT count(*) FROM jsonb_array_elements(messages) elem WHERE elem->>'role' = 'user')
-    ), 0) AS usage
+    SELECT COUNT(DISTINCT "sessionId") AS usage
     FROM "Conversation"
     WHERE "tenantId" = ${tenantId} AND "createdAt" >= ${periodStart}
   `;
@@ -45,23 +43,30 @@ export async function getMonthlyMessageUsage(tenantId: string): Promise<number> 
   return Number(rows[0]?.usage ?? 0);
 }
 
-export async function checkMonthlyUsage(tenantId: string, planId: string): Promise<GateResult> {
-  const cap = PLAN_CAPS[planId] ?? PLAN_CAPS.starter;
-  const usage = await getMonthlyMessageUsage(tenantId);
+export async function checkMonthlyUsage(
+  tenantId: string,
+  planId: string,
+  sessionId?: string,
+): Promise<GateResult> {
+  const cap = planConversationCap(planId);
+  const usage = await getMonthlyConversationUsage(tenantId);
 
-  if (usage >= cap.messagesPerMonth) {
-    return {
-      allowed: false,
-      message: "This chatbot has reached its monthly message limit. Please check back next month.",
-    };
+  if (usage < cap) return { allowed: true };
+
+  // At/over the cap, a conversation already counted this month may still
+  // continue — the cap limits *new* conversations, and cutting off a visitor
+  // mid-chat is worse than letting an in-flight session finish.
+  if (sessionId) {
+    const periodStart = startOfCurrentMonthUtc();
+    const existing = await prisma.conversation.findFirst({
+      where: { tenantId, sessionId, createdAt: { gte: periodStart } },
+      select: { id: true },
+    });
+    if (existing) return { allowed: true };
   }
-  return { allowed: true };
-}
 
-export function planPageCap(planId: string): number {
-  return (PLAN_CAPS[planId] ?? PLAN_CAPS.starter).pages;
-}
-
-export function planMessageCap(planId: string): number {
-  return (PLAN_CAPS[planId] ?? PLAN_CAPS.starter).messagesPerMonth;
+  return {
+    allowed: false,
+    message: "This chatbot has reached its monthly conversation limit. Please check back next month.",
+  };
 }
