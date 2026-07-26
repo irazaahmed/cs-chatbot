@@ -84,13 +84,13 @@ export default function PlaygroundPage() {
   }
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col lg:h-full">
       <h1 className="font-heading text-2xl font-semibold tracking-tight">Playground</h1>
       <p className="mt-1 text-sm text-muted">
         Test your chatbot exactly as a visitor would see it.
       </p>
 
-      <div className="glass mt-6 flex h-[560px] flex-col overflow-hidden rounded-3xl">
+      <div className="glass mt-6 flex h-[560px] min-h-0 flex-col overflow-hidden rounded-3xl lg:h-auto lg:flex-1">
         <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto p-5">
           {messages.length === 0 && (
             <p className="text-sm text-muted">

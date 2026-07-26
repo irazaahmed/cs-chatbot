@@ -62,7 +62,7 @@ const PLAN_DEFS: Record<PlanId, PlanDef> = {
     features: [
       "Everything in Starter",
       "Lead export to Google Sheet / CRM",
-      'Remove the "Powered by Cybrum" branding',
+      'Remove the "Powered by Cybrum Solutions" branding',
       "Priority email support",
     ],
     prices: { monthly: 9000, quarterly: 24300, yearly: 86400 },

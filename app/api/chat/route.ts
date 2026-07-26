@@ -5,7 +5,7 @@ import { isOriginAllowed } from "@/lib/security/origin";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { getClientIp } from "@/lib/security/ip";
 import { checkTenantStatus, checkMonthlyUsage } from "@/lib/billing/status";
-import { retrieveContext, buildMessages, hasUsableContext } from "@/lib/ai/rag";
+import { retrieveContext, retrieveContactInfo, buildMessages, hasUsableContext } from "@/lib/ai/rag";
 import { chatStream, type ChatMessage } from "@/lib/ai/provider";
 import { corsHeaders, corsPreflightResponse } from "@/lib/security/cors";
 
@@ -103,12 +103,14 @@ export async function POST(request: Request): Promise<Response> {
   const priorMessages = existingConversation ? parseHistory(existingConversation.messages) : [];
 
   const matches = await retrieveContext(tenant.id, body.message);
+  const contactMatches = await retrieveContactInfo(tenant.id);
   const promptMessages: ChatMessage[] = buildMessages(
     tenant.systemPrompt,
     tenant.language,
     matches,
     priorMessages,
-    body.message
+    body.message,
+    contactMatches
   );
   const citations = Array.from(new Set(matches.map((m) => m.sourceUrl)));
   const answered = hasUsableContext(matches);

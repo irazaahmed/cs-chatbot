@@ -116,7 +116,7 @@ export function createWidgetUI(config: BrandConfig, forcedBranding: boolean): Wi
     poweredLink.href = "https://chatbot.cybrumsolutions.dev";
     poweredLink.target = "_blank";
     poweredLink.rel = "noopener noreferrer";
-    poweredLink.textContent = "Powered by Cybrum";
+    poweredLink.textContent = "Powered by Cybrum Solutions";
     powered.appendChild(poweredLink);
     panel.appendChild(powered);
   }

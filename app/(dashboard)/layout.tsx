@@ -21,7 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isAdmin = await checkIsAdmin();
 
   return (
-    <div className="relative flex min-h-screen">
+    <div className="relative flex min-h-screen lg:h-screen lg:overflow-hidden">
       <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-background">
         <div className="absolute inset-0 bg-grid-lines opacity-30" />
         <div className="glow-orb animate-float-slow absolute right-[-14%] top-[-12%] h-[30rem] w-[30rem] [--glow:color-mix(in_srgb,var(--color-accent)_9%,transparent)]" />
@@ -127,7 +127,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </nav>
       </div>
 
-      <main className="min-w-0 flex-1 p-6 pt-[7.5rem] sm:p-8 lg:pt-8">
+      <main className="min-w-0 flex-1 p-6 pt-[7.5rem] sm:p-8 lg:flex lg:h-screen lg:flex-col lg:overflow-y-auto lg:pt-8">
         {!tenant.verified && (
           <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-warning-text">
             Your domain isn&apos;t verified yet. Visit the{" "}

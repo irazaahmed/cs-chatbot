@@ -3,6 +3,13 @@ import { similaritySearch, type SimilarityMatch } from "@/lib/db/vector";
 
 const HISTORY_LIMIT = 6;
 
+// A fixed lookup used to pull contact details (phone/email/WhatsApp) out of
+// whatever was crawled, independent of the visitor's actual question — so the
+// bot can still point to a human when it can't answer, instead of a bare
+// "contact us". Exported so the preview flow (which searches an in-memory
+// chunk list, not the tenant-scoped vector index) can reuse the same query.
+export const CONTACT_QUERY = "contact phone number email WhatsApp address get in touch";
+
 // CLAUDE.md section 7: roman_ur must render as Urdu-in-Latin-script, not Urdu script.
 const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
   en: "Respond in English.",
@@ -10,9 +17,20 @@ const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
   roman_ur: "Respond in Roman Urdu (Urdu written in Latin script), never in Urdu script.",
 };
 
+interface ContextMatch {
+  sourceUrl: string;
+  title: string | null;
+  content: string;
+}
+
 export async function retrieveContext(tenantId: string, query: string): Promise<SimilarityMatch[]> {
   const queryEmbedding = await embed(query);
   return similaritySearch(tenantId, queryEmbedding, 5);
+}
+
+export async function retrieveContactInfo(tenantId: string): Promise<SimilarityMatch[]> {
+  const queryEmbedding = await embed(CONTACT_QUERY);
+  return similaritySearch(tenantId, queryEmbedding, 2);
 }
 
 /**
@@ -24,9 +42,10 @@ export async function retrieveContext(tenantId: string, query: string): Promise<
 export function buildMessages(
   systemPrompt: string,
   language: string,
-  matches: SimilarityMatch[],
+  matches: ContextMatch[],
   history: ChatMessage[],
-  question: string
+  question: string,
+  contactMatches: ContextMatch[] = []
 ): ChatMessage[] {
   const languageInstruction = LANGUAGE_INSTRUCTIONS[language] ?? LANGUAGE_INSTRUCTIONS.en;
 
@@ -35,13 +54,33 @@ export function buildMessages(
       ? matches.map((m, i) => `[${i + 1}] Source: ${m.sourceUrl}\n${m.content}`).join("\n\n")
       : "(no relevant context was found for this question)";
 
+  const contactBlock =
+    contactMatches.length > 0
+      ? contactMatches.map((m) => `Source: ${m.sourceUrl}\n${m.content}`).join("\n\n")
+      : null;
+
   const system = [
     systemPrompt,
-    "Answer only using the context provided below. If the context does not contain the answer, " +
-      "say you don't know and offer to connect the visitor to a human. Never invent facts about the business.",
-    "Cite the source URL for any claim you make.",
+    "For questions specifically about this business — its services, pricing, policies, hours, " +
+      "or anything only the business itself would know — answer only using the context below. " +
+      "If the context doesn't cover it, say so plainly, and if contact details are given below, " +
+      'invite the visitor to reach out directly by name (e.g. "you can reach us on WhatsApp at ' +
+      '..." or "email us at ...") instead of a generic "contact us". Never invent business facts.',
+    "For general questions unrelated to this specific business (small talk, simple factual or " +
+      "conversational questions), you may answer briefly from your own general knowledge instead " +
+      "of refusing.",
+    `Today's date is ${new Date().toISOString().slice(0, 10)}.`,
+    "Write a natural, plain-language answer. Never paste raw URLs or citation markers like " +
+      "(source: ...) or [1] into your answer text — the interface already shows the source " +
+      "links separately underneath your reply, so repeating them inline is redundant.",
     languageInstruction,
     `Context:\n${contextBlock}`,
+    ...(contactBlock
+      ? [
+          "Contact details found on the business's website (only use these to help a visitor " +
+            `reach a human — never as an answer about what the business does):\n${contactBlock}`,
+        ]
+      : []),
   ].join("\n\n");
 
   return [
@@ -51,6 +90,6 @@ export function buildMessages(
   ];
 }
 
-export function hasUsableContext(matches: SimilarityMatch[]): boolean {
+export function hasUsableContext(matches: ContextMatch[]): boolean {
   return matches.length > 0;
 }

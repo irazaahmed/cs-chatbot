@@ -7,7 +7,7 @@ import {
   previewMessageLimitReached,
   searchPreview,
 } from "@/lib/preview/store";
-import { buildMessages } from "@/lib/ai/rag";
+import { buildMessages, CONTACT_QUERY } from "@/lib/ai/rag";
 import { embed, chatStream, type ChatMessage } from "@/lib/ai/provider";
 
 export const runtime = "nodejs";
@@ -59,8 +59,17 @@ export async function POST(request: Request): Promise<Response> {
 
   const queryEmbedding = await embed(body.message);
   const matches = searchPreview(body.previewId, queryEmbedding, 5);
+  const contactEmbedding = await embed(CONTACT_QUERY);
+  const contactMatches = searchPreview(body.previewId, contactEmbedding, 2);
   const history: ChatMessage[] = (body.history ?? []).slice(-HISTORY_LIMIT);
-  const promptMessages = buildMessages(PREVIEW_SYSTEM_PROMPT, "en", matches, history, body.message);
+  const promptMessages = buildMessages(
+    PREVIEW_SYSTEM_PROMPT,
+    "en",
+    matches,
+    history,
+    body.message,
+    contactMatches
+  );
   const citations = Array.from(new Set(matches.map((m) => m.sourceUrl)));
 
   const stream = new ReadableStream<Uint8Array>({

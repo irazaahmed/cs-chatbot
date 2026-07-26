@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/client";
-import { retrieveContext, buildMessages, hasUsableContext } from "@/lib/ai/rag";
+import { retrieveContext, retrieveContactInfo, buildMessages, hasUsableContext } from "@/lib/ai/rag";
 import { chatStream, type ChatMessage } from "@/lib/ai/provider";
 
 export const runtime = "nodejs";
@@ -41,8 +41,16 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const matches = await retrieveContext(tenant.id, body.message);
+  const contactMatches = await retrieveContactInfo(tenant.id);
   const history: ChatMessage[] = (body.history ?? []).slice(-6);
-  const promptMessages = buildMessages(tenant.systemPrompt, tenant.language, matches, history, body.message);
+  const promptMessages = buildMessages(
+    tenant.systemPrompt,
+    tenant.language,
+    matches,
+    history,
+    body.message,
+    contactMatches
+  );
   const citations = Array.from(new Set(matches.map((m) => m.sourceUrl)));
   const answered = hasUsableContext(matches);
 
