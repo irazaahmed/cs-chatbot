@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { readSSE } from "@/lib/client/sse";
+import { ThinkingDots } from "@/components/ui/ThinkingDots";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -13,7 +14,7 @@ export default function PlaygroundPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   async function submitMessage() {
     const question = input.trim();
@@ -66,7 +67,8 @@ export default function PlaygroundPage() {
       });
     } finally {
       setSending(false);
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      const container = messagesContainerRef.current;
+      if (container) container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     }
   }
 
@@ -78,7 +80,7 @@ export default function PlaygroundPage() {
       </p>
 
       <div className="glass mt-6 flex h-[560px] flex-col overflow-hidden rounded-3xl">
-        <div className="flex-1 space-y-4 overflow-y-auto p-5">
+        <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto p-5">
           {messages.length === 0 && (
             <p className="text-sm text-muted">
               Ask a question a visitor might ask about your business.
@@ -93,7 +95,7 @@ export default function PlaygroundPage() {
                     : "rounded-tl-sm border border-border bg-surface/80 text-foreground"
                 }`}
               >
-                <p className="whitespace-pre-wrap">{m.content || "…"}</p>
+                <p className="whitespace-pre-wrap">{m.content || <ThinkingDots />}</p>
                 {m.citations && m.citations.length > 0 && (
                   <div className="mt-2 space-y-0.5 border-t border-border pt-2">
                     {m.citations.map((c) => (
@@ -112,7 +114,6 @@ export default function PlaygroundPage() {
               </div>
             </div>
           ))}
-          <div ref={messagesEndRef} />
         </div>
         <div className="flex gap-2 border-t border-border p-3.5">
           <input

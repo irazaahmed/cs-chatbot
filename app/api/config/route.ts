@@ -37,10 +37,15 @@ export async function GET(request: Request): Promise<Response> {
     return json({ error: "Origin not allowed" }, 403);
   }
 
+  // lib/billing/plans.ts sells "remove Powered by Cybrum branding" as a Pro+
+  // feature, so Starter must always carry it, not just once past_due — the
+  // grace-period clause below is on top of that, for Pro/Business tenants
+  // who fall behind on payment.
   const forcedBranding =
-    tenant.status === "past_due" &&
-    tenant.periodEnd !== null &&
-    Date.now() - tenant.periodEnd.getTime() >= PAST_DUE_BRANDING_GRACE_MS;
+    tenant.planId === "starter" ||
+    (tenant.status === "past_due" &&
+      tenant.periodEnd !== null &&
+      Date.now() - tenant.periodEnd.getTime() >= PAST_DUE_BRANDING_GRACE_MS);
 
   return json({ brandConfig: tenant.brandConfig, language: tenant.language, forcedBranding }, 200);
 }

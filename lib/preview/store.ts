@@ -17,6 +17,7 @@ interface PreviewEntry {
   websiteUrl: string;
   chunks: PreviewChunk[];
   createdAt: number;
+  messageCount: number;
 }
 
 const TTL_MS = 30 * 60 * 1000; // 30 minutes, long enough for a demo session
@@ -41,13 +42,28 @@ export function createPreview(websiteUrl: string, chunks: PreviewChunk[]): strin
   evictExpired();
   evictOldestIfFull();
   const previewId = randomUUID();
-  store.set(previewId, { websiteUrl, chunks, createdAt: Date.now() });
+  store.set(previewId, { websiteUrl, chunks, createdAt: Date.now(), messageCount: 0 });
   return previewId;
 }
 
 export function getPreview(previewId: string): PreviewEntry | null {
   evictExpired();
   return store.get(previewId) ?? null;
+}
+
+// Free-preview cap (3 questions) lives here rather than only in the client,
+// so it can't be bypassed by calling the API directly.
+const MAX_FREE_MESSAGES = 3;
+
+export function incrementPreviewMessageCount(previewId: string): number | null {
+  const entry = store.get(previewId);
+  if (!entry) return null;
+  entry.messageCount += 1;
+  return entry.messageCount;
+}
+
+export function previewMessageLimitReached(messageCount: number): boolean {
+  return messageCount > MAX_FREE_MESSAGES;
 }
 
 export interface PreviewMatch {

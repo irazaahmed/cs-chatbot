@@ -31,6 +31,13 @@ const WIDGET_STYLES = `
   .send { border: none; border-radius: 20px; padding: 8px 16px; color: #fff; cursor: pointer; font-size: 14px; }
   .send:disabled { opacity: 0.5; cursor: default; }
   .powered { text-align: center; font-size: 10px; color: #aaa; padding: 4px 0; }
+  .powered a { color: inherit; text-decoration: none; }
+  .powered a:hover { text-decoration: underline; }
+  .thinking { display: inline-flex; gap: 4px; padding: 2px 0; }
+  .thinking span { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.4; animation: cybrum-dot-blink 1.2s ease-in-out infinite; }
+  .thinking span:nth-child(2) { animation-delay: 0.15s; }
+  .thinking span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes cybrum-dot-blink { 0%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
 `;
 
 export interface WidgetUI {
@@ -105,7 +112,12 @@ export function createWidgetUI(config: BrandConfig, forcedBranding: boolean): Wi
   if (forcedBranding) {
     const powered = document.createElement("div");
     powered.className = "powered";
-    powered.textContent = "Powered by Cybrum";
+    const poweredLink = document.createElement("a");
+    poweredLink.href = "https://chatbot.cybrumsolutions.dev";
+    poweredLink.target = "_blank";
+    poweredLink.rel = "noopener noreferrer";
+    poweredLink.textContent = "Powered by Cybrum";
+    powered.appendChild(poweredLink);
     panel.appendChild(powered);
   }
 
@@ -137,4 +149,12 @@ export function appendMessage(
   messagesEl.appendChild(el);
   messagesEl.scrollTop = messagesEl.scrollHeight;
   return el;
+}
+
+export function showThinking(messageEl: HTMLDivElement): void {
+  messageEl.innerHTML = "";
+  const thinking = document.createElement("span");
+  thinking.className = "thinking";
+  thinking.innerHTML = "<span></span><span></span><span></span>";
+  messageEl.appendChild(thinking);
 }

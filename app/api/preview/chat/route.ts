@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { getClientIp } from "@/lib/security/ip";
 import { checkPreviewChatRateLimit } from "@/lib/preview/rate-limit";
-import { getPreview, searchPreview } from "@/lib/preview/store";
+import {
+  getPreview,
+  incrementPreviewMessageCount,
+  previewMessageLimitReached,
+  searchPreview,
+} from "@/lib/preview/store";
 import { buildMessages } from "@/lib/ai/rag";
 import { embed, chatStream, type ChatMessage } from "@/lib/ai/provider";
 
@@ -45,6 +50,11 @@ export async function POST(request: Request): Promise<Response> {
       { error: "This preview has expired. Please crawl the site again." },
       { status: 404 }
     );
+  }
+
+  const messageCount = incrementPreviewMessageCount(body.previewId);
+  if (messageCount !== null && previewMessageLimitReached(messageCount)) {
+    return Response.json({ error: "limit_reached" }, { status: 403 });
   }
 
   const queryEmbedding = await embed(body.message);

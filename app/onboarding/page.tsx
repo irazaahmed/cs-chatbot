@@ -1,7 +1,26 @@
 import { randomBytes } from "node:crypto";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/client";
+
+const PREVIEW_URL_COOKIE = "cybrum_preview_url";
+
+// Best-effort prefill from the landing-page preview cookie (see
+// signInWithGoogle's caller in app/(marketing)/page.tsx). Never throws —
+// a missing/malformed cookie just means an empty form, same as today.
+function readPreviewDefaults(rawUrl: string | undefined): { websiteUrl: string; name: string } {
+  if (!rawUrl) return { websiteUrl: "", name: "" };
+  try {
+    const url = new URL(decodeURIComponent(rawUrl));
+    const host = url.hostname.replace(/^www\./, "");
+    const label = host.split(".")[0] ?? host;
+    const name = label.charAt(0).toUpperCase() + label.slice(1);
+    return { websiteUrl: url.toString(), name };
+  } catch {
+    return { websiteUrl: "", name: "" };
+  }
+}
 
 async function createTenant(formData: FormData) {
   "use server";
@@ -54,6 +73,9 @@ export default async function OnboardingPage() {
   const existing = await prisma.tenant.findFirst({ where: { ownerId: session.user.id } });
   if (existing) redirect("/playground");
 
+  const cookieStore = await cookies();
+  const defaults = readPreviewDefaults(cookieStore.get(PREVIEW_URL_COOKIE)?.value);
+
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4">
       <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-background">
@@ -79,6 +101,7 @@ export default async function OnboardingPage() {
           id="name"
           name="name"
           required
+          defaultValue={defaults.name}
           className="mt-1.5 w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
         />
 
@@ -90,6 +113,7 @@ export default async function OnboardingPage() {
           name="websiteUrl"
           type="url"
           required
+          defaultValue={defaults.websiteUrl}
           placeholder="https://yourbusiness.com"
           className="mt-1.5 w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
         />

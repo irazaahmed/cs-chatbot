@@ -1,5 +1,5 @@
 import { fetchConfig, sendChatMessage } from "./api";
-import { createWidgetUI, appendMessage } from "./dom";
+import { createWidgetUI, appendMessage, showThinking } from "./dom";
 import { getSessionId } from "./session";
 import { readSSE } from "./sse";
 
@@ -51,6 +51,7 @@ async function init(): Promise<void> {
       ui.input.value = "";
       appendMessage(ui.messagesEl, "user", message);
       const assistantEl = appendMessage(ui.messagesEl, "assistant", "");
+      showThinking(assistantEl);
 
       const res = await sendChatMessage(apiBase, publicKey, sessionId, message);
       const contentType = res.headers.get("content-type") ?? "";

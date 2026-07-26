@@ -4,9 +4,14 @@ import { useState, useRef, FormEvent } from "react";
 import { readSSE } from "@/lib/client/sse";
 import { Reveal } from "@/components/ui/Reveal";
 import { GlowCard } from "@/components/ui/GlowCard";
+import { ThinkingDots } from "@/components/ui/ThinkingDots";
 import { SiteNav } from "@/components/marketing/SiteNav";
 import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { JsonLd } from "@/components/JsonLd";
+import { signInWithGoogle } from "@/lib/auth/actions";
+
+const FREE_PREVIEW_MESSAGE_LIMIT = 3;
+const PREVIEW_URL_COOKIE = "cybrum_preview_url";
 
 interface ProgressState {
   done: number;
@@ -88,7 +93,7 @@ export default function LandingPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [sending, setSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   async function startCrawl(e: FormEvent) {
     e.preventDefault();
@@ -157,10 +162,11 @@ export default function LandingPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: body.error ?? "Something went wrong." },
-        ]);
+        const content =
+          body.error === "limit_reached"
+            ? "You've used your 3 free questions. Sign in to keep chatting and install this on your website."
+            : (body.error ?? "Something went wrong.");
+        setMessages((prev) => [...prev, { role: "assistant", content }]);
         return;
       }
 
@@ -187,7 +193,8 @@ export default function LandingPage() {
       });
     } finally {
       setSending(false);
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      const container = messagesContainerRef.current;
+      if (container) container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     }
   }
 
@@ -312,7 +319,10 @@ export default function LandingPage() {
           </div>
         )}
 
-        {phase === "chat" && (
+        {phase === "chat" && (() => {
+          const userMessageCount = messages.filter((m) => m.role === "user").length;
+          const limitReached = userMessageCount >= FREE_PREVIEW_MESSAGE_LIMIT;
+          return (
           <div className="glass mx-auto mt-10 flex h-[520px] max-w-2xl flex-col overflow-hidden rounded-3xl shadow-[0_24px_70px_-30px_var(--color-accent)]">
             {/* panel header */}
             <div className="flex items-center gap-3 border-b border-border px-5 py-3.5">
@@ -328,7 +338,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="flex-1 space-y-4 overflow-y-auto p-5">
+            <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto p-5">
               {messages.map((m, i) => (
                 <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
                   <div
@@ -338,7 +348,7 @@ export default function LandingPage() {
                         : "rounded-tl-sm border border-border bg-surface/80 text-foreground"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{m.content || "…"}</p>
+                    <p className="whitespace-pre-wrap">{m.content || <ThinkingDots />}</p>
                     {m.citations && m.citations.length > 0 && (
                       <div className="mt-2 space-y-0.5 border-t border-border pt-2">
                         {m.citations.map((c) => (
@@ -357,28 +367,56 @@ export default function LandingPage() {
                   </div>
                 </div>
               ))}
-              <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={sendMessage} className="flex gap-2 border-t border-border p-3.5">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask a question a visitor might ask…"
-                disabled={sending}
-                className="h-11 flex-1 rounded-full border border-border bg-surface/60 px-5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
-              />
-              <button
-                type="submit"
-                disabled={sending}
-                className="inline-flex h-11 items-center justify-center rounded-full bg-accent px-5 font-medium text-white transition-all duration-300 hover:bg-accent-bright disabled:opacity-50"
-              >
-                Send
-              </button>
-            </form>
+            {limitReached ? (
+              <div className="flex flex-col items-center gap-3 border-t border-border p-5 text-center">
+                <p className="text-sm font-medium">
+                  Like what you see? Sign in to install this on your website.
+                </p>
+                <form
+                  action={signInWithGoogle}
+                  onSubmit={() => {
+                    try {
+                      document.cookie = `${PREVIEW_URL_COOKIE}=${encodeURIComponent(url)}; path=/; max-age=3600; samesite=lax`;
+                    } catch {
+                      // cookie is a nicety for prefilling onboarding, not required
+                    }
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="btn-sheen inline-flex h-11 items-center justify-center gap-2.5 rounded-full bg-accent px-6 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_36px_-6px_var(--color-accent)]"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+                      <path fill="currentColor" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z" />
+                    </svg>
+                    Sign in with Google
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <form onSubmit={sendMessage} className="flex gap-2 border-t border-border p-3.5">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Ask a question a visitor might ask…"
+                  disabled={sending}
+                  className="h-11 flex-1 rounded-full border border-border bg-surface/60 px-5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
+                />
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-accent px-5 font-medium text-white transition-all duration-300 hover:bg-accent-bright disabled:opacity-50"
+                >
+                  Send
+                </button>
+              </form>
+            )}
           </div>
-        )}
+          );
+        })()}
 
         {/* Steps strip */}
         <Reveal delay={0.1} className="mt-16">
