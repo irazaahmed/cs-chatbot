@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { readSSE } from "@/lib/client/sse";
 import { ThinkingDots } from "@/components/ui/ThinkingDots";
 
@@ -14,6 +14,15 @@ export default function PlaygroundPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Scoped to the message list itself: scrollTop is a no-op unless content
+  // has actually overflowed the box, so this only moves anything once an
+  // answer fills the visible height.
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) container.scrollTop = container.scrollHeight;
+  }, [messages]);
 
   async function submitMessage() {
     const question = input.trim();
@@ -70,7 +79,6 @@ export default function PlaygroundPage() {
         }
       });
     } finally {
-      // No auto-scroll on purpose — stays where you left it until you scroll.
       setSending(false);
     }
   }
@@ -83,7 +91,7 @@ export default function PlaygroundPage() {
       </p>
 
       <div className="glass mt-6 flex h-[560px] flex-col overflow-hidden rounded-3xl">
-        <div className="flex-1 space-y-4 overflow-y-auto p-5">
+        <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto p-5">
           {messages.length === 0 && (
             <p className="text-sm text-muted">
               Ask a question a visitor might ask about your business.

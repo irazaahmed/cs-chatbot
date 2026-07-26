@@ -80,8 +80,13 @@
   display: inline-block;
 }
 
-html,
-body {
+/* overflow-x lives on html only, not body — setting it on both makes body
+   compute its own overflow-y:auto (a CSS quirk: when one axis is hidden and
+   the other stays visible, the visible one becomes auto), turning body into
+   its own scroll container instead of the viewport. That breaks
+   position:sticky for anything inside it (e.g. the dashboard sidebar),
+   which then just scrolls away with the page instead of sticking. */
+html {
   overflow-x: hidden;
   max-width: 100%;
 }

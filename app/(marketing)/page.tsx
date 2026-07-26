@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useEffect, useRef, useState, FormEvent } from "react";
 import { readSSE } from "@/lib/client/sse";
 import { Reveal } from "@/components/ui/Reveal";
 import { GlowCard } from "@/components/ui/GlowCard";
@@ -93,6 +93,15 @@ export default function LandingPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [sending, setSending] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Scoped to the message list itself (never the page): scrollTop is a
+  // no-op unless content has actually overflowed the box, so this only
+  // moves anything once an answer fills the visible height.
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) container.scrollTop = container.scrollHeight;
+  }, [messages]);
 
   async function startCrawl(e: FormEvent) {
     e.preventDefault();
@@ -197,8 +206,6 @@ export default function LandingPage() {
         }
       });
     } finally {
-      // No auto-scroll here on purpose — the panel should stay exactly
-      // where the visitor left it; they scroll it themselves.
       setSending(false);
     }
   }
@@ -343,7 +350,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="flex-1 space-y-4 overflow-y-auto p-5">
+            <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto p-5">
               {messages.map((m, i) => (
                 <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
                   <div

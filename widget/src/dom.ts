@@ -146,9 +146,10 @@ export function appendMessage(
       el.appendChild(a);
     }
   }
-  // No forced scroll here on purpose — the panel stays wherever the
-  // visitor left it; it only moves when they scroll it themselves.
+  // scrollTop assignment is a no-op unless content has actually overflowed
+  // the panel, so this only moves anything once messages fill the height.
   messagesEl.appendChild(el);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
   return el;
 }
 

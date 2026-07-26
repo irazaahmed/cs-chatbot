@@ -27,7 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="glow-orb animate-float-slow absolute right-[-14%] top-[-12%] h-[30rem] w-[30rem] [--glow:color-mix(in_srgb,var(--color-accent)_9%,transparent)]" />
       </div>
 
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface/40 p-4 backdrop-blur-sm lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface p-4 lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
         <div className="flex items-center gap-2.5 px-2 pb-4">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent-bright">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
