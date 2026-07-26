@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, FormEvent } from "react";
+import { useState, FormEvent } from "react";
 import { readSSE } from "@/lib/client/sse";
 import { Reveal } from "@/components/ui/Reveal";
 import { GlowCard } from "@/components/ui/GlowCard";
@@ -93,7 +93,6 @@ export default function LandingPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [sending, setSending] = useState(false);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   async function startCrawl(e: FormEvent) {
     e.preventDefault();
@@ -149,7 +148,10 @@ export default function LandingPage() {
     if (!question || !previewId || sending) return;
 
     const history = messages.map((m) => ({ role: m.role, content: m.content }));
-    setMessages((prev) => [...prev, { role: "user", content: question }]);
+    // Push the assistant placeholder immediately, before the fetch even
+    // starts — otherwise there's a dead gap between hitting Send and the
+    // request resolving where nothing on screen shows the bot is working.
+    setMessages((prev) => [...prev, { role: "user", content: question }, { role: "assistant", content: "" }]);
     setChatInput("");
     setSending(true);
 
@@ -166,13 +168,16 @@ export default function LandingPage() {
           body.error === "limit_reached"
             ? "You've used your 3 free questions. Sign in to keep chatting and install this on your website."
             : (body.error ?? "Something went wrong.");
-        setMessages((prev) => [...prev, { role: "assistant", content }]);
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = { role: "assistant", content };
+          return next;
+        });
         return;
       }
 
       let answer = "";
       let citations: string[] = [];
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       await readSSE(res, (event) => {
         if (typeof event.token === "string") {
@@ -192,9 +197,9 @@ export default function LandingPage() {
         }
       });
     } finally {
+      // No auto-scroll here on purpose — the panel should stay exactly
+      // where the visitor left it; they scroll it themselves.
       setSending(false);
-      const container = messagesContainerRef.current;
-      if (container) container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     }
   }
 
@@ -338,7 +343,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto p-5">
+            <div className="flex-1 space-y-4 overflow-y-auto p-5">
               {messages.map((m, i) => (
                 <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
                   <div

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { readSSE } from "@/lib/client/sse";
 import { ThinkingDots } from "@/components/ui/ThinkingDots";
 
@@ -14,14 +14,15 @@ export default function PlaygroundPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   async function submitMessage() {
     const question = input.trim();
     if (!question || sending) return;
 
     const history = messages.map((m) => ({ role: m.role, content: m.content }));
-    setMessages((prev) => [...prev, { role: "user", content: question }]);
+    // Assistant placeholder goes in right away so ThinkingDots shows the
+    // instant Send is hit, not just once the request resolves.
+    setMessages((prev) => [...prev, { role: "user", content: question }, { role: "assistant", content: "" }]);
     setInput("");
     setSending(true);
 
@@ -34,13 +35,16 @@ export default function PlaygroundPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setMessages((prev) => [...prev, { role: "assistant", content: body.error ?? "Something went wrong." }]);
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = { role: "assistant", content: body.error ?? "Something went wrong." };
+          return next;
+        });
         return;
       }
 
       let answer = "";
       let citations: string[] = [];
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       await readSSE(res, (event) => {
         if (typeof event.token === "string") {
@@ -66,9 +70,8 @@ export default function PlaygroundPage() {
         }
       });
     } finally {
+      // No auto-scroll on purpose — stays where you left it until you scroll.
       setSending(false);
-      const container = messagesContainerRef.current;
-      if (container) container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     }
   }
 
@@ -80,7 +83,7 @@ export default function PlaygroundPage() {
       </p>
 
       <div className="glass mt-6 flex h-[560px] flex-col overflow-hidden rounded-3xl">
-        <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto p-5">
+        <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {messages.length === 0 && (
             <p className="text-sm text-muted">
               Ask a question a visitor might ask about your business.

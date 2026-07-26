@@ -67,7 +67,6 @@ async function init(): Promise<void> {
         if (typeof event.token === "string") {
           answer += event.token;
           assistantEl.textContent = answer;
-          ui.messagesEl.scrollTop = ui.messagesEl.scrollHeight;
         } else if (event.done) {
           const citations = Array.isArray(event.citations) ? (event.citations as string[]) : [];
           for (const url of citations) {

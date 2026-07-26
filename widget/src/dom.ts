@@ -146,8 +146,9 @@ export function appendMessage(
       el.appendChild(a);
     }
   }
+  // No forced scroll here on purpose — the panel stays wherever the
+  // visitor left it; it only moves when they scroll it themselves.
   messagesEl.appendChild(el);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
   return el;
 }
 
