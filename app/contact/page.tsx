@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: "Contact — CS Chatbot",
   description:
     "Talk to the Cybrum Solutions team about CS Chatbot — on WhatsApp, by email, or through the Cybrum Solutions contact page.",
+  keywords: [
+    "Cybrum Solutions chatbot",
+    "chatbot for small business Pakistan",
+    "website chatbot Pakistan",
+  ],
   alternates: { canonical: "/contact" },
   openGraph: {
     title: "Contact — CS Chatbot",

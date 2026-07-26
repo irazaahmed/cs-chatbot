@@ -1,7 +1,7 @@
 # SEO keyword strategy — CS Chatbot
 
 Target site: `chatbot.cybrumsolutions.dev` (product landing page + preview flow).
-Last updated: 2026-07-25.
+Last updated: 2026-07-26.
 
 This is the living reference for keyword targeting. Update it whenever copy,
 titles, or the FAQ change so the two stay in sync — don't let the page drift
@@ -89,7 +89,11 @@ snippet / AI-overview box, not just the blue link.
 |---|---|---|
 | `chatbot.cybrumsolutions.dev` (landing) | create free chatbot / AI chatbot for website | title + H1 + meta description, `app/layout.tsx` |
 | Landing page FAQ section | long-tail question set above | new section, also feeds FAQPage JSON-LD |
-| `cybrumsolutions.dev/products/chatbot` | AI chatbot for website (comparison/BOFU) | already has SoftwareApplication + FAQPage schema |
+| `/pricing` | chatbot pricing Pakistan / cheap chatbot for website PKR | own `keywords` meta added 2026-07-26, was inheriting the homepage's generic set before |
+| `/how-to-use` | long-tail "how to" question set | own `keywords` meta added 2026-07-26 |
+| `/about` | Cybrum Solutions chatbot / AI chatbot for website | own `keywords` meta added 2026-07-26 |
+| `/contact` | branded + local ("chatbot for small business Pakistan") | own `keywords` meta added 2026-07-26 |
+| `cybrumsolutions.dev/products/chatbot` | AI chatbot for website (comparison/BOFU) | title/description retuned + `keywords` meta added 2026-07-26 (was missing entirely); added a "vs WhatsApp chatbot" FAQ entry to actually answer the comparison-intent keyword instead of just targeting it in meta. Repo: `cybrum-solutions`, separate from this one. |
 | Future: `/blog` or `/guide` on the app subdomain | long-tail + local | not built yet — candidate for a future phase, not this one |
 
 ## Technical SEO checklist (status as of this pass)
@@ -99,5 +103,7 @@ snippet / AI-overview box, not just the blue link.
 - [x] Title/description tuned to primary keywords — `app/layout.tsx`
 - [x] Open Graph + Twitter card metadata — `app/layout.tsx`
 - [x] `SoftwareApplication` + `FAQPage` JSON-LD — landing page
+- [x] Per-page `keywords` meta on `/pricing`, `/how-to-use`, `/about`, `/contact` — 2026-07-26, previously all four silently inherited the homepage's keyword list via Next.js metadata fallback instead of targeting their own intent
+- [x] `cybrumsolutions.dev/products/chatbot` keywords + title/description retuned, plus a WhatsApp-comparison FAQ — 2026-07-26
 - [ ] OG image (`/og.png`) — placeholder path only, no actual image generated yet, ask before spending time on design here
-- [ ] Google Search Console verification — needs the real property added by whoever owns the Google account
+- [x] Google Search Console verification — domain property for `cybrumsolutions.dev` verified via DNS 2026-07-26, covers every subdomain

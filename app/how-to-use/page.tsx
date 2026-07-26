@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   title: "How to use — CS Chatbot",
   description:
     "Set up your website chatbot in five steps: paste your URL, preview it, sign in, verify your domain, and install one script tag. No coding required.",
+  keywords: [
+    "how to create a free chatbot for my website",
+    "how to add a chatbot to my website for free",
+    "do I need to know how to code to add a chatbot",
+    "how long does it take to set up a website chatbot",
+    "embeddable website chatbot",
+  ],
   alternates: { canonical: "/how-to-use" },
   openGraph: {
     title: "How to use — CS Chatbot",

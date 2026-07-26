@@ -10,6 +10,13 @@ export const metadata: Metadata = {
   title: "About — CS Chatbot",
   description:
     "The Cybrum Solutions Chatbot is an AI chat assistant trained only on your website's content. It answers with sources, captures leads, and speaks English, Urdu, and Roman Urdu.",
+  keywords: [
+    "Cybrum Solutions chatbot",
+    "CS Chatbot",
+    "AI chatbot for website",
+    "website chatbot Pakistan",
+    "chatbot with source citations",
+  ],
   alternates: { canonical: "/about" },
   openGraph: {
     title: "About — CS Chatbot",

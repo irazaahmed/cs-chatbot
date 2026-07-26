@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   title: "Pricing — CS Chatbot",
   description:
     "Simple monthly pricing in PKR for the Cybrum Solutions Chatbot. Every plan includes the full product — pick a plan by how many pages the bot learns and how many visitor conversations it answers each month. Save with quarterly or yearly billing.",
+  keywords: [
+    "chatbot pricing Pakistan",
+    "cheap chatbot for website PKR",
+    "chatbot monthly plan Pakistan",
+    "website chatbot vs WhatsApp chatbot",
+    "JazzCash EasyPaisa chatbot subscription",
+  ],
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "Pricing — CS Chatbot",
