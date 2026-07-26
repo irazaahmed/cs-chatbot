@@ -4,7 +4,8 @@ import { useState, useRef, FormEvent } from "react";
 import { readSSE } from "@/lib/client/sse";
 import { Reveal } from "@/components/ui/Reveal";
 import { GlowCard } from "@/components/ui/GlowCard";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { SiteNav } from "@/components/marketing/SiteNav";
+import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { JsonLd } from "@/components/JsonLd";
 
 interface ProgressState {
@@ -227,33 +228,7 @@ export default function LandingPage() {
       </div>
 
       {/* Header */}
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 pt-6 sm:px-8">
-        <a href={CYBRUM_URL} className="group flex items-center gap-2.5" aria-label="Cybrum Solutions">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent-bright transition-colors group-hover:bg-accent/25">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /><text x="11.7" y="11" textAnchor="middle" dominantBaseline="central" fill="currentColor" stroke="none" fontSize="8.2" fontWeight="700" letterSpacing="-0.3" style={{ fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif" }}>CS</text>
-            </svg>
-          </span>
-          <span className="font-heading text-lg font-semibold tracking-tight">
-            CS<span className="text-accent"> Chatbot</span>
-          </span>
-        </a>
-        <div className="flex items-center gap-3">
-          <a
-            href="/pricing"
-            className="hidden rounded-full px-4 py-2 text-sm font-medium text-muted transition-colors hover:text-foreground sm:inline-block"
-          >
-            Pricing
-          </a>
-          <ThemeToggle />
-          <a
-            href="/login"
-            className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground backdrop-blur-sm transition-colors hover:border-accent"
-          >
-            Sign in
-          </a>
-        </div>
-      </header>
+      <SiteNav />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 pb-20 sm:px-8">
         {/* Hero */}
@@ -471,32 +446,7 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-surface/40">
-        <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-3 px-5 py-7 text-sm text-muted sm:flex-row sm:px-8">
-          <p>
-            A product by{" "}
-            <a
-              href={CYBRUM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-accent-bright transition-colors hover:text-accent"
-            >
-              Cybrum Solutions
-            </a>
-          </p>
-          <div className="flex items-center gap-5">
-            <a href="/pricing" className="transition-colors hover:text-foreground">
-              Pricing
-            </a>
-            <a href={`${CYBRUM_URL}/products/chatbot`} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground">
-              About this product
-            </a>
-            <a href={`${CYBRUM_URL}/contact`} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-foreground">
-              Contact
-            </a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
