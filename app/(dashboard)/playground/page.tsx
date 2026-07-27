@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { readSSE } from "@/lib/client/sse";
 import { ThinkingDots } from "@/components/ui/ThinkingDots";
+import { CitationLink } from "@/components/ui/CitationLink";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -110,15 +111,11 @@ export default function PlaygroundPage() {
                 {m.citations && m.citations.length > 0 && (
                   <div className="mt-2 space-y-0.5 border-t border-border pt-2">
                     {m.citations.map((c) => (
-                      <a
+                      <CitationLink
                         key={c}
-                        href={c}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        url={c}
                         className="block truncate text-xs text-accent-bright underline decoration-accent/40 underline-offset-2 transition-colors hover:text-accent"
-                      >
-                        {c}
-                      </a>
+                      />
                     ))}
                   </div>
                 )}

@@ -38,6 +38,7 @@ model Tenant {
   documents      Document[]
   conversations  Conversation[]
   leads          Lead[]
+  appointments   Appointment[]
   payments       Payment[]
   rateLimitBuckets RateLimitBucket[]
 
@@ -52,6 +53,10 @@ model Document {
   content    String                   @db.Text
   embedding  Unsupported("vector(1536)")
   tokenCount Int
+  // "web" (crawled page) | "pdf" (uploaded document) — which ingestion
+  // pipeline produced this row. Lets replaceDocuments (crawl/recrawl) wipe
+  // only web-sourced rows without touching uploaded PDFs, and vice versa.
+  kind       String                   @default("web")
 
   tenant     Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -97,6 +102,31 @@ model Lead {
   email          String?
   phone          String?
   conversationId String?
+  createdAt      DateTime @default(now())
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// Captured conversationally by the same structured-extraction pass that
+// captures Lead rows (see lib/ai/extract.ts) — a visitor asking to book gets
+// their name/contact/requested time pulled out of the chat, no widget form.
+// requestedTime is free text as the visitor expressed it (e.g. "tomorrow
+// 3pm", "kal shaam ko") rather than a parsed DateTime: reliably parsing
+// natural-language dates across English/Urdu/Roman Urdu needs a real
+// scheduling design of its own, so v1 leaves the actual time-slot
+// confirmation to the business owner, same as they'd handle a phone-in
+// booking request.
+model Appointment {
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String?
+  contact        String?
+  requestedTime  String?
+  notes          String?
+  conversationId String?
+  status         String   @default("requested") // requested | confirmed | canceled
   createdAt      DateTime @default(now())
 
   tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)

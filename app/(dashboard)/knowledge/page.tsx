@@ -1,6 +1,10 @@
+import { randomUUID } from "node:crypto";
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
+import { planPageCap } from "@/lib/billing/plans";
+import { savePdfFile } from "@/lib/knowledge/pdf-storage";
 
 interface JobProgress {
   done: number;
@@ -22,8 +26,19 @@ function parseProgress(raw: unknown): JobProgress | null {
   return null;
 }
 
-export default async function KnowledgePage() {
+const UPLOAD_ERRORS: Record<string, string> = {
+  "1": "Choose a PDF file first.",
+  "2": "You're at your plan's page limit — remove something or upgrade before adding more.",
+  "3": "That file couldn't be saved — make sure it's a PDF under 10MB.",
+};
+
+export default async function KnowledgePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const { tenant } = await getCurrentTenant();
+  const { error } = await searchParams;
 
   async function triggerRecrawl() {
     "use server";
@@ -33,19 +48,48 @@ export default async function KnowledgePage() {
     revalidatePath("/knowledge");
   }
 
+  async function uploadPdf(formData: FormData) {
+    "use server";
+    const file = formData.get("pdf") as File | null;
+    if (!file || file.size === 0) redirect("/knowledge?error=1");
+
+    const pageCount = await prisma.document
+      .findMany({ where: { tenantId: tenant.id }, select: { sourceUrl: true }, distinct: ["sourceUrl"] })
+      .then((rows) => rows.length);
+    if (pageCount >= planPageCap(tenant.planId)) redirect("/knowledge?error=2");
+
+    const docId = randomUUID();
+    let filePath: string;
+    try {
+      filePath = await savePdfFile(tenant.id, docId, file);
+    } catch {
+      redirect("/knowledge?error=3");
+    }
+
+    await prisma.job.create({
+      data: {
+        tenantId: tenant.id,
+        type: "pdf_ingest",
+        status: "pending",
+        payload: { filePath, filename: file.name },
+      },
+    });
+    revalidatePath("/knowledge");
+  }
+
   const documents = await prisma.document.findMany({
     where: { tenantId: tenant.id },
-    select: { sourceUrl: true, title: true, tokenCount: true },
+    select: { sourceUrl: true, title: true, tokenCount: true, kind: true },
   });
 
-  const pages = new Map<string, { title: string | null; chunkCount: number; tokenCount: number }>();
+  const pages = new Map<string, { title: string | null; chunkCount: number; tokenCount: number; kind: string }>();
   for (const doc of documents) {
     const existing = pages.get(doc.sourceUrl);
     if (existing) {
       existing.chunkCount += 1;
       existing.tokenCount += doc.tokenCount;
     } else {
-      pages.set(doc.sourceUrl, { title: doc.title, chunkCount: 1, tokenCount: doc.tokenCount });
+      pages.set(doc.sourceUrl, { title: doc.title, chunkCount: 1, tokenCount: doc.tokenCount, kind: doc.kind });
     }
   }
 
@@ -54,6 +98,11 @@ export default async function KnowledgePage() {
     orderBy: { createdAt: "desc" },
   });
   const progress = latestJob ? parseProgress(latestJob.progress) : null;
+
+  const latestPdfJob = await prisma.job.findFirst({
+    where: { tenantId: tenant.id, type: "pdf_ingest" },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div>
@@ -64,16 +113,39 @@ export default async function KnowledgePage() {
             {pages.size} page(s), {documents.length} chunk(s) indexed.
           </p>
         </div>
-        <form action={triggerRecrawl}>
-          <button
-            type="submit"
-            disabled={!tenant.verified}
-            className="btn-sheen rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)] disabled:opacity-40"
-          >
-            Recrawl site
-          </button>
-        </form>
+        <div className="flex flex-wrap items-center gap-3">
+          <form action={uploadPdf} className="flex items-center gap-2">
+            <input
+              type="file"
+              name="pdf"
+              accept="application/pdf"
+              required
+              className="max-w-[180px] text-xs text-muted file:mr-2 file:rounded-full file:border-0 file:bg-accent/15 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent-bright hover:file:bg-accent/25"
+            />
+            <button
+              type="submit"
+              className="rounded-full border border-border bg-surface/60 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
+            >
+              Upload PDF
+            </button>
+          </form>
+          <form action={triggerRecrawl}>
+            <button
+              type="submit"
+              disabled={!tenant.verified}
+              className="btn-sheen rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)] disabled:opacity-40"
+            >
+              Recrawl site
+            </button>
+          </form>
+        </div>
       </div>
+
+      {error && (
+        <p className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-danger-text">
+          {UPLOAD_ERRORS[error] ?? "Something went wrong. Please try again."}
+        </p>
+      )}
 
       {latestJob && (
         <p className="mt-3 flex items-center gap-2 text-xs text-muted">
@@ -86,6 +158,17 @@ export default async function KnowledgePage() {
           )}
           Last crawl: {latestJob.status}
           {latestJob.status === "running" && progress ? ` (${progress.done}/${progress.total})` : ""}
+        </p>
+      )}
+
+      {latestPdfJob && (latestPdfJob.status === "pending" || latestPdfJob.status === "running") && (
+        <p className="mt-2 flex items-center gap-2 text-xs text-muted">
+          <span className="flex items-center gap-1">
+            <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright" />
+            <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.15s]" />
+            <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.3s]" />
+          </span>
+          Processing uploaded PDF…
         </p>
       )}
 
@@ -109,14 +192,25 @@ export default async function KnowledgePage() {
                 {Array.from(pages.entries()).map(([url, info]) => (
                   <tr key={url} className="border-t border-border transition-colors hover:bg-accent/5">
                     <td className="px-5 py-3">
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-foreground underline decoration-accent/40 underline-offset-2 transition-colors hover:text-accent-bright"
-                      >
-                        {info.title || url}
-                      </a>
+                      <div className="flex items-center gap-2">
+                        {info.kind === "pdf" ? (
+                          <span className="text-foreground">{info.title || url}</span>
+                        ) : (
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-foreground underline decoration-accent/40 underline-offset-2 transition-colors hover:text-accent-bright"
+                          >
+                            {info.title || url}
+                          </a>
+                        )}
+                        {info.kind === "pdf" && (
+                          <span className="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-bright">
+                            PDF
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-3 tabular-nums text-muted">{info.chunkCount}</td>
                     <td className="px-5 py-3 tabular-nums text-muted">{info.tokenCount}</td>

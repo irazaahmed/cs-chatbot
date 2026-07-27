@@ -6,14 +6,16 @@
 // Node can't resolve without a build step; tsx is already how every other
 // script in this repo runs, so this stays consistent rather than introducing
 // a second toolchain just for this one file).
+import { readFile } from "node:fs/promises";
 import type { Job } from "@prisma/client";
 import { prisma } from "./lib/db/client";
 import { crawlSite } from "./lib/crawl/crawler";
 import { chunkContent } from "./lib/crawl/chunk";
 import { embedTexts } from "./lib/ai/embed";
-import { replaceDocuments, type DocumentChunk } from "./lib/db/vector";
+import { replaceDocuments, replacePdfDocument, type DocumentChunk } from "./lib/db/vector";
 import { planPageCap } from "./lib/billing/plans";
 import { applyStatusLadder } from "./lib/billing/ladder";
+import { extractText, getDocumentProxy } from "unpdf";
 
 const POLL_INTERVAL_MS = 5000;
 const STATUS_LADDER_INTERVAL_TICKS = 60; // ~5 minutes at 5s/tick — billing status isn't urgent
@@ -34,7 +36,7 @@ async function claimNextJob(): Promise<Job | null> {
   });
 }
 
-async function processJob(job: Job): Promise<void> {
+async function processCrawlJob(job: Job): Promise<void> {
   const tenant = await prisma.tenant.findUnique({ where: { id: job.tenantId } });
   if (!tenant) throw new Error(`Tenant ${job.tenantId} not found`);
 
@@ -75,6 +77,49 @@ async function processJob(job: Job): Promise<void> {
       progress: { done: pages.length, total: pages.length, currentUrl: "" },
     },
   });
+}
+
+// PDF ingestion (CLAUDE.md-additive: a second knowledge source alongside the
+// website crawl). sourceUrl for a PDF is a synthetic "pdf://<filename>"
+// identifier (never a real fetchable URL) so it lines up with Document's
+// existing sourceUrl column without a schema change beyond `kind`, and so
+// re-uploading the same filename replaces just that file's chunks.
+async function processPdfJob(job: Job): Promise<void> {
+  const tenant = await prisma.tenant.findUnique({ where: { id: job.tenantId } });
+  if (!tenant) throw new Error(`Tenant ${job.tenantId} not found`);
+
+  const payload = job.payload as { filePath?: string; filename?: string } | null;
+  if (!payload?.filePath || !payload.filename) throw new Error("pdf_ingest job missing filePath/filename");
+
+  const fileBuffer = await readFile(payload.filePath);
+  const pdf = await getDocumentProxy(new Uint8Array(fileBuffer));
+  const { text } = await extractText(pdf, { mergePages: true });
+
+  const sourceUrl = `pdf://${payload.filename}`;
+  const chunks = chunkContent(text).map((chunk) => ({
+    sourceUrl,
+    title: payload.filename ?? null,
+    content: chunk.content,
+    tokenCount: chunk.tokenCount,
+  }));
+
+  const embeddings = await embedTexts(chunks.map((c) => c.content));
+  const documentChunks: DocumentChunk[] = chunks.map((chunk, i) => ({ ...chunk, embedding: embeddings[i] }));
+
+  await replacePdfDocument(tenant.id, sourceUrl, documentChunks);
+
+  await prisma.job.update({
+    where: { id: job.id },
+    data: { status: "done", finishedAt: new Date(), progress: { done: 1, total: 1, currentUrl: payload.filename } },
+  });
+}
+
+async function processJob(job: Job): Promise<void> {
+  if (job.type === "pdf_ingest") {
+    await processPdfJob(job);
+  } else {
+    await processCrawlJob(job);
+  }
 }
 
 async function tick(): Promise<void> {

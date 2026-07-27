@@ -1,5 +1,5 @@
 import { fetchConfig, sendChatMessage } from "./api";
-import { createWidgetUI, appendMessage, showThinking, setBubbleOpen } from "./dom";
+import { createWidgetUI, appendMessage, showThinking, setBubbleOpen, renderCitation } from "./dom";
 import { getSessionId } from "./session";
 import { readSSE } from "./sse";
 
@@ -72,13 +72,7 @@ async function init(): Promise<void> {
         } else if (event.done) {
           const citations = Array.isArray(event.citations) ? (event.citations as string[]) : [];
           for (const url of citations) {
-            const a = document.createElement("a");
-            a.className = "cite";
-            a.href = url;
-            a.target = "_blank";
-            a.rel = "noopener noreferrer";
-            a.textContent = url;
-            assistantEl.appendChild(a);
+            assistantEl.appendChild(renderCitation(url));
           }
         } else if (event.error) {
           assistantEl.textContent = String(event.error);

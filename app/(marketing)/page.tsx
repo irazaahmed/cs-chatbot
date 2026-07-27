@@ -5,6 +5,7 @@ import { readSSE } from "@/lib/client/sse";
 import { Reveal } from "@/components/ui/Reveal";
 import { GlowCard } from "@/components/ui/GlowCard";
 import { ThinkingDots } from "@/components/ui/ThinkingDots";
+import { CitationLink } from "@/components/ui/CitationLink";
 import { SiteNav } from "@/components/marketing/SiteNav";
 import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { JsonLd } from "@/components/JsonLd";
@@ -364,15 +365,11 @@ export default function LandingPage() {
                     {m.citations && m.citations.length > 0 && (
                       <div className="mt-2 space-y-0.5 border-t border-border pt-2">
                         {m.citations.map((c) => (
-                          <a
+                          <CitationLink
                             key={c}
-                            href={c}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            url={c}
                             className="block truncate text-xs text-accent-bright underline decoration-accent/40 underline-offset-2 transition-colors hover:text-accent"
-                          >
-                            {c}
-                          </a>
+                          />
                         ))}
                       </div>
                     )}

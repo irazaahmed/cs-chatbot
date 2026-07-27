@@ -137,6 +137,25 @@ export function createWidgetUI(config: BrandConfig, forcedBranding: boolean): Wi
   return { bubble, panel, messagesEl, form, input, sendButton };
 }
 
+// PDF-sourced citations use a "pdf://<filename>" pseudo-URL (see
+// worker.ts's pdf_ingest job) — not a real navigable link, so it renders as
+// a plain label instead of a dead <a href="pdf://...">.
+export function renderCitation(url: string): HTMLAnchorElement | HTMLSpanElement {
+  if (url.startsWith("pdf://")) {
+    const span = document.createElement("span");
+    span.className = "cite";
+    span.textContent = `📄 ${url.slice("pdf://".length)}`;
+    return span;
+  }
+  const a = document.createElement("a");
+  a.className = "cite";
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.textContent = url;
+  return a;
+}
+
 export function appendMessage(
   messagesEl: HTMLDivElement,
   role: "user" | "assistant",
@@ -148,12 +167,7 @@ export function appendMessage(
   el.textContent = content;
   if (citations && citations.length > 0) {
     for (const url of citations) {
-      const a = document.createElement("a");
-      a.className = "cite";
-      a.href = url;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.textContent = url;
+      const a = renderCitation(url);
       el.appendChild(a);
     }
   }

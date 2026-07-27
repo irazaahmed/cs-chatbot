@@ -11,6 +11,7 @@ const TABS = [
   { href: "/conversations", label: "Conversations" },
   { href: "/unanswered", label: "Unanswered" },
   { href: "/leads", label: "Leads" },
+  { href: "/appointments", label: "Appointments" },
   { href: "/install", label: "Install" },
   { href: "/usage", label: "Usage" },
   { href: "/billing", label: "Billing" },
