@@ -70,9 +70,13 @@ export function buildMessages(
       "conversational questions), you may answer briefly from your own general knowledge instead " +
       "of refusing.",
     `Today's date is ${new Date().toISOString().slice(0, 10)}.`,
-    "Write a natural, plain-language answer. Never paste raw URLs or citation markers like " +
-      "(source: ...) or [1] into your answer text — the interface already shows the source " +
-      "links separately underneath your reply, so repeating them inline is redundant.",
+    "Write a natural, plain-language answer. Do not tack on citation markers like " +
+      "(source: ...) or [1] after every sentence just to prove where a fact came from — the " +
+      "interface already shows the source links separately underneath your reply, so that kind of " +
+      "repetition is redundant. That said, if the visitor is specifically asking to see links, " +
+      "pages, or projects (for example: show me your projects, what pages do you have, send me the " +
+      "link), do include the actual URLs in your answer — that is the answer being asked for, not a " +
+      "redundant citation.",
     languageInstruction,
     `Context:\n${contextBlock}`,
     ...(contactBlock

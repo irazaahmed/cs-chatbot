@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { saveProofFile } from "@/lib/billing/proof-storage";
-import { isPlanId, isBillingCycle, cycleMonths, addMonths } from "@/lib/billing/plans";
+import { isPlanId, isBillingCycle, cycleMonths, addMonths, planPrice } from "@/lib/billing/plans";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -19,7 +19,6 @@ export async function submitPayment(formData: FormData) {
   if (alreadyPending) redirect("/billing");
 
   const senderName = String(formData.get("senderName") ?? "").trim().slice(0, 200);
-  const amountPKR = Math.round(Number(formData.get("amountPKR")));
   const method = String(formData.get("method") ?? "bank");
   const invoiceRefValue = String(formData.get("invoiceRef") ?? "").trim();
   const planIdRaw = String(formData.get("planId") ?? "");
@@ -28,7 +27,12 @@ export async function submitPayment(formData: FormData) {
   const billingCycle = isBillingCycle(cycleRaw) ? cycleRaw : "monthly";
   const file = formData.get("screenshot") as File | null;
 
-  if (!senderName || !invoiceRefValue || !Number.isFinite(amountPKR) || amountPKR <= 0 || !file || file.size === 0) {
+  // The amount is never taken from the client — it's the listed price for
+  // the chosen plan+cycle, full stop. A visitor typing an arbitrary number
+  // into the amount field must never end up on the invoice.
+  const amountPKR = planPrice(planId, billingCycle);
+
+  if (!senderName || !invoiceRefValue || !file || file.size === 0) {
     redirect("/billing?error=1");
   }
 

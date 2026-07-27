@@ -38,5 +38,17 @@ export async function applyStatusLadder(): Promise<number> {
       changed++;
     }
   }
+
+  // A trial (admin-granted via periodEnd, no invoice involved) isn't a billing
+  // dunning case — there's nothing to chase payment for, so it doesn't ride
+  // the past_due/suspended/canceled ladder above. It just ends: suspended the
+  // moment periodEnd passes, same graceful "chat unavailable" response as any
+  // other suspended tenant, never a 404/500 on the customer's site.
+  const expiredTrials = await prisma.tenant.updateMany({
+    where: { status: "trialing", periodEnd: { lt: now } },
+    data: { status: "suspended" },
+  });
+  changed += expiredTrials.count;
+
   return changed;
 }

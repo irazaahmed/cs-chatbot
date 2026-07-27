@@ -48,6 +48,31 @@ async function updateTenant(formData: FormData) {
   redirect(`/admin/tenants/${id}?saved=1`);
 }
 
+// Quick trial grant: no invoice, no payment — just a fixed window to let a
+// prospect try the product. Runs the tenant through the same "trialing"
+// status the ladder (lib/billing/ladder.ts) already knows how to expire on
+// its own once periodEnd passes, so this isn't a special case to remember
+// to undo later.
+async function grantTrial(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  const days = Number(formData.get("days"));
+  if (!id || !Number.isFinite(days) || days <= 0) return;
+
+  await prisma.tenant.update({
+    where: { id },
+    data: {
+      status: "trialing",
+      periodEnd: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  revalidatePath(`/admin/tenants/${id}`);
+  revalidatePath("/admin");
+  redirect(`/admin/tenants/${id}?saved=1`);
+}
+
 export default async function TenantDetailPage({
   params,
   searchParams,
@@ -167,6 +192,36 @@ export default async function TenantDetailPage({
           Changes saved.
         </p>
       )}
+
+      <div className="mt-6 glass rounded-2xl p-6">
+        <h2 className="font-heading font-semibold">Grant a trial</h2>
+        <p className="mt-1 text-sm text-muted">
+          Sets status to trialing and periodEnd to N days from now — no invoice, no payment. The
+          trial ends itself automatically when periodEnd passes (same status ladder as billing).
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <form action={grantTrial}>
+            <input type="hidden" name="id" value={tenant.id} />
+            <input type="hidden" name="days" value="5" />
+            <button
+              type="submit"
+              className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
+            >
+              Grant 5-day trial
+            </button>
+          </form>
+          <form action={grantTrial}>
+            <input type="hidden" name="id" value={tenant.id} />
+            <input type="hidden" name="days" value="10" />
+            <button
+              type="submit"
+              className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
+            >
+              Grant 10-day trial
+            </button>
+          </form>
+        </div>
+      </div>
 
       <div className="mt-6 glass rounded-2xl p-6">
         <h2 className="font-heading font-semibold">Manage subscription</h2>

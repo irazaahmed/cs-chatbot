@@ -23,14 +23,13 @@ export function PlanPicker({
   const initial = plans.find((p) => p.id === defaultPlanId) ?? plans[0];
   const [planId, setPlanId] = useState(initial.id);
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
-  const [amountPKR, setAmountPKR] = useState(initial.prices.monthly);
 
   const plan = plans.find((p) => p.id === planId) ?? initial;
+  const amountPKR = plan.prices[cycle];
 
   function selectPlan(nextPlan: PlanOption, nextCycle: BillingCycle) {
     setPlanId(nextPlan.id);
     setCycle(nextCycle);
-    setAmountPKR(nextPlan.prices[nextCycle]);
   }
 
   return (
@@ -136,17 +135,18 @@ export function PlanPicker({
         </div>
 
         <div>
-          <label htmlFor="amountPKR" className="block text-sm font-medium">Amount paid (PKR)</label>
+          <label htmlFor="amountPKR" className="block text-sm font-medium">Amount to pay (PKR)</label>
           <input
             id="amountPKR"
-            name="amountPKR"
-            type="number"
-            min="1"
-            value={amountPKR}
-            onChange={(e) => setAmountPKR(Number(e.target.value))}
-            required
-            className={inputClass}
+            type="text"
+            value={`Rs ${amountPKR.toLocaleString()}`}
+            readOnly
+            disabled
+            className={`${inputClass} cursor-not-allowed opacity-80`}
           />
+          <p className="mt-1 text-xs text-muted">
+            Set by the {plan.label} {CYCLE_META[cycle].label.toLowerCase()} plan — not editable.
+          </p>
         </div>
 
         <div>

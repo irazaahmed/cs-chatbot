@@ -1,5 +1,5 @@
 import { fetchConfig, sendChatMessage } from "./api";
-import { createWidgetUI, appendMessage, showThinking } from "./dom";
+import { createWidgetUI, appendMessage, showThinking, setBubbleOpen } from "./dom";
 import { getSessionId } from "./session";
 import { readSSE } from "./sse";
 
@@ -28,6 +28,7 @@ async function init(): Promise<void> {
   ui.bubble.addEventListener("click", () => {
     try {
       ui.panel.classList.toggle("open");
+      setBubbleOpen(ui.bubble, ui.panel.classList.contains("open"));
       if (!opened && ui.panel.classList.contains("open")) {
         opened = true;
         const greeting = config.brandConfig.greeting || "Hi! How can I help?";
