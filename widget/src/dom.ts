@@ -26,9 +26,9 @@ const WIDGET_STYLES = `
   .msg.user { align-self: flex-end; background: #f0f0f0; }
   .msg.assistant { align-self: flex-start; background: #f5f5f7; }
   .cite { display: block; font-size: 11px; color: #888; text-decoration: underline; margin-top: 4px; }
-  .form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #eee; }
-  .input { flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 8px 14px; font-size: 14px; outline: none; }
-  .send { border: none; border-radius: 20px; padding: 8px 16px; color: #fff; cursor: pointer; font-size: 14px; }
+  .form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #eee; min-width: 0; }
+  .input { flex: 1; min-width: 0; border: 1px solid #ddd; border-radius: 20px; padding: 8px 14px; font-size: 14px; outline: none; }
+  .send { flex-shrink: 0; white-space: nowrap; border: none; border-radius: 20px; padding: 8px 16px; color: #fff; cursor: pointer; font-size: 14px; }
   .send:disabled { opacity: 0.5; cursor: default; }
   .powered { text-align: center; font-size: 10px; color: #aaa; padding: 4px 0; }
   .powered a { color: inherit; text-decoration: none; }
