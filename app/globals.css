@@ -349,8 +349,8 @@ h1, h2, h3, h4 {
   gap: 2rem;
   background: var(--color-background);
   transition:
-    opacity 0.6s var(--ease-out-soft),
-    visibility 0.6s;
+    opacity 0.4s var(--ease-out-soft),
+    visibility 0.4s;
 }
 .preloader-leave {
   opacity: 0;
@@ -371,8 +371,8 @@ html[data-splash="seen"] .preloader {
   width: 9.5rem;
   height: 9.5rem;
   transition:
-    transform 0.6s var(--ease-out-soft),
-    opacity 0.6s ease;
+    transform 0.4s var(--ease-out-soft),
+    opacity 0.4s ease;
 }
 .preloader-leave .preloader-stage {
   transform: scale(1.12);

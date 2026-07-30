@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 
 /** Minimum time the splash stays visible so the animation reads, not blinks. */
-const MIN_VISIBLE_MS = 1000;
+const MIN_VISIBLE_MS = 350;
 /** Hard cap: never hold the page hostage waiting on slow assets. */
-const MAX_WAIT_MS = 3500;
+const MAX_WAIT_MS = 2000;
 /** Matches the CSS fade-out duration on .preloader */
-const EXIT_MS = 650;
+const EXIT_MS = 400;
 
 /**
  * Brand splash shown on initial page load: the CS Chatbot mark centered

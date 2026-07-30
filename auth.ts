@@ -16,18 +16,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/login" },
   callbacks: {
     async signIn({ user }) {
-      if (!user.email) return false;
-      await prisma.user.upsert({
-        where: { email: user.email },
-        create: { email: user.email, name: user.name ?? null },
-        update: { name: user.name ?? undefined },
-      });
-      return true;
+      return Boolean(user.email);
     },
-    async jwt({ token }) {
-      if (token.email) {
-        const dbUser = await prisma.user.findUnique({ where: { email: token.email } });
-        if (dbUser) token.userId = dbUser.id;
+    // `user` is only populated on the request right after signIn approves —
+    // every later request just decodes the existing token, so this only
+    // touches the database once per login instead of on every page load.
+    async jwt({ token, user }) {
+      if (user?.email) {
+        const dbUser = await prisma.user.upsert({
+          where: { email: user.email },
+          create: { email: user.email, name: user.name ?? null },
+          update: { name: user.name ?? undefined },
+        });
+        token.userId = dbUser.id;
       }
       return token;
     },

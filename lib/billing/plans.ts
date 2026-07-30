@@ -49,8 +49,8 @@ const PLAN_DEFS: Record<PlanId, PlanDef> = {
     features: [
       "The full product & website widget",
       "Lead capture into your dashboard",
-      "Email notifications",
-      "Monthly usage report",
+      "Appointment requests from chat",
+      "Real-time usage dashboard",
     ],
     prices: { monthly: 3500, quarterly: 9450, yearly: 33600 },
   },
@@ -61,7 +61,7 @@ const PLAN_DEFS: Record<PlanId, PlanDef> = {
     conversationCap: 800,
     features: [
       "Everything in Starter",
-      "Lead export to Google Sheet / CRM",
+      "PDF upload as a knowledge source",
       'Remove the "Powered by Cybrum Solutions" branding',
       "Priority email support",
     ],
@@ -74,9 +74,8 @@ const PLAN_DEFS: Record<PlanId, PlanDef> = {
     conversationCap: 3000,
     features: [
       "Everything in Pro",
-      "Full custom branding",
+      "Highest page & conversation caps",
       "Priority support",
-      "Multiple team members",
     ],
     prices: { monthly: 24000, quarterly: 64800, yearly: 230400 },
   },
