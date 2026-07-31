@@ -6,7 +6,7 @@ import { checkRateLimit } from "@/lib/security/rate-limit";
 import { getClientIp } from "@/lib/security/ip";
 import { checkTenantStatus, checkMonthlyUsage } from "@/lib/billing/status";
 import { retrieveContext, retrieveContactInfo, buildMessages, hasUsableContext } from "@/lib/ai/rag";
-import { looksLikeContactOrBookingSignal, extractStructuredSignal } from "@/lib/ai/extract";
+import { captureStructuredSignal } from "@/lib/ai/capture";
 import { chatStream, type ChatMessage } from "@/lib/ai/provider";
 import { parseBrandConfig } from "@/lib/tenant/brand";
 import { corsHeaders, corsPreflightResponse } from "@/lib/security/cors";
@@ -173,48 +173,15 @@ export async function POST(request: Request): Promise<Response> {
             });
 
         // Separate from the answer itself and never allowed to affect it —
-        // this runs after the response is already streamed and saved. Only
-        // fires the extra LLM call when the visitor's message plausibly
-        // contains contact info or a booking request.
-        try {
-          if (looksLikeContactOrBookingSignal(body.message)) {
-            const signal = await extractStructuredSignal(priorMessages, body.message);
-            if (leadCaptureEnabled && signal.type === "lead") {
-              const already = await prisma.lead.findFirst({
-                where: { conversationId: conversationRecord.id },
-              });
-              if (!already) {
-                await prisma.lead.create({
-                  data: {
-                    tenantId: tenant.id,
-                    name: signal.name,
-                    email: signal.contact?.includes("@") ? signal.contact : null,
-                    phone: signal.contact && !signal.contact.includes("@") ? signal.contact : null,
-                    conversationId: conversationRecord.id,
-                  },
-                });
-              }
-            } else if (signal.type === "appointment") {
-              const already = await prisma.appointment.findFirst({
-                where: { conversationId: conversationRecord.id },
-              });
-              if (!already) {
-                await prisma.appointment.create({
-                  data: {
-                    tenantId: tenant.id,
-                    name: signal.name,
-                    contact: signal.contact,
-                    requestedTime: signal.requestedTime,
-                    notes: signal.notes,
-                    conversationId: conversationRecord.id,
-                  },
-                });
-              }
-            }
-          }
-        } catch (err) {
-          console.error("structured signal extraction failed:", err instanceof Error ? err.message : err);
-        }
+        // runs after the response is already streamed and saved. Shared with
+        // the playground so both save leads/appointments identically.
+        await captureStructuredSignal({
+          tenantId: tenant.id,
+          leadCaptureEnabled,
+          history: priorMessages,
+          latestMessage: body.message,
+          conversationId: conversationRecord.id,
+        });
       } catch (err) {
         console.error("chat stream failed:", err instanceof Error ? err.message : err);
         try {

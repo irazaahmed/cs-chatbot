@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db/client";
 import { retrieveContext, retrieveContactInfo, buildMessages, hasUsableContext } from "@/lib/ai/rag";
 import { chatStream, type ChatMessage } from "@/lib/ai/provider";
+import { captureStructuredSignal } from "@/lib/ai/capture";
 import { parseBrandConfig } from "@/lib/tenant/brand";
 
 export const runtime = "nodejs";
@@ -41,6 +42,7 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "No tenant found" }, { status: 404 });
   }
 
+  const leadCaptureEnabled = parseBrandConfig(tenant.brandConfig).leadCapture;
   const matches = await retrieveContext(tenant.id, body.message);
   const contactMatches = await retrieveContactInfo(tenant.id);
   const history: ChatMessage[] = (body.history ?? []).slice(-6);
@@ -51,7 +53,7 @@ export async function POST(request: Request): Promise<Response> {
     history,
     body.message,
     contactMatches,
-    parseBrandConfig(tenant.brandConfig).leadCapture
+    leadCaptureEnabled
   );
   const citations = Array.from(new Set(matches.map((m) => m.sourceUrl)));
   const answered = hasUsableContext(matches);
@@ -68,6 +70,17 @@ export async function POST(request: Request): Promise<Response> {
         }
         controller.enqueue(encoder.encode(sseEvent({ done: true, citations, answered })));
         controller.close();
+
+        // Same lead/appointment capture the live widget runs, so the owner can
+        // verify it right here in the playground. No persisted conversation
+        // here (playground chats don't count against usage), so no conversationId.
+        await captureStructuredSignal({
+          tenantId: tenant.id,
+          leadCaptureEnabled,
+          history,
+          latestMessage: body.message,
+          conversationId: null,
+        });
       } catch (err) {
         console.error("playground chat failed:", err instanceof Error ? err.message : err);
         try {

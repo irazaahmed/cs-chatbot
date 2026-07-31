@@ -57,14 +57,27 @@ export function buildMessages(
   // chat route, which creates the Lead.
   const leadGenInstruction = leadCapture
     ? "You also act as a lead generator for this business. When a visitor shows clear buying intent " +
-      "— asking about pricing or plans, how to purchase or sign up, requesting a quote, wanting a " +
-      "specific service done for them, or otherwise signalling they are a potential customer — first " +
-      "answer their question, then naturally offer to have the team follow up and ask for their name " +
-      "and a phone number or WhatsApp (email is also fine). Ask politely, in the same language as the " +
-      "rest of your reply, and only once per conversation: if the visitor declines, ignores it, or has " +
-      "already shared their contact, do not ask again. Never ask for contact details during ordinary " +
-      "informational questions or small talk — only on genuine buying intent."
+      "— asking about pricing or plans, how to purchase or sign up, requesting a quote, or wanting a " +
+      "specific service done for them — first answer their question, then in the SAME reply warmly " +
+      "invite them to leave their details so the team can follow up, asking for their name and " +
+      "phone/WhatsApp number together in one short sentence (email is fine too). Ask for both at once " +
+      "in a single message — never interrogate the visitor one question at a time, and never ask them " +
+      "to restate their problem or message, you already have it from the conversation. Do this only " +
+      "ONCE. The moment the visitor has shared a way to reach them, stop asking completely and reply " +
+      "with a brief, warm thank-you saying the team will get back to them soon — ask no further " +
+      "questions after that. If they decline or ignore the request, drop it and keep helping normally. " +
+      "Never ask for contact details during ordinary questions or small talk."
     : null;
+
+  // Independent of the lead-capture toggle (appointments have their own
+  // dashboard tab). Only activates when a visitor actually wants to book, and
+  // deliberately collects everything in one message so it doesn't feel like an
+  // interrogation.
+  const appointmentInstruction =
+    "If a visitor wants to book an appointment, call, meeting, or visit, ask for their name, a " +
+    "phone/WhatsApp number or email, and their preferred day and time — all together in one message, " +
+    "never one question at a time. Once you have those, confirm warmly that the team will reach out " +
+    "to finalize it, and stop re-asking.";
 
   const contextBlock =
     matches.length > 0
@@ -87,6 +100,7 @@ export function buildMessages(
       "conversational questions), you may answer briefly from your own general knowledge instead " +
       "of refusing.",
     ...(leadGenInstruction ? [leadGenInstruction] : []),
+    appointmentInstruction,
     `Today's date is ${new Date().toISOString().slice(0, 10)}.`,
     "Write a natural, plain-language answer. Do not tack on citation markers like " +
       "(source: ...) or [1] after every sentence just to prove where a fact came from — the " +

@@ -136,13 +136,13 @@ export default function PlaygroundPage() {
             }}
             placeholder="Type a message…"
             disabled={sending}
-            className="h-11 flex-1 rounded-full border border-border bg-surface/60 px-5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
+            className="h-11 min-w-0 flex-1 rounded-full border border-border bg-surface/60 px-5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
           />
           <button
             type="button"
             onClick={submitMessage}
             disabled={sending}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-accent px-5 font-medium text-white transition-all duration-300 hover:bg-accent-bright disabled:opacity-50"
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-accent px-4 font-medium text-white transition-all duration-300 hover:bg-accent-bright disabled:opacity-50 sm:px-5"
           >
             Send
           </button>
