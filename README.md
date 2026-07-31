@@ -18,7 +18,7 @@ No signup. No card. No setup call. Paste your URL, watch it read your site, and 
 
 ## What is it?
 
-CS Chatbot turns any website into a smart assistant that answers visitors' questions **using only that website's real content** — not a generic AI that makes things up about your business.
+CS Chatbot turns any website into a smart assistant that answers visitors' questions **using only that website's real content** — plus any PDFs you upload (menus, brochures, price lists) — not a generic AI that makes things up about your business.
 
 Paste your URL and, right on the landing page, you can watch it crawl your pages and then chat with a working bot trained on them — **before you sign up for anything.** Like it? Sign in, verify you own the domain, and drop **one script tag** on your site. That's the whole install, the same way you'd add Google Analytics.
 
@@ -27,7 +27,8 @@ Paste your URL and, right on the landing page, you can watch it crawl your pages
 - **🎯 Answers from your content only** — every reply is grounded in your actual pages, with a source link under each answer. When your site doesn't cover something, it says so and offers a human instead of guessing.
 - **⚡ Live in minutes, not weeks** — no developer, no scope document, no waiting. Copy, paste, done.
 - **🌐 English, اردو & Roman Urdu built in** — it replies the way your customers actually type, which most chatbots built for a global audience never handle well.
-- **📥 Captures leads while it chats** — turns a visitor's question into a lead in your dashboard.
+- **📥 Generates leads, not just answers** — when a visitor shows real buying intent, it offers a human follow-up, collects their name and number in one natural step, and drops the lead straight into your dashboard. Switch lead capture on or off anytime.
+- **📅 Books appointments in chat** — if a visitor wants to schedule a call or visit, it takes their details and preferred time right in the conversation and saves it to your Appointments tab.
 - **🛡️ Never breaks your site** — the widget loads async, runs inside a Shadow DOM, and silently removes itself if anything ever goes wrong. It can't slow or break the host page.
 
 ## How it works
