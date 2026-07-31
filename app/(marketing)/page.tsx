@@ -10,6 +10,7 @@ import { SiteNav } from "@/components/marketing/SiteNav";
 import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { JsonLd } from "@/components/JsonLd";
 import { signInWithGoogle } from "@/lib/auth/actions";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const FREE_PREVIEW_MESSAGE_LIMIT = 3;
 const PREVIEW_URL_COOKIE = "cybrum_preview_url";
@@ -393,15 +394,7 @@ export default function LandingPage() {
                     }
                   }}
                 >
-                  <button
-                    type="submit"
-                    className="btn-sheen inline-flex h-11 items-center justify-center gap-2.5 rounded-full bg-accent px-6 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_36px_-6px_var(--color-accent)]"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
-                      <path fill="currentColor" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z" />
-                    </svg>
-                    Sign in with Google
-                  </button>
+                  <GoogleSignInButton className="btn-sheen inline-flex h-11 items-center justify-center gap-2.5 rounded-full bg-accent px-6 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_36px_-6px_var(--color-accent)] disabled:opacity-70" />
                 </form>
               </div>
             ) : (
