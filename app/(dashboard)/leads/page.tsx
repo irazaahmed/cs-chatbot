@@ -1,6 +1,31 @@
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 
+interface StoredMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+// Pulls the visitor's first question out of a conversation transcript so the
+// owner can see what a lead was actually interested in, not just their number.
+function firstVisitorQuestion(raw: unknown): string | null {
+  if (!Array.isArray(raw)) return null;
+  for (const item of raw) {
+    if (
+      item &&
+      typeof item === "object" &&
+      "role" in item &&
+      "content" in item &&
+      item.role === "user" &&
+      typeof item.content === "string" &&
+      item.content.trim().length > 0
+    ) {
+      return (item as StoredMessage).content.trim();
+    }
+  }
+  return null;
+}
+
 export default async function LeadsPage() {
   const { tenant } = await getCurrentTenant();
 
@@ -9,6 +34,21 @@ export default async function LeadsPage() {
     orderBy: { createdAt: "desc" },
     take: 200,
   });
+
+  // One scoped query for the linked conversations, then match in memory —
+  // avoids an N+1 lookup per lead row.
+  const conversationIds = leads
+    .map((l) => l.conversationId)
+    .filter((id): id is string => Boolean(id));
+  const conversations = conversationIds.length
+    ? await prisma.conversation.findMany({
+        where: { tenantId: tenant.id, id: { in: conversationIds } },
+        select: { id: true, messages: true },
+      })
+    : [];
+  const interestById = new Map(
+    conversations.map((c) => [c.id, firstVisitorQuestion(c.messages)])
+  );
 
   return (
     <div>
@@ -31,20 +71,31 @@ export default async function LeadsPage() {
                     <th className="px-5 py-3 font-medium">Name</th>
                     <th className="px-5 py-3 font-medium">Email</th>
                     <th className="px-5 py-3 font-medium">Phone</th>
+                    <th className="px-5 py-3 font-medium">Interested in</th>
                     <th className="px-5 py-3 font-medium">Date</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {leads.map((lead) => (
-                    <tr key={lead.id} className="border-t border-border transition-colors hover:bg-accent/5">
-                      <td className="px-5 py-3 text-foreground">{lead.name || "—"}</td>
-                      <td className="px-5 py-3 text-muted">{lead.email || "—"}</td>
-                      <td className="px-5 py-3 text-muted">{lead.phone || "—"}</td>
-                      <td className="px-5 py-3 text-muted">
-                        {lead.createdAt.toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
+                  {leads.map((lead) => {
+                    const interest = lead.conversationId
+                      ? interestById.get(lead.conversationId)
+                      : null;
+                    return (
+                      <tr key={lead.id} className="border-t border-border transition-colors hover:bg-accent/5">
+                        <td className="px-5 py-3 text-foreground">{lead.name || "—"}</td>
+                        <td className="px-5 py-3 text-muted">{lead.email || "—"}</td>
+                        <td className="px-5 py-3 text-muted">{lead.phone || "—"}</td>
+                        <td className="max-w-xs px-5 py-3 text-muted">
+                          <span className="line-clamp-2" title={interest || undefined}>
+                            {interest || "—"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-muted">
+                          {lead.createdAt.toLocaleDateString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

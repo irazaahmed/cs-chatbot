@@ -32,8 +32,9 @@ const EXTRACT_SYSTEM_PROMPT =
   '"name": string | null, "contact": string | null, "requestedTime": string | null, "notes": string | null}. ' +
   'Use "appointment" if the visitor is asking to book/schedule a call, meeting, or visit and you can ' +
   'see at least a name or contact plus some indication of when. Use "lead" if the visitor shared a ' +
-  'name and a way to reach them (email or phone) without asking to schedule anything. Use "none" if ' +
-  "neither applies yet. requestedTime is the visitor's own words for when they want to meet (e.g. " +
+  "way to reach them (email or phone number) — a name is a bonus, not required — without asking to " +
+  'schedule anything. Use "none" if neither applies yet. requestedTime is the visitor\'s own words ' +
+  "for when they want to meet (e.g. " +
   '"tomorrow 3pm", "kal shaam ko") — never invent or normalize a date/time. Only use information ' +
   "actually present in the transcript.";
 
