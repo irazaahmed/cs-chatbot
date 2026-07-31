@@ -2,24 +2,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
+import { parseBrandConfig, type BrandConfig } from "@/lib/tenant/brand";
 import type { Prisma } from "@prisma/client";
-
-interface BrandConfig {
-  color: string;
-  botName: string;
-  greeting: string;
-  position: string;
-}
-
-function parseBrandConfig(raw: unknown): BrandConfig {
-  const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  return {
-    color: typeof obj.color === "string" ? obj.color : "#1e88e8",
-    botName: typeof obj.botName === "string" ? obj.botName : "Assistant",
-    greeting: typeof obj.greeting === "string" ? obj.greeting : "Hi! How can I help?",
-    position: typeof obj.position === "string" ? obj.position : "bottom-right",
-  };
-}
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -43,6 +27,8 @@ export default async function CustomizePage({
       botName: String(formData.get("botName") ?? "Assistant").slice(0, 50),
       greeting: String(formData.get("greeting") ?? "Hi! How can I help?").slice(0, 200),
       position: formData.get("position") === "bottom-left" ? "bottom-left" : "bottom-right",
+      // Unchecked checkboxes are simply absent from FormData.
+      leadCapture: formData.get("leadCapture") === "on",
     };
     const systemPrompt = String(formData.get("systemPrompt") ?? "").slice(0, 4000);
     const language = String(formData.get("language") ?? "en");
@@ -142,6 +128,25 @@ export default async function CustomizePage({
             maxLength={4000}
             className={inputClass}
           />
+        </div>
+
+        <div className="rounded-2xl border border-border bg-surface/40 p-4">
+          <label htmlFor="leadCapture" className="flex cursor-pointer items-start gap-3">
+            <input
+              id="leadCapture"
+              name="leadCapture"
+              type="checkbox"
+              defaultChecked={brand.leadCapture}
+              className="mt-0.5 h-4 w-4 cursor-pointer accent-[var(--color-accent)]"
+            />
+            <span>
+              <span className="block text-sm font-medium">Lead generation</span>
+              <span className="mt-0.5 block text-xs text-muted">
+                When a visitor shows buying intent, the bot politely asks for their name and
+                phone/WhatsApp and saves it to your <strong>Leads</strong> tab.
+              </span>
+            </span>
+          </label>
         </div>
 
         <button

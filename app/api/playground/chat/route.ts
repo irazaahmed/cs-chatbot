@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db/client";
 import { retrieveContext, retrieveContactInfo, buildMessages, hasUsableContext } from "@/lib/ai/rag";
 import { chatStream, type ChatMessage } from "@/lib/ai/provider";
+import { parseBrandConfig } from "@/lib/tenant/brand";
 
 export const runtime = "nodejs";
 
@@ -49,7 +50,8 @@ export async function POST(request: Request): Promise<Response> {
     matches,
     history,
     body.message,
-    contactMatches
+    contactMatches,
+    parseBrandConfig(tenant.brandConfig).leadCapture
   );
   const citations = Array.from(new Set(matches.map((m) => m.sourceUrl)));
   const answered = hasUsableContext(matches);

@@ -8,6 +8,7 @@ import { checkTenantStatus, checkMonthlyUsage } from "@/lib/billing/status";
 import { retrieveContext, retrieveContactInfo, buildMessages, hasUsableContext } from "@/lib/ai/rag";
 import { looksLikeContactOrBookingSignal, extractStructuredSignal } from "@/lib/ai/extract";
 import { chatStream, type ChatMessage } from "@/lib/ai/provider";
+import { parseBrandConfig } from "@/lib/tenant/brand";
 import { corsHeaders, corsPreflightResponse } from "@/lib/security/cors";
 
 // Prisma's node-postgres adapter needs Node APIs, not the Edge runtime.
@@ -103,6 +104,8 @@ export async function POST(request: Request): Promise<Response> {
   });
   const priorMessages = existingConversation ? parseHistory(existingConversation.messages) : [];
 
+  const leadCaptureEnabled = parseBrandConfig(tenant.brandConfig).leadCapture;
+
   const matches = await retrieveContext(tenant.id, body.message);
   const contactMatches = await retrieveContactInfo(tenant.id);
   const promptMessages: ChatMessage[] = buildMessages(
@@ -111,7 +114,8 @@ export async function POST(request: Request): Promise<Response> {
     matches,
     priorMessages,
     body.message,
-    contactMatches
+    contactMatches,
+    leadCaptureEnabled
   );
   const citations = Array.from(new Set(matches.map((m) => m.sourceUrl)));
   const answered = hasUsableContext(matches);
@@ -175,7 +179,7 @@ export async function POST(request: Request): Promise<Response> {
         try {
           if (looksLikeContactOrBookingSignal(body.message)) {
             const signal = await extractStructuredSignal(priorMessages, body.message);
-            if (signal.type === "lead") {
+            if (leadCaptureEnabled && signal.type === "lead") {
               const already = await prisma.lead.findFirst({
                 where: { conversationId: conversationRecord.id },
               });
