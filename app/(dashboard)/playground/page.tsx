@@ -31,7 +31,8 @@ export default function PlaygroundPage() {
     const el = inputRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+    // Grow to fit, but stop around ten lines and let it scroll after that.
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
   }, [input]);
 
   async function submitMessage() {
@@ -137,7 +138,7 @@ export default function PlaygroundPage() {
             rows={1}
             placeholder="Type a message…"
             disabled={sending}
-            className="max-h-32 min-h-11 min-w-0 flex-1 resize-none rounded-2xl border border-border bg-surface/60 px-4 py-2.5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
+            className="max-h-[220px] min-h-11 min-w-0 flex-1 resize-none overflow-y-auto whitespace-pre-wrap break-words rounded-2xl border border-border bg-surface/60 px-4 py-2.5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
           />
           <button
             type="button"

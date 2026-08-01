@@ -27,7 +27,7 @@ const WIDGET_STYLES = `
   .msg.assistant { align-self: flex-start; background: #f5f5f7; }
   .cite { display: block; font-size: 11px; color: #888; text-decoration: underline; margin-top: 4px; }
   .form { display: flex; align-items: flex-end; gap: 8px; padding: 10px; border-top: 1px solid #eee; min-width: 0; }
-  .input { flex: 1; min-width: 0; border: 1px solid #ddd; border-radius: 16px; padding: 8px 14px; font-size: 14px; line-height: 1.4; outline: none; resize: none; max-height: 96px; font-family: inherit; }
+  .input { flex: 1; min-width: 0; border: 1px solid #ddd; border-radius: 16px; padding: 8px 14px; font-size: 14px; line-height: 1.4; outline: none; resize: none; max-height: 190px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: break-word; font-family: inherit; }
   .send { flex-shrink: 0; white-space: nowrap; border: none; border-radius: 20px; padding: 8px 16px; color: #fff; cursor: pointer; font-size: 14px; }
   .send:disabled { opacity: 0.5; cursor: default; }
   .powered { text-align: center; font-size: 10px; color: #aaa; padding: 4px 0; }

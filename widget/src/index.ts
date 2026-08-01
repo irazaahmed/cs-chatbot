@@ -42,7 +42,8 @@ async function init(): Promise<void> {
   // Grow the textarea with its content, capped so it never eats the panel.
   const autoGrow = () => {
     ui.input.style.height = "auto";
-    ui.input.style.height = `${Math.min(ui.input.scrollHeight, 96)}px`;
+    // Grow to fit, capped around ten lines; the textarea scrolls past that.
+    ui.input.style.height = `${Math.min(ui.input.scrollHeight, 190)}px`;
   };
   ui.input.addEventListener("input", autoGrow);
 
