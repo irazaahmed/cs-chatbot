@@ -15,6 +15,7 @@ export default function PlaygroundPage() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Scoped to the message list itself: scrollTop is a no-op unless content
   // has actually overflowed the box, so this only moves anything once an
@@ -23,6 +24,15 @@ export default function PlaygroundPage() {
     const container = messagesContainerRef.current;
     if (container) container.scrollTop = container.scrollHeight;
   }, [messages]);
+
+  // Auto-grow the textarea with its content, capped so it never eats the
+  // whole panel. Resets to one row when the field is cleared after a send.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, [input]);
 
   async function submitMessage() {
     const question = input.trim();
@@ -111,20 +121,23 @@ export default function PlaygroundPage() {
             </div>
           ))}
         </div>
-        <div className="flex gap-2 border-t border-border p-3.5">
-          <input
-            type="text"
+        <div className="flex items-end gap-2 border-t border-border p-3.5">
+          <textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              // Enter inserts a newline everywhere (crucial on mobile, where
+              // there is no modifier key). Send is Ctrl/Cmd+Enter or the button.
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 submitMessage();
               }
             }}
+            rows={1}
             placeholder="Type a message…"
             disabled={sending}
-            className="h-11 min-w-0 flex-1 rounded-full border border-border bg-surface/60 px-5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
+            className="max-h-32 min-h-11 min-w-0 flex-1 resize-none rounded-2xl border border-border bg-surface/60 px-4 py-2.5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
           />
           <button
             type="button"

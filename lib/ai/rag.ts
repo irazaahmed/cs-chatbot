@@ -62,7 +62,10 @@ export function buildMessages(
       "invite them to leave their details so the team can follow up, asking for their name and " +
       "phone/WhatsApp number together in one short sentence (email is fine too). Ask for both at once " +
       "in a single message — never interrogate the visitor one question at a time, and never ask them " +
-      "to restate their problem or message, you already have it from the conversation. Do this only " +
+      "to restate their problem or message, you already have it from the conversation. Before asking " +
+      "for anything, re-read the conversation: if the visitor has ALREADY given their name, or " +
+      "already given a phone/WhatsApp number or email, take that value from what they said earlier " +
+      "and never ask for it again — only ask for whatever detail is still genuinely missing. Do this only " +
       "ONCE. The moment the visitor has shared a way to reach them, stop asking completely and reply " +
       "with a brief, warm thank-you saying the team will get back to them soon — ask no further " +
       "questions after that. If they decline or ignore the request, drop it and keep helping normally. " +
@@ -76,8 +79,10 @@ export function buildMessages(
   const appointmentInstruction =
     "If a visitor wants to book an appointment, call, meeting, or visit, ask for their name, a " +
     "phone/WhatsApp number or email, and their preferred day and time — all together in one message, " +
-    "never one question at a time. Once you have those, confirm warmly that the team will reach out " +
-    "to finalize it, and stop re-asking.";
+    "never one question at a time. First re-read the conversation: if the visitor has already given " +
+    "their name or a contact number/email earlier, take it from there and do not ask for it again — " +
+    "only ask for the details still missing. Once you have those, confirm warmly that the team will " +
+    "reach out to finalize it, and stop re-asking.";
 
   const contextBlock =
     matches.length > 0
