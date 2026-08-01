@@ -15,10 +15,12 @@ import { embedTexts } from "./lib/ai/embed";
 import { replaceDocuments, replacePdfDocument, type DocumentChunk } from "./lib/db/vector";
 import { planPageCap } from "./lib/billing/plans";
 import { applyStatusLadder } from "./lib/billing/ladder";
+import { purgeOldConversations, CONVERSATION_RETENTION_DAYS } from "./lib/retention";
 import { extractText, getDocumentProxy } from "unpdf";
 
 const POLL_INTERVAL_MS = 5000;
 const STATUS_LADDER_INTERVAL_TICKS = 60; // ~5 minutes at 5s/tick — billing status isn't urgent
+const RETENTION_INTERVAL_TICKS = 720; // ~1 hour at 5s/tick — retention isn't time-sensitive
 let tickCount = 0;
 
 async function claimNextJob(): Promise<Job | null> {
@@ -129,6 +131,17 @@ async function tick(): Promise<void> {
       if (changed > 0) console.log(`[worker] status ladder updated ${changed} tenant(s)`);
     } catch (err) {
       console.error("[worker] status ladder check failed:", err instanceof Error ? err.message : err);
+    }
+  }
+
+  if (tickCount % RETENTION_INTERVAL_TICKS === 0) {
+    try {
+      const purged = await purgeOldConversations();
+      if (purged > 0) {
+        console.log(`[worker] purged ${purged} conversation(s) older than ${CONVERSATION_RETENTION_DAYS} days`);
+      }
+    } catch (err) {
+      console.error("[worker] conversation purge failed:", err instanceof Error ? err.message : err);
     }
   }
   tickCount++;

@@ -101,6 +101,7 @@ model Lead {
   name           String?
   email          String?
   phone          String?
+  interest       String?                   // what service/topic the visitor asked about
   conversationId String?
   createdAt      DateTime @default(now())
 

@@ -77,9 +77,12 @@ export default async function LeadsPage() {
                 </thead>
                 <tbody>
                   {leads.map((lead) => {
-                    const interest = lead.conversationId
-                      ? interestById.get(lead.conversationId)
-                      : null;
+                    // Prefer the LLM-extracted summary saved on the lead; fall
+                    // back to the conversation's first question for older rows
+                    // captured before we stored the interest directly.
+                    const interest =
+                      lead.interest ||
+                      (lead.conversationId ? interestById.get(lead.conversationId) : null);
                     return (
                       <tr key={lead.id} className="border-t border-border transition-colors hover:bg-accent/5">
                         <td className="px-5 py-3 text-foreground">{lead.name || "—"}</td>

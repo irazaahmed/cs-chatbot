@@ -35,8 +35,12 @@ const EXTRACT_SYSTEM_PROMPT =
   "way to reach them (email or phone number) — a name is a bonus, not required — without asking to " +
   'schedule anything. Use "none" if neither applies yet. requestedTime is the visitor\'s own words ' +
   "for when they want to meet (e.g. " +
-  '"tomorrow 3pm", "kal shaam ko") — never invent or normalize a date/time. Only use information ' +
-  "actually present in the transcript.";
+  '"tomorrow 3pm", "kal shaam ko") — never invent or normalize a date/time. "notes" is a short ' +
+  "(one line, max ~15 words) summary of WHAT the visitor is interested in or asking about — the " +
+  "specific service, product, or topic that prompted them to leave their details or book (e.g. " +
+  '"wants a quote for kitchen renovation", "asking about the premium hosting plan", "needs a dental ' +
+  'cleaning appointment"). Base it only on what they actually discussed; if it truly isn\'t clear, ' +
+  "use null. Only use information actually present in the transcript.";
 
 /** One extra, deliberately small LLM call — only invoked when
  * looksLikeContactOrBookingSignal matched, so this never runs on ordinary

@@ -34,6 +34,7 @@ export async function captureStructuredSignal(params: {
           name: signal.name,
           email: signal.contact?.includes("@") ? signal.contact : null,
           phone: signal.contact && !signal.contact.includes("@") ? signal.contact : null,
+          interest: signal.notes,
           conversationId: conversationId ?? null,
         },
       });
