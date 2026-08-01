@@ -4,6 +4,7 @@ export interface BrandConfig {
   greeting?: string;
   avatar?: string;
   position?: string;
+  humanContact?: string;
 }
 
 export interface ConfigResponse {

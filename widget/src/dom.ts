@@ -20,7 +20,10 @@ const WIDGET_STYLES = `
   .panel.right { right: 20px; }
   .panel.left { left: 20px; }
   .panel.open { display: flex; }
-  .header { padding: 16px; color: #fff; font-weight: 600; }
+  .header { padding: 12px 14px; color: #fff; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .header-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .human { flex-shrink: 0; background: rgba(255,255,255,0.18); color: #fff; border: none; border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 500; line-height: 1.2; cursor: pointer; font-family: inherit; }
+  .human:hover { background: rgba(255,255,255,0.3); }
   .messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
   .msg { max-width: 85%; padding: 8px 12px; border-radius: 14px; line-height: 1.4; white-space: pre-wrap; }
   .msg.user { align-self: flex-end; background: #f0f0f0; }
@@ -47,6 +50,7 @@ export interface WidgetUI {
   form: HTMLFormElement;
   input: HTMLTextAreaElement;
   sendButton: HTMLButtonElement;
+  humanButton: HTMLButtonElement;
 }
 
 function bubbleIconSvg(): string {
@@ -95,7 +99,20 @@ export function createWidgetUI(config: BrandConfig, forcedBranding: boolean): Wi
   const header = document.createElement("div");
   header.className = "header";
   header.style.background = color;
-  header.textContent = botName;
+
+  const headerTitle = document.createElement("span");
+  headerTitle.className = "header-title";
+  headerTitle.textContent = botName;
+  header.appendChild(headerTitle);
+
+  // Always present so a visitor is never trapped with the bot — the single
+  // most common objection from business owners ("what if it answers wrong").
+  const humanButton = document.createElement("button");
+  humanButton.className = "human";
+  humanButton.type = "button";
+  humanButton.textContent = "Talk to a human";
+  header.appendChild(humanButton);
+
   panel.appendChild(header);
 
   const messagesEl = document.createElement("div");
@@ -137,7 +154,7 @@ export function createWidgetUI(config: BrandConfig, forcedBranding: boolean): Wi
 
   document.body.appendChild(host);
 
-  return { bubble, panel, messagesEl, form, input, sendButton };
+  return { bubble, panel, messagesEl, form, input, sendButton, humanButton };
 }
 
 // PDF-sourced citations use a "pdf://<filename>" pseudo-URL (see

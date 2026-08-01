@@ -11,6 +11,10 @@ export interface BrandConfig {
   /** Whether the bot proactively asks interested visitors for their contact
    *  details and stores them as leads. */
   leadCapture: boolean;
+  /** Optional destination for the widget's "Talk to a human" button — a
+   *  WhatsApp/phone/email/URL the owner sets. Blank means the button instead
+   *  asks the bot to hand the visitor off using the site's own contact info. */
+  humanContact: string;
 }
 
 export function parseBrandConfig(raw: unknown): BrandConfig {
@@ -23,5 +27,6 @@ export function parseBrandConfig(raw: unknown): BrandConfig {
     // Default on: tenants created before this field existed (no leadCapture
     // key) keep the lead-gen behavior until they explicitly turn it off.
     leadCapture: typeof obj.leadCapture === "boolean" ? obj.leadCapture : true,
+    humanContact: typeof obj.humanContact === "string" ? obj.humanContact : "",
   };
 }

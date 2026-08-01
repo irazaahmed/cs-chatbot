@@ -84,6 +84,15 @@ export function buildMessages(
     "only ask for the details still missing. Once you have those, confirm warmly that the team will " +
     "reach out to finalize it, and stop re-asking.";
 
+  // Backs the widget's "Talk to a human" button when the owner hasn't set an
+  // explicit contact link: the button sends a plain "talk to a human" message,
+  // and this makes the bot hand off gracefully instead of refusing.
+  const humanHandoffInstruction =
+    "If the visitor explicitly asks to talk to a human, a real person, an agent, or the owner, never " +
+    "refuse or say you cannot. Warmly point them to the business's contact details below " +
+    "(WhatsApp/phone/email) so they can reach a person directly, and offer to pass their name and " +
+    "number to the team for a callback. Keep it short.";
+
   const contextBlock =
     matches.length > 0
       ? matches.map((m, i) => `[${i + 1}] Source: ${m.sourceUrl}\n${m.content}`).join("\n\n")
@@ -106,6 +115,7 @@ export function buildMessages(
       "of refusing.",
     ...(leadGenInstruction ? [leadGenInstruction] : []),
     appointmentInstruction,
+    humanHandoffInstruction,
     `Today's date is ${new Date().toISOString().slice(0, 10)}.`,
     "Keep your answers short and conversational — usually two to four sentences. Get straight to " +
       "the point and never pad the reply. Only give a longer or step-by-step answer if the visitor " +

@@ -29,6 +29,7 @@ export default async function CustomizePage({
       position: formData.get("position") === "bottom-left" ? "bottom-left" : "bottom-right",
       // Unchecked checkboxes are simply absent from FormData.
       leadCapture: formData.get("leadCapture") === "on",
+      humanContact: String(formData.get("humanContact") ?? "").trim().slice(0, 300),
     };
     const systemPrompt = String(formData.get("systemPrompt") ?? "").slice(0, 4000);
     const language = String(formData.get("language") ?? "en");
@@ -113,6 +114,24 @@ export default async function CustomizePage({
               ))}
             </select>
           </div>
+        </div>
+
+        <div>
+          <label htmlFor="humanContact" className="block text-sm font-medium">Talk to a human link</label>
+          <p className="mt-1 text-xs text-muted">
+            Where the widget&apos;s <strong>Talk to a human</strong> button sends visitors. A WhatsApp
+            number in international format (e.g. <code>923001234567</code>), a full link
+            (<code>https://wa.me/92…</code>, <code>tel:…</code>, <code>mailto:…</code>), or any URL.
+            Leave blank and the bot will instead share the contact details from your own website.
+          </p>
+          <input
+            id="humanContact"
+            name="humanContact"
+            defaultValue={brand.humanContact}
+            maxLength={300}
+            placeholder="923001234567"
+            className={inputClass}
+          />
         </div>
 
         <div>

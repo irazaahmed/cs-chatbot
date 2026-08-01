@@ -3,6 +3,20 @@ import { createWidgetUI, appendMessage, showThinking, setBubbleOpen } from "./do
 import { getSessionId } from "./session";
 import { readSSE } from "./sse";
 
+// Turns whatever the owner typed into the "Talk to a human" field into an
+// openable URL. A bare number becomes a WhatsApp link (Pakistan's default
+// channel); emails become mailto:; full links pass through untouched.
+function normalizeContactUrl(raw: string | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v) return null;
+  if (/^(https?:|tel:|mailto:)/i.test(v)) return v;
+  if (/^wa\.me\//i.test(v)) return `https://${v}`;
+  if (v.includes("@") && !/\s/.test(v)) return `mailto:${v}`;
+  const digits = v.replace(/\D/g, "");
+  if (digits.length >= 7) return `https://wa.me/${digits}`;
+  return `https://${v}`;
+}
+
 // CLAUDE.md section 8, rule 4: every entry point wrapped in try/catch. Any
 // failure means the widget silently does not render — never throws into the
 // customer's page, never blocks load, never logs to their console.
@@ -53,6 +67,23 @@ async function init(): Promise<void> {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       ui.form.requestSubmit();
+    }
+  });
+
+  // "Talk to a human": open the owner's configured contact if there is one,
+  // otherwise ask the bot to hand off using the contact details on their site.
+  const humanContactUrl = normalizeContactUrl(config.brandConfig.humanContact);
+  ui.humanButton.addEventListener("click", () => {
+    try {
+      if (humanContactUrl) {
+        window.open(humanContactUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+      if (sending) return;
+      ui.input.value = "I'd like to talk to a human, please.";
+      ui.form.requestSubmit();
+    } catch {
+      // never let a UI error escape to the host page
     }
   });
 
