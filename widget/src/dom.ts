@@ -26,8 +26,8 @@ const WIDGET_STYLES = `
   .msg.user { align-self: flex-end; background: #f0f0f0; }
   .msg.assistant { align-self: flex-start; background: #f5f5f7; }
   .cite { display: block; font-size: 11px; color: #888; text-decoration: underline; margin-top: 4px; }
-  .form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #eee; min-width: 0; }
-  .input { flex: 1; min-width: 0; border: 1px solid #ddd; border-radius: 20px; padding: 8px 14px; font-size: 14px; outline: none; }
+  .form { display: flex; align-items: flex-end; gap: 8px; padding: 10px; border-top: 1px solid #eee; min-width: 0; }
+  .input { flex: 1; min-width: 0; border: 1px solid #ddd; border-radius: 16px; padding: 8px 14px; font-size: 14px; line-height: 1.4; outline: none; resize: none; max-height: 96px; font-family: inherit; }
   .send { flex-shrink: 0; white-space: nowrap; border: none; border-radius: 20px; padding: 8px 16px; color: #fff; cursor: pointer; font-size: 14px; }
   .send:disabled { opacity: 0.5; cursor: default; }
   .powered { text-align: center; font-size: 10px; color: #aaa; padding: 4px 0; }
@@ -45,7 +45,7 @@ export interface WidgetUI {
   panel: HTMLDivElement;
   messagesEl: HTMLDivElement;
   form: HTMLFormElement;
-  input: HTMLInputElement;
+  input: HTMLTextAreaElement;
   sendButton: HTMLButtonElement;
 }
 
@@ -106,9 +106,12 @@ export function createWidgetUI(config: BrandConfig, forcedBranding: boolean): Wi
   form.className = "form";
   panel.appendChild(form);
 
-  const input = document.createElement("input");
+  // A textarea (not a single-line input) so Enter inserts a newline instead
+  // of submitting — essential on mobile, where the keyboard has no Ctrl key.
+  // Sending is the button or Ctrl/Cmd+Enter (wired up in index.ts).
+  const input = document.createElement("textarea");
   input.className = "input";
-  input.type = "text";
+  input.rows = 1;
   input.placeholder = "Type a message...";
   input.autocomplete = "off";
   form.appendChild(input);

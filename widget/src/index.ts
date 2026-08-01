@@ -39,6 +39,22 @@ async function init(): Promise<void> {
     }
   });
 
+  // Grow the textarea with its content, capped so it never eats the panel.
+  const autoGrow = () => {
+    ui.input.style.height = "auto";
+    ui.input.style.height = `${Math.min(ui.input.scrollHeight, 96)}px`;
+  };
+  ui.input.addEventListener("input", autoGrow);
+
+  // Enter alone inserts a newline (the textarea's default, vital on mobile);
+  // Ctrl/Cmd+Enter sends, matching the Send button.
+  ui.input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      ui.form.requestSubmit();
+    }
+  });
+
   ui.form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (sending) return;
@@ -50,6 +66,7 @@ async function init(): Promise<void> {
       sending = true;
       ui.sendButton.disabled = true;
       ui.input.value = "";
+      autoGrow();
       appendMessage(ui.messagesEl, "user", message);
       const assistantEl = appendMessage(ui.messagesEl, "assistant", "");
       showThinking(assistantEl);
