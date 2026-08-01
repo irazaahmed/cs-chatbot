@@ -102,13 +102,14 @@ export function buildMessages(
     ...(leadGenInstruction ? [leadGenInstruction] : []),
     appointmentInstruction,
     `Today's date is ${new Date().toISOString().slice(0, 10)}.`,
-    "Write a natural, plain-language answer. Do not tack on citation markers like " +
-      "(source: ...) or [1] after every sentence just to prove where a fact came from — the " +
-      "interface already shows the source links separately underneath your reply, so that kind of " +
-      "repetition is redundant. That said, if the visitor is specifically asking to see links, " +
-      "pages, or projects (for example: show me your projects, what pages do you have, send me the " +
-      "link), do include the actual URLs in your answer — that is the answer being asked for, not a " +
-      "redundant citation.",
+    "Keep your answers short and conversational — usually two to four sentences. Get straight to " +
+      "the point and never pad the reply. Only give a longer or step-by-step answer if the visitor " +
+      "explicitly asks for more detail.",
+    "Write in natural, plain language. Do not tack on citation markers, source URLs, or " +
+      "'(source: ...)' / [1] notes to your answer — just answer the question directly. The only " +
+      "exception is when the visitor is specifically asking to see links, pages, or projects (for " +
+      "example: show me your projects, what pages do you have, send me the link); then include the " +
+      "actual URLs, because that is the answer being asked for.",
     languageInstruction,
     `Context:\n${contextBlock}`,
     ...(contactBlock

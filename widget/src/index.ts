@@ -1,5 +1,5 @@
 import { fetchConfig, sendChatMessage } from "./api";
-import { createWidgetUI, appendMessage, showThinking, setBubbleOpen, renderCitation } from "./dom";
+import { createWidgetUI, appendMessage, showThinking, setBubbleOpen } from "./dom";
 import { getSessionId } from "./session";
 import { readSSE } from "./sse";
 
@@ -69,11 +69,6 @@ async function init(): Promise<void> {
           answer += event.token;
           assistantEl.textContent = answer;
           ui.messagesEl.scrollTop = ui.messagesEl.scrollHeight;
-        } else if (event.done) {
-          const citations = Array.isArray(event.citations) ? (event.citations as string[]) : [];
-          for (const url of citations) {
-            assistantEl.appendChild(renderCitation(url));
-          }
         } else if (event.error) {
           assistantEl.textContent = String(event.error);
         }

@@ -24,7 +24,7 @@ Paste your URL and, right on the landing page, you can watch it crawl your pages
 
 ## Why it's different
 
-- **🎯 Answers from your content only** — every reply is grounded in your actual pages, with a source link under each answer. When your site doesn't cover something, it says so and offers a human instead of guessing.
+- **🎯 Answers from your content only** — every reply is grounded in your actual pages. When your site doesn't cover something, it says so and offers a human instead of guessing.
 - **⚡ Live in minutes, not weeks** — no developer, no scope document, no waiting. Copy, paste, done.
 - **🌐 English, اردو & Roman Urdu built in** — it replies the way your customers actually type, which most chatbots built for a global audience never handle well.
 - **📥 Generates leads, not just answers** — when a visitor shows real buying intent, it offers a human follow-up, collects their name and number in one natural step, and drops the lead straight into your dashboard. Switch lead capture on or off anytime.
