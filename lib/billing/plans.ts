@@ -55,7 +55,7 @@ const PLAN_DEFS: Record<PlanId, PlanDef> = {
       "Appointment requests from chat",
       "Real-time usage dashboard",
     ],
-    prices: { monthly: 3500, quarterly: 9450, yearly: 33600 },
+    prices: { monthly: 3499, quarterly: 9447, yearly: 33590 },
   },
   pro: {
     label: "Pro",
@@ -68,7 +68,7 @@ const PLAN_DEFS: Record<PlanId, PlanDef> = {
       'Remove the "Powered by Cybrum Solutions" branding',
       "Priority email support",
     ],
-    prices: { monthly: 9000, quarterly: 24300, yearly: 86400 },
+    prices: { monthly: 8999, quarterly: 24297, yearly: 86390 },
   },
   business: {
     label: "Business",
@@ -80,9 +80,51 @@ const PLAN_DEFS: Record<PlanId, PlanDef> = {
       "Highest page & conversation caps",
       "Priority support",
     ],
-    prices: { monthly: 24000, quarterly: 64800, yearly: 230400 },
+    prices: { monthly: 23999, quarterly: 64797, yearly: 230390 },
   },
 };
+
+// WhatsApp pricing: two rates depending on whether the tenant already has an
+// active website plan when they pay. "Standalone" is the flat WhatsApp-only
+// rate; "bundle" is the discounted rate that applies once a website plan is
+// already active, since the tenant is already paying for the shared
+// knowledge base/crawl. Which one applies is resolved server-side in
+// lib/billing/actions.ts#submitWhatsAppAddonPayment from tenant.status at
+// the moment of payment, never trusted from the client.
+const WHATSAPP_STANDALONE_PRICES: Record<BillingCycle, number> = {
+  monthly: 3499,
+  quarterly: 9447,
+  yearly: 33590,
+};
+
+const WHATSAPP_BUNDLE_PRICES: Record<BillingCycle, number> = {
+  monthly: 2999,
+  quarterly: 8097,
+  yearly: 28790,
+};
+
+/** WhatsApp conversations get their own monthly cap, tracked separately from
+ * the website widget's plan-based cap (see channel-scoped usage in
+ * lib/billing/status.ts). Deliberately high rather than truly unlimited, so
+ * a real business never notices it while abuse still has a ceiling. */
+export const WHATSAPP_CONVERSATION_CAP = 5000;
+
+function resolveWhatsAppPrice(cycle: BillingCycle, isBundle: boolean): number {
+  const table = isBundle ? WHATSAPP_BUNDLE_PRICES : WHATSAPP_STANDALONE_PRICES;
+  const keyPrefix = isBundle ? "WHATSAPP_BUNDLE" : "WHATSAPP_STANDALONE";
+  const key = `PLAN_PRICE_PKR_${keyPrefix}_${cycle.toUpperCase()}`;
+  const fromEnv = process.env[key];
+  if (fromEnv) {
+    const parsed = Number(fromEnv);
+    if (Number.isFinite(parsed) && parsed > 0) return Math.round(parsed);
+  }
+  return table[cycle];
+}
+
+/** hasActiveWebsitePlan should be `tenant.status === "active"` at the moment of payment. */
+export function whatsappAddonPrice(cycle: BillingCycle, hasActiveWebsitePlan: boolean): number {
+  return resolveWhatsAppPrice(cycle, hasActiveWebsitePlan);
+}
 
 export function isPlanId(value: string): value is PlanId {
   return (PLAN_IDS as readonly string[]).includes(value);

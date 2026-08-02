@@ -180,6 +180,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
             to restore it.
           </div>
         )}
+        {tenant.whatsappStatus === "past_due" && (
+          <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-warning-text">
+            Your WhatsApp add-on payment is past due. WhatsApp still works, but visit{" "}
+            <Link href="/billing" className="font-medium underline underline-offset-2">
+              Billing
+            </Link>{" "}
+            to keep it that way.
+          </div>
+        )}
+        {tenant.whatsappStatus === "suspended" && (
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3.5 text-sm text-danger-text">
+            Your WhatsApp add-on is currently suspended and not responding to messages. Visit{" "}
+            <Link href="/billing" className="font-medium underline underline-offset-2">
+              Billing
+            </Link>{" "}
+            to restore it.
+          </div>
+        )}
         {children}
       </main>
     </div>

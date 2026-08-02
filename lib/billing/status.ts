@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db/client";
-import { planConversationCap } from "@/lib/billing/plans";
 
 // Status ladder from CLAUDE.md section 9 — only suspended/canceled block chat
 // here; past_due still works normally (the forced "Powered by" branding at day
@@ -10,6 +9,11 @@ import { planConversationCap } from "@/lib/billing/plans";
 // sessionId), not an individual message. A session maps to exactly one
 // Conversation row (the chat route appends to it), so counting distinct
 // sessions started this month is the monthly usage.
+//
+// Website and WhatsApp usage are counted independently by Conversation.channel
+// so hitting one channel's cap never blocks the other — each caller passes
+// its own cap (planConversationCap for the widget, WHATSAPP_CONVERSATION_CAP
+// for the connector) and channel.
 
 const DISABLED_STATUSES = new Set(["suspended", "canceled"]);
 
@@ -30,26 +34,33 @@ function startOfCurrentMonthUtc(): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 }
 
-/** Counts distinct visitor conversations (chat sessions) started this month. */
-export async function getMonthlyConversationUsage(tenantId: string): Promise<number> {
+/** Counts distinct visitor conversations (chat sessions) started this month,
+ * optionally scoped to one channel ("web" | "whatsapp"). */
+export async function getMonthlyConversationUsage(tenantId: string, channel?: string): Promise<number> {
   const periodStart = startOfCurrentMonthUtc();
 
-  const rows = await prisma.$queryRaw<{ usage: bigint }[]>`
-    SELECT COUNT(DISTINCT "sessionId") AS usage
-    FROM "Conversation"
-    WHERE "tenantId" = ${tenantId} AND "createdAt" >= ${periodStart}
-  `;
+  const rows = channel
+    ? await prisma.$queryRaw<{ usage: bigint }[]>`
+        SELECT COUNT(DISTINCT "sessionId") AS usage
+        FROM "Conversation"
+        WHERE "tenantId" = ${tenantId} AND "createdAt" >= ${periodStart} AND "channel" = ${channel}
+      `
+    : await prisma.$queryRaw<{ usage: bigint }[]>`
+        SELECT COUNT(DISTINCT "sessionId") AS usage
+        FROM "Conversation"
+        WHERE "tenantId" = ${tenantId} AND "createdAt" >= ${periodStart}
+      `;
 
   return Number(rows[0]?.usage ?? 0);
 }
 
 export async function checkMonthlyUsage(
   tenantId: string,
-  planId: string,
+  cap: number,
   sessionId?: string,
+  channel?: string,
 ): Promise<GateResult> {
-  const cap = planConversationCap(planId);
-  const usage = await getMonthlyConversationUsage(tenantId);
+  const usage = await getMonthlyConversationUsage(tenantId, channel);
 
   if (usage < cap) return { allowed: true };
 

@@ -9,6 +9,7 @@ import { retrieveContext, retrieveContactInfo, buildMessages, hasUsableContext }
 import { captureStructuredSignal } from "@/lib/ai/capture";
 import { chatStream, type ChatMessage } from "@/lib/ai/provider";
 import { parseBrandConfig } from "@/lib/tenant/brand";
+import { planConversationCap } from "@/lib/billing/plans";
 import { corsHeaders, corsPreflightResponse } from "@/lib/security/cors";
 
 // Prisma's node-postgres adapter needs Node APIs, not the Edge runtime.
@@ -87,7 +88,7 @@ export async function POST(request: Request): Promise<Response> {
     return disabledResponse(statusGate.message ?? "Chat is temporarily unavailable.");
   }
 
-  const usageGate = await checkMonthlyUsage(tenant.id, tenant.planId, body.sessionId);
+  const usageGate = await checkMonthlyUsage(tenant.id, planConversationCap(tenant.planId), body.sessionId, "web");
   if (!usageGate.allowed) {
     return disabledResponse(usageGate.message ?? "This chatbot has reached its monthly limit.");
   }

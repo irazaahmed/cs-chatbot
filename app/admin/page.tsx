@@ -22,12 +22,15 @@ async function approvePayment(formData: FormData) {
 
   const now = new Date();
   const cycle = isBillingCycle(payment.billingCycle) ? payment.billingCycle : "monthly";
+
+  const tenantUpdateData =
+    payment.addon === "whatsapp"
+      ? { whatsappStatus: "active", whatsappPeriodEnd: addMonths(now, cycleMonths(cycle)) }
+      : { status: "active", planId: payment.planId, periodEnd: addMonths(now, cycleMonths(cycle)) };
+
   await prisma.$transaction([
     prisma.payment.update({ where: { id }, data: { status: "verified", reviewedAt: now } }),
-    prisma.tenant.update({
-      where: { id: payment.tenantId },
-      data: { status: "active", planId: payment.planId, periodEnd: addMonths(now, cycleMonths(cycle)) },
-    }),
+    prisma.tenant.update({ where: { id: payment.tenantId }, data: tenantUpdateData }),
   ]);
   revalidatePath("/admin");
 }
@@ -58,7 +61,7 @@ export default async function AdminPage() {
   const tenantIds = Array.from(new Set(payments.map((p) => p.tenantId)));
   const tenants = await prisma.tenant.findMany({
     where: { id: { in: tenantIds } },
-    select: { id: true, name: true, websiteUrl: true },
+    select: { id: true, name: true, websiteUrl: true, status: true },
   });
   const tenantById = new Map(tenants.map((t) => [t.id, t]));
 
@@ -122,7 +125,9 @@ export default async function AdminPage() {
                   <div>
                     <dt className="text-xs uppercase tracking-wider text-muted">Plan requested</dt>
                     <dd className="mt-0.5 font-medium capitalize">
-                      {payment.planId}
+                      {payment.addon === "whatsapp"
+                        ? `WhatsApp (${tenantById.get(payment.tenantId)?.status === "active" ? "bundle" : "standalone"})`
+                        : payment.planId}
                       <span className="ml-1.5 text-xs font-normal text-muted">
                         ({CYCLE_META[isBillingCycle(payment.billingCycle) ? payment.billingCycle : "monthly"].label})
                       </span>

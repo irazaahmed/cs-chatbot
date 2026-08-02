@@ -35,6 +35,7 @@ import { chatComplete } from "./lib/ai/provider";
 import { captureStructuredSignal } from "./lib/ai/capture";
 import { checkMonthlyUsage } from "./lib/billing/status";
 import { parseBrandConfig } from "./lib/tenant/brand";
+import { WHATSAPP_CONVERSATION_CAP } from "./lib/billing/plans";
 
 const POLL_INTERVAL_MS = 5000;
 const SUSPENDED_WHATSAPP_STATUSES = new Set(["suspended"]);
@@ -97,7 +98,7 @@ async function handleInboundMessage(tenantId: string, sock: WASocket, fromJid: s
 
   const sessionId = `whatsapp:${tenantId}:${fromJid}`;
 
-  const usageGate = await checkMonthlyUsage(tenant.id, tenant.planId, sessionId);
+  const usageGate = await checkMonthlyUsage(tenant.id, WHATSAPP_CONVERSATION_CAP, sessionId, "whatsapp");
   if (!usageGate.allowed) return;
 
   const existingConversation = await prisma.conversation.findFirst({
