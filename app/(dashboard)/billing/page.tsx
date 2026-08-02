@@ -2,7 +2,7 @@ import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { generateInvoiceRef } from "@/lib/billing/invoice";
 import { getPaymentInstructions } from "@/lib/billing/instructions";
-import { getPlanOptions, whatsappAddonPrice, type BillingCycle } from "@/lib/billing/plans";
+import { getPlanOptions, whatsappAddonPrice, BILLING_CYCLES, type BillingCycle } from "@/lib/billing/plans";
 import { PlanPicker } from "./_components/plan-picker";
 
 const STATUS_PILLS: Record<string, { label: string; className: string }> = {
@@ -58,11 +58,16 @@ export default async function BillingPage({
     className: "border-border bg-surface/60 text-muted",
   };
 
-  const whatsappPrices: Record<BillingCycle, number> = {
-    monthly: whatsappAddonPrice("monthly"),
-    quarterly: whatsappAddonPrice("quarterly"),
-    yearly: whatsappAddonPrice("yearly"),
-  };
+  // Bundle rate for the checkbox in plan mode (always true: buying a plan
+  // right now), vs the standalone-mode rate, resolved from whether the
+  // tenant already has an active website plan.
+  const hasActivePlan = tenant.status === "active";
+  const whatsappBundlePrices = {} as Record<BillingCycle, number>;
+  const whatsappStandaloneModePrices = {} as Record<BillingCycle, number>;
+  for (const cycle of BILLING_CYCLES) {
+    whatsappBundlePrices[cycle] = whatsappAddonPrice(cycle, true);
+    whatsappStandaloneModePrices[cycle] = whatsappAddonPrice(cycle, hasActivePlan);
+  }
   const whatsappDefaultChecked = tenant.whatsappStatus === "active" || tenant.whatsappStatus === "trialing";
 
   return (
@@ -115,14 +120,14 @@ export default async function BillingPage({
       {pendingPayment ? (
         <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 text-sm text-warning-text">
           Payment <span className="font-mono">{pendingPayment.invoiceRef}</span> submitted and awaiting
-          approval. Your access is already extended while we review it — no action needed.
+          approval. Your access is already extended while we review it, no action needed.
         </div>
       ) : (
         <>
           {error && (
             <p className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-danger-text">
               {error === "2"
-                ? "That file couldn't be saved — use a JPEG, PNG, or WEBP under 5MB."
+                ? "That file couldn't be saved. Use a JPEG, PNG, or WEBP under 5MB."
                 : error === "3"
                   ? "That invoice reference was already used. Refresh the page and try again."
                   : "Please fill in all fields and attach a screenshot."}
@@ -135,7 +140,8 @@ export default async function BillingPage({
             invoiceRef={invoiceRef}
             instructions={instructions}
             whatsappEnabled={tenant.whatsappEnabled}
-            whatsappPrices={whatsappPrices}
+            whatsappBundlePrices={whatsappBundlePrices}
+            whatsappStandaloneModePrices={whatsappStandaloneModePrices}
             whatsappDefaultChecked={whatsappDefaultChecked}
           />
         </>

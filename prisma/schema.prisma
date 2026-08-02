@@ -38,6 +38,10 @@ model Tenant {
   // see the connect flow or get billed for WhatsApp until an admin flips this
   // on for them (manual capacity/onboarding control, not self-serve).
   whatsappEnabled   Boolean   @default(false)
+  // Set when a tenant clicks "Request WhatsApp access" on /whatsapp while
+  // whatsappEnabled is still false; cleared once an admin enables them.
+  // Surfaced on /admin so requests don't get missed.
+  whatsappRequestedAt DateTime?
 
   brandConfig    Json
   systemPrompt   String   @db.Text

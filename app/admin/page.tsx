@@ -53,6 +53,16 @@ async function rejectPayment(formData: FormData) {
   revalidatePath("/admin");
 }
 
+async function enableWhatsAppRequest(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  if (!id) return;
+
+  await prisma.tenant.update({ where: { id }, data: { whatsappEnabled: true, whatsappRequestedAt: null } });
+  revalidatePath("/admin");
+}
+
 export default async function AdminPage() {
   await requireAdmin();
 
@@ -68,6 +78,12 @@ export default async function AdminPage() {
   });
   const tenantById = new Map(tenants.map((t) => [t.id, t]));
 
+  const whatsappRequests = await prisma.tenant.findMany({
+    where: { whatsappEnabled: false, whatsappRequestedAt: { not: null } },
+    orderBy: { whatsappRequestedAt: "asc" },
+    select: { id: true, name: true, websiteUrl: true, whatsappRequestedAt: true },
+  });
+
   const overview = await getTenantsOverview();
 
   return (
@@ -81,7 +97,7 @@ export default async function AdminPage() {
         <div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">Payment approvals</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted">
-            Verify each reference against your real bank statement before approving — the screenshot
+            Verify each reference against your real bank statement before approving. The screenshot
             is a supporting document, not proof.
           </p>
         </div>
@@ -185,10 +201,45 @@ export default async function AdminPage() {
         </div>
       )}
 
+      {whatsappRequests.length > 0 && (
+        <div className="mt-12">
+          <h2 className="font-heading text-xl font-semibold tracking-tight">WhatsApp requests</h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted">
+            Tenants who asked for the WhatsApp add-on to be turned on.
+          </p>
+          <div className="mt-4 space-y-3">
+            {whatsappRequests.map((t) => (
+              <div
+                key={t.id}
+                className="glass flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5"
+              >
+                <div>
+                  <Link href={`/admin/tenants/${t.id}`} className="font-heading font-semibold hover:text-accent-bright hover:underline">
+                    {t.name}
+                  </Link>
+                  <p className="text-sm text-muted">
+                    {t.websiteUrl} · requested {t.whatsappRequestedAt?.toLocaleDateString()}
+                  </p>
+                </div>
+                <form action={enableWhatsAppRequest}>
+                  <input type="hidden" name="id" value={t.id} />
+                  <button
+                    type="submit"
+                    className="rounded-full bg-emerald-500 px-5 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-emerald-400 hover:shadow-[0_0_24px_-6px_rgb(16,185,129)]"
+                  >
+                    Enable WhatsApp
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-12">
         <h2 className="font-heading text-xl font-semibold tracking-tight">All tenants</h2>
         <p className="mt-1 max-w-2xl text-sm text-muted">
-          Every signup — verification, plan, usage, and where they stand on billing, in one place.
+          Every signup: verification, plan, usage, and where they stand on billing, in one place.
         </p>
 
         {overview.length === 0 ? (
@@ -252,7 +303,7 @@ export default async function AdminPage() {
                         {t.lastActiveAt ? t.lastActiveAt.toLocaleDateString() : "never"}
                       </td>
                       <td className="px-4 py-3 tabular-nums text-muted">
-                        {t.periodEnd ? t.periodEnd.toLocaleDateString() : "—"}
+                        {t.periodEnd ? t.periodEnd.toLocaleDateString() : "None"}
                       </td>
                     </tr>
                   ))}

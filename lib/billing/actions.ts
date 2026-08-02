@@ -10,12 +10,13 @@ import { isPlanId, isBillingCycle, cycleMonths, addMonths, planPrice, whatsappAd
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** One combined payment for the website plan and, optionally, the WhatsApp
- * add-on bundled into the same checkout (Ahmed's call: whichever plan you
- * pick, that's the one bill — no separate WhatsApp payment flow). The
- * WhatsApp checkbox only has any effect if tenant.whatsappEnabled is true
- * (admin allowlist, see schema.prisma) — re-checked server-side, never
- * trusted from the client. */
+/** One combined payment covering either a website plan (with an optional
+ * WhatsApp add-on bundled into the same checkout), or WhatsApp on its own
+ * for a tenant who doesn't want a website plan at all. mode="whatsapp_only"
+ * skips the plan portion entirely: no planId is purchased, only
+ * whatsappPeriodEnd moves. The WhatsApp side of this only has any effect if
+ * tenant.whatsappEnabled is true (admin allowlist, see schema.prisma),
+ * re-checked server-side, never trusted from the client. */
 export async function submitPayment(formData: FormData) {
   const { tenant } = await getCurrentTenant();
 
@@ -27,18 +28,25 @@ export async function submitPayment(formData: FormData) {
   const senderName = String(formData.get("senderName") ?? "").trim().slice(0, 200);
   const method = String(formData.get("method") ?? "bank");
   const invoiceRefValue = String(formData.get("invoiceRef") ?? "").trim();
-  const planIdRaw = String(formData.get("planId") ?? "");
-  const planId = isPlanId(planIdRaw) ? planIdRaw : "starter";
   const cycleRaw = String(formData.get("billingCycle") ?? "");
   const billingCycle = isBillingCycle(cycleRaw) ? cycleRaw : "monthly";
-  const includeWhatsapp = tenant.whatsappEnabled && String(formData.get("includeWhatsapp") ?? "") === "on";
   const file = formData.get("screenshot") as File | null;
 
-  // The amount is never taken from the client — it's the listed price for
+  const whatsappOnly = tenant.whatsappEnabled && String(formData.get("mode") ?? "") === "whatsapp_only";
+  const planIdRaw = String(formData.get("planId") ?? "");
+  const planId = isPlanId(planIdRaw) ? planIdRaw : "starter";
+  const includeWhatsapp =
+    !whatsappOnly && tenant.whatsappEnabled && String(formData.get("includeWhatsapp") ?? "") === "on";
+
+  // The amount is never taken from the client. It's the listed price for
   // the chosen plan+cycle (plus the WhatsApp add-on if selected and allowed),
   // full stop. A visitor typing an arbitrary number into the amount field
-  // must never end up on the invoice.
-  const amountPKR = planPrice(planId, billingCycle) + (includeWhatsapp ? whatsappAddonPrice(billingCycle) : 0);
+  // must never end up on the invoice. The bundle rate applies whenever a
+  // plan is part of this same payment, or the tenant already has one active.
+  const hasWebsitePlan = !whatsappOnly || tenant.status === "active";
+  const amountPKR = whatsappOnly
+    ? whatsappAddonPrice(billingCycle, hasWebsitePlan)
+    : planPrice(planId, billingCycle) + (includeWhatsapp ? whatsappAddonPrice(billingCycle, true) : 0);
 
   if (!senderName || !invoiceRefValue || !file || file.size === 0) {
     redirect("/billing?error=1");
@@ -61,7 +69,7 @@ export async function submitPayment(formData: FormData) {
         invoiceRef: invoiceRefValue,
         planId,
         billingCycle,
-        addon: includeWhatsapp ? "bundle" : null,
+        addon: whatsappOnly ? "whatsapp" : includeWhatsapp ? "bundle" : null,
         amountPKR,
         method,
         senderName,
@@ -83,12 +91,14 @@ export async function submitPayment(formData: FormData) {
   // so this alone keeps them from being demoted during the review window.
   // The plan itself (page/message caps) only changes once an admin verifies
   // the payment against the real bank statement — see approvePayment. Same
-  // policy applies to whatsappPeriodEnd when the add-on was included.
-  const base = tenant.periodEnd && tenant.periodEnd > now ? tenant.periodEnd : now;
-  const tenantUpdate: { periodEnd: Date; whatsappPeriodEnd?: Date } = {
-    periodEnd: new Date(base.getTime() + 3 * DAY_MS),
-  };
-  if (includeWhatsapp) {
+  // policy applies to whatsappPeriodEnd when the add-on was included, or is
+  // the only thing being paid for.
+  const tenantUpdate: { periodEnd?: Date; whatsappPeriodEnd?: Date } = {};
+  if (!whatsappOnly) {
+    const base = tenant.periodEnd && tenant.periodEnd > now ? tenant.periodEnd : now;
+    tenantUpdate.periodEnd = new Date(base.getTime() + 3 * DAY_MS);
+  }
+  if (whatsappOnly || includeWhatsapp) {
     const waBase = tenant.whatsappPeriodEnd && tenant.whatsappPeriodEnd > now ? tenant.whatsappPeriodEnd : now;
     tenantUpdate.whatsappPeriodEnd = new Date(waBase.getTime() + 3 * DAY_MS);
   }

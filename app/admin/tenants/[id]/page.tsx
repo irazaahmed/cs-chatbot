@@ -84,7 +84,28 @@ async function toggleWhatsAppAccess(formData: FormData) {
   const enable = String(formData.get("enable")) === "true";
   if (!id) return;
 
-  await prisma.tenant.update({ where: { id }, data: { whatsappEnabled: enable } });
+  // Enabling always clears a pending request, that's what handling it means.
+  await prisma.tenant.update({
+    where: { id },
+    data: { whatsappEnabled: enable, whatsappRequestedAt: enable ? null : undefined },
+  });
+
+  revalidatePath(`/admin/tenants/${id}`);
+  revalidatePath("/admin");
+  redirect(`/admin/tenants/${id}?saved=1`);
+}
+
+// Quick on/off for the website widget itself, separate from the more
+// detailed "Manage subscription" status ladder below (past_due/trialing/etc)
+// for when all you want is a fast suspend or restore.
+async function toggleWebsiteAccess(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  const enable = String(formData.get("enable")) === "true";
+  if (!id) return;
+
+  await prisma.tenant.update({ where: { id }, data: { status: enable ? "active" : "suspended" } });
 
   revalidatePath(`/admin/tenants/${id}`);
   revalidatePath("/admin");
@@ -296,32 +317,72 @@ export default async function TenantDetailPage({
         </div>
       </div>
 
-      <div className="mt-6 glass rounded-2xl p-6">
-        <h2 className="font-heading font-semibold">WhatsApp access</h2>
-        <p className="mt-1 text-sm text-muted">
-          Manual allowlist, separate from billing. Until this is on, the tenant can&apos;t reach the
-          connect flow or pay for the WhatsApp add-on — the dashboard just shows it&apos;s not enabled yet.
-        </p>
-        <div className="mt-4 flex items-center gap-3">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
-              tenant.whatsappEnabled
-                ? "border-emerald-400/30 bg-emerald-400/10 text-success-text"
-                : "border-border bg-surface/60 text-muted"
-            }`}
-          >
-            {tenant.whatsappEnabled ? "Enabled" : "Not enabled"}
-          </span>
-          <form action={toggleWhatsAppAccess}>
-            <input type="hidden" name="id" value={tenant.id} />
-            <input type="hidden" name="enable" value={(!tenant.whatsappEnabled).toString()} />
-            <button
-              type="submit"
-              className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
+      <div className="mt-6 grid gap-6 sm:grid-cols-2">
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-heading font-semibold">Website access</h2>
+          <p className="mt-1 text-sm text-muted">
+            Quick suspend or restore for the website widget. For anything more specific (past due,
+            trial, canceled), use Manage subscription below instead.
+          </p>
+          <div className="mt-4 flex items-center gap-3">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+                tenant.status !== "suspended" && tenant.status !== "canceled"
+                  ? "border-emerald-400/30 bg-emerald-400/10 text-success-text"
+                  : "border-border bg-surface/60 text-muted"
+              }`}
             >
-              {tenant.whatsappEnabled ? "Disable WhatsApp" : "Enable WhatsApp"}
-            </button>
-          </form>
+              {tenant.status !== "suspended" && tenant.status !== "canceled" ? "Enabled" : "Disabled"}
+            </span>
+            <form action={toggleWebsiteAccess}>
+              <input type="hidden" name="id" value={tenant.id} />
+              <input
+                type="hidden"
+                name="enable"
+                value={(tenant.status === "suspended" || tenant.status === "canceled").toString()}
+              />
+              <button
+                type="submit"
+                className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
+              >
+                {tenant.status === "suspended" || tenant.status === "canceled" ? "Enable website" : "Disable website"}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-heading font-semibold">WhatsApp access</h2>
+          <p className="mt-1 text-sm text-muted">
+            Manual allowlist, separate from billing. Until this is on, the tenant can&apos;t reach the
+            connect flow or pay for the WhatsApp add-on, the dashboard just shows it&apos;s not enabled yet.
+          </p>
+          {tenant.whatsappRequestedAt && !tenant.whatsappEnabled && (
+            <p className="mt-2 text-xs font-medium text-warning-text">
+              Requested access on {tenant.whatsappRequestedAt.toLocaleDateString()}
+            </p>
+          )}
+          <div className="mt-4 flex items-center gap-3">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+                tenant.whatsappEnabled
+                  ? "border-emerald-400/30 bg-emerald-400/10 text-success-text"
+                  : "border-border bg-surface/60 text-muted"
+              }`}
+            >
+              {tenant.whatsappEnabled ? "Enabled" : "Not enabled"}
+            </span>
+            <form action={toggleWhatsAppAccess}>
+              <input type="hidden" name="id" value={tenant.id} />
+              <input type="hidden" name="enable" value={(!tenant.whatsappEnabled).toString()} />
+              <button
+                type="submit"
+                className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
+              >
+                {tenant.whatsappEnabled ? "Disable WhatsApp" : "Enable WhatsApp"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 

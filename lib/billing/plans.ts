@@ -84,14 +84,22 @@ const PLAN_DEFS: Record<PlanId, PlanDef> = {
   },
 };
 
-// WhatsApp is only ever sold as an add-on bundled into the same payment as a
-// website plan (one combined checkout, one Payment row) — see
-// lib/billing/actions.ts#submitPayment. There's no separate standalone
-// checkout anymore, so there's only one rate.
-const WHATSAPP_ADDON_PRICES: Record<BillingCycle, number> = {
-  monthly: 2999,
-  quarterly: 8097,
-  yearly: 28790,
+// WhatsApp has two rates: "standalone" for a tenant with no active website
+// plan, "bundle" (cheaper) when it's paid alongside an active/being-purchased
+// website plan. Both are sold through the one combined checkout in
+// lib/billing/actions.ts#submitPayment — bundle when the plan portion is
+// included in the same payment or the tenant already has an active plan,
+// standalone otherwise.
+const WHATSAPP_STANDALONE_PRICES: Record<BillingCycle, number> = {
+  monthly: 4999,
+  quarterly: 13497,
+  yearly: 47990,
+};
+
+const WHATSAPP_BUNDLE_PRICES: Record<BillingCycle, number> = {
+  monthly: 4499,
+  quarterly: 12147,
+  yearly: 43190,
 };
 
 /** WhatsApp conversations get their own monthly cap, tracked separately from
@@ -100,14 +108,18 @@ const WHATSAPP_ADDON_PRICES: Record<BillingCycle, number> = {
  * a real business never notices it while abuse still has a ceiling. */
 export const WHATSAPP_CONVERSATION_CAP = 5000;
 
-export function whatsappAddonPrice(cycle: BillingCycle): number {
-  const key = `PLAN_PRICE_PKR_WHATSAPP_ADDON_${cycle.toUpperCase()}`;
+/** hasWebsitePlan should be true when this payment also includes a website
+ * plan, or the tenant already has one active. */
+export function whatsappAddonPrice(cycle: BillingCycle, hasWebsitePlan: boolean): number {
+  const table = hasWebsitePlan ? WHATSAPP_BUNDLE_PRICES : WHATSAPP_STANDALONE_PRICES;
+  const keyPrefix = hasWebsitePlan ? "WHATSAPP_BUNDLE" : "WHATSAPP_STANDALONE";
+  const key = `PLAN_PRICE_PKR_${keyPrefix}_${cycle.toUpperCase()}`;
   const fromEnv = process.env[key];
   if (fromEnv) {
     const parsed = Number(fromEnv);
     if (Number.isFinite(parsed) && parsed > 0) return Math.round(parsed);
   }
-  return WHATSAPP_ADDON_PRICES[cycle];
+  return table[cycle];
 }
 
 export function isPlanId(value: string): value is PlanId {

@@ -40,6 +40,18 @@ export default async function WhatsAppPage({
     redirect("/whatsapp");
   }
 
+  async function requestAccess() {
+    "use server";
+    const current = await prisma.tenant.findUnique({
+      where: { id: tenant.id },
+      select: { whatsappEnabled: true, whatsappRequestedAt: true },
+    });
+    if (current?.whatsappEnabled || current?.whatsappRequestedAt) redirect("/whatsapp");
+
+    await prisma.tenant.update({ where: { id: tenant.id }, data: { whatsappRequestedAt: new Date() } });
+    redirect("/whatsapp");
+  }
+
   const account = await prisma.whatsAppAccount.findUnique({ where: { tenantId: tenant.id } });
   const isPairing =
     account?.status === "pairing" ||
@@ -58,9 +70,23 @@ export default async function WhatsAppPage({
           <p className="mt-4 text-sm text-foreground">
             The WhatsApp add-on isn&apos;t enabled on your account yet.
           </p>
-          <p className="mt-1 text-sm text-muted">
-            Contact us and we&apos;ll turn it on for you.
-          </p>
+          {tenant.whatsappRequestedAt ? (
+            <p className="mt-1 text-sm text-muted">
+              Request sent on {tenant.whatsappRequestedAt.toLocaleDateString()}. We will enable it for
+              you shortly.
+            </p>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-muted">
+                Request it and we will turn it on for your account.
+              </p>
+              <form action={requestAccess} className="mt-4">
+                <button type="submit" className={primaryButtonClass}>
+                  Request WhatsApp access
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </div>
     );
