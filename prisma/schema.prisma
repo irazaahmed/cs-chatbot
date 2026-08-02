@@ -30,6 +30,11 @@ model Tenant {
   planId         String   @default("starter")
   periodEnd      DateTime?
 
+  // WhatsApp add-on — independent of the website plan's status/periodEnd so
+  // one channel lapsing never disables the other.
+  whatsappStatus    String    @default("inactive") // inactive | trialing | active | past_due | suspended
+  whatsappPeriodEnd DateTime?
+
   brandConfig    Json
   systemPrompt   String   @db.Text
   language       String   @default("en")
@@ -41,8 +46,27 @@ model Tenant {
   appointments   Appointment[]
   payments       Payment[]
   rateLimitBuckets RateLimitBucket[]
+  whatsappAccount  WhatsAppAccount?
 
   @@index([publicKey])
+}
+
+// One WhatsApp Business number per tenant (v1). authState holds the Baileys
+// AuthenticationState (creds + signal keys) as JSON so the connector survives
+// redeploys without a mounted volume — see lib/whatsapp/pg-auth-state.ts.
+model WhatsAppAccount {
+  id          String    @id @default(cuid())
+  tenantId    String    @unique
+  phoneNumber String?
+  status      String    @default("disconnected") // disconnected | pairing | connected
+  authState   Json?
+  qrCode      String?
+  connectedAt DateTime?
+  lastSeenAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model Document {
@@ -87,6 +111,7 @@ model Conversation {
   answered     Boolean  @default(true)
   inputTokens  Int      @default(0)
   outputTokens Int      @default(0)
+  channel      String   @default("web") // web | whatsapp
   createdAt    DateTime @default(now())
 
   tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -103,6 +128,7 @@ model Lead {
   phone          String?
   interest       String?                   // what service/topic the visitor asked about
   conversationId String?
+  channel        String   @default("web") // web | whatsapp
   createdAt      DateTime @default(now())
 
   tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -128,6 +154,7 @@ model Appointment {
   notes          String?
   conversationId String?
   status         String   @default("requested") // requested | confirmed | canceled
+  channel        String   @default("web") // web | whatsapp
   createdAt      DateTime @default(now())
 
   tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -141,6 +168,7 @@ model Payment {
   invoiceRef  String    @unique
   planId      String    @default("starter") // plan the tenant is paying to be on; applied to Tenant.planId on approval
   billingCycle String   @default("monthly") // monthly | quarterly | yearly; sets the period length on approval
+  addon       String?   // null = normal plan payment; "whatsapp" = WhatsApp add-on payment (applies to Tenant.whatsappStatus/whatsappPeriodEnd instead of planId/status)
   amountPKR   Int
   method      String
   senderName  String

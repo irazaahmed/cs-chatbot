@@ -15,6 +15,9 @@ export type BillingCycle = (typeof BILLING_CYCLES)[number];
 /** Page cap for the Business plan — effectively unlimited, shown as "Unlimited". */
 export const UNLIMITED_PAGE_CAP = 100_000;
 
+/** Free trial length granted at signup — see app/onboarding/page.tsx. */
+export const TRIAL_DAYS = 3;
+
 export interface CycleMeta {
   id: BillingCycle;
   label: string;

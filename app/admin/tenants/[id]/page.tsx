@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin/current";
 import { prisma } from "@/lib/db/client";
 import { getMonthlyConversationUsage } from "@/lib/billing/status";
 import { PLAN_IDS, isPlanId, planPageCap, planConversationCap, formatPages } from "@/lib/billing/plans";
+import { DeleteTenantForm } from "@/components/admin/DeleteTenantForm";
 
 const STATUS_IDS = ["trialing", "active", "past_due", "suspended", "canceled"] as const;
 type StatusId = (typeof STATUS_IDS)[number];
@@ -73,16 +74,64 @@ async function grantTrial(formData: FormData) {
   redirect(`/admin/tenants/${id}?saved=1`);
 }
 
+// Wipes only the crawled knowledge base (Document rows) — tenant, billing,
+// and conversation history are untouched, and a recrawl fully recovers it.
+async function clearCrawledData(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  if (!id) return;
+
+  await prisma.document.deleteMany({ where: { tenantId: id } });
+
+  revalidatePath(`/admin/tenants/${id}`);
+  redirect(`/admin/tenants/${id}?saved=1`);
+}
+
+// Irreversible. Payment has no onDelete: Cascade (kept for audit trail
+// elsewhere), so it must be cleared explicitly or the tenant delete fails on
+// the FK; every other relation (Document, Conversation, Lead, Appointment,
+// RateLimitBucket, WhatsAppAccount) already cascades from the schema.
+async function deleteTenant(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  if (!id) return;
+
+  // Idempotent: a resubmitted/double-clicked delete for an already-deleted
+  // tenant should just land back on /admin, not crash with a Prisma P2025.
+  const exists = await prisma.tenant.findUnique({ where: { id }, select: { id: true } });
+  if (!exists) redirect("/admin");
+
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.payment.deleteMany({ where: { tenantId: id } });
+      await tx.tenant.delete({ where: { id } });
+    },
+    { timeout: 20_000, maxWait: 20_000 }
+  );
+
+  // Belt-and-suspenders: under a slow/congested connection, a transaction can
+  // report success without the write actually being visible yet. Confirm the
+  // row is really gone before telling the admin it worked — silently lying
+  // about a delete is worse than a slow one.
+  const stillThere = await prisma.tenant.findUnique({ where: { id }, select: { id: true } });
+  if (stillThere) redirect(`/admin/tenants/${id}?error=delete_failed`);
+
+  revalidatePath("/admin");
+  redirect("/admin");
+}
+
 export default async function TenantDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
   await requireAdmin();
   const { id } = await params;
-  const { saved } = await searchParams;
+  const { saved, error } = await searchParams;
 
   const tenant = await prisma.tenant.findUnique({
     where: { id },
@@ -193,6 +242,13 @@ export default async function TenantDetailPage({
         </p>
       )}
 
+      {error === "delete_failed" && (
+        <p className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-danger-text">
+          Delete didn&apos;t go through — the database connection may be slow or unstable right now.
+          Nothing was removed. Please try again.
+        </p>
+      )}
+
       <div className="mt-6 glass rounded-2xl p-6">
         <h2 className="font-heading font-semibold">Grant a trial</h2>
         <p className="mt-1 text-sm text-muted">
@@ -278,6 +334,36 @@ export default async function TenantDetailPage({
             Save
           </button>
         </form>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/5 p-6">
+        <h2 className="font-heading font-semibold text-danger-text">Danger zone</h2>
+
+        <div className="mt-4 border-t border-red-500/20 pt-4">
+          <p className="text-sm font-medium text-foreground">Clear crawled data</p>
+          <p className="mt-1 text-sm text-muted">
+            Deletes every crawled/uploaded page for this tenant. The tenant, billing, and
+            conversation history are untouched — a recrawl on the Website tab fully recovers it.
+          </p>
+          <form action={clearCrawledData} className="mt-3">
+            <input type="hidden" name="id" value={tenant.id} />
+            <button
+              type="submit"
+              className="rounded-full border border-red-400/40 px-5 py-2 text-sm font-medium text-danger-text transition-colors hover:bg-red-500/10"
+            >
+              Clear crawled data
+            </button>
+          </form>
+        </div>
+
+        <div className="mt-6 border-t border-red-500/20 pt-4">
+          <p className="text-sm font-medium text-foreground">Delete tenant</p>
+          <p className="mt-1 text-sm text-muted">
+            Permanently deletes this tenant and everything tied to it — crawled data, conversations,
+            leads, appointments, WhatsApp connection, and payment history. This cannot be undone.
+          </p>
+          <DeleteTenantForm tenantName={tenant.name} action={deleteTenant} />
+        </div>
       </div>
 
       <div className="mt-6">

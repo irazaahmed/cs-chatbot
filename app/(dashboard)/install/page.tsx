@@ -58,7 +58,7 @@ export default async function InstallPage({
 
   return (
     <div className="max-w-2xl">
-      <h1 className="font-heading text-2xl font-semibold tracking-tight">Install</h1>
+      <h1 className="font-heading text-2xl font-semibold tracking-tight">Connect Your Website</h1>
 
       {!tenant.verified ? (
         <>

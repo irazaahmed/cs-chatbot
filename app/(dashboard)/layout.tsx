@@ -8,18 +8,24 @@ const TABS = [
   { href: "/playground", label: "Playground" },
   { href: "/knowledge", label: "Knowledge" },
   { href: "/customize", label: "Customize" },
+  { href: "/whatsapp", label: "WhatsApp" },
+  { href: "/install", label: "Website" },
   { href: "/conversations", label: "Conversations" },
   { href: "/unanswered", label: "Unanswered" },
   { href: "/leads", label: "Leads" },
   { href: "/appointments", label: "Appointments" },
-  { href: "/install", label: "Install" },
   { href: "/usage", label: "Usage" },
   { href: "/billing", label: "Billing" },
 ];
 
+function trialDaysLeft(periodEnd: Date, now: Date): number {
+  return Math.ceil((periodEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+}
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { tenant } = await getCurrentTenant();
   const isAdmin = await checkIsAdmin();
+  const now = new Date();
 
   return (
     <div className="relative flex min-h-screen lg:h-screen lg:overflow-hidden">
@@ -133,9 +139,26 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-warning-text">
             Your domain isn&apos;t verified yet. Visit the{" "}
             <Link href="/install" className="font-medium underline underline-offset-2">
-              Install
+              Website
             </Link>{" "}
             tab to finish setup — nothing gets crawled until then.
+          </div>
+        )}
+        {tenant.status === "trialing" && tenant.periodEnd && (
+          <div className="mb-6 rounded-2xl border border-border bg-surface/60 px-5 py-3.5 text-sm text-muted">
+            {(() => {
+              const daysLeft = trialDaysLeft(tenant.periodEnd, now);
+              const when = daysLeft <= 0 ? "today" : daysLeft === 1 ? "tomorrow" : `in ${daysLeft} days`;
+              return (
+                <>
+                  Your free trial ends {when} ({tenant.periodEnd.toLocaleDateString()}). Visit{" "}
+                  <Link href="/billing" className="font-medium text-foreground underline underline-offset-2">
+                    Billing
+                  </Link>{" "}
+                  to pick a plan and keep your chatbot running.
+                </>
+              );
+            })()}
           </div>
         )}
         {tenant.status === "past_due" && (

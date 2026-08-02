@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/client";
+import { TRIAL_DAYS } from "@/lib/billing/plans";
 
 const PREVIEW_URL_COOKIE = "cybrum_preview_url";
 
@@ -53,6 +54,7 @@ async function createTenant(formData: FormData) {
       websiteUrl: normalizedUrl.toString(),
       allowedDomains: [],
       verifyToken: randomBytes(16).toString("hex"),
+      periodEnd: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
       brandConfig: {
         color: "#1e88e8",
         botName: "Assistant",
