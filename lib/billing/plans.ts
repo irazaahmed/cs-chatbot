@@ -84,20 +84,11 @@ const PLAN_DEFS: Record<PlanId, PlanDef> = {
   },
 };
 
-// WhatsApp pricing: two rates depending on whether the tenant already has an
-// active website plan when they pay. "Standalone" is the flat WhatsApp-only
-// rate; "bundle" is the discounted rate that applies once a website plan is
-// already active, since the tenant is already paying for the shared
-// knowledge base/crawl. Which one applies is resolved server-side in
-// lib/billing/actions.ts#submitWhatsAppAddonPayment from tenant.status at
-// the moment of payment, never trusted from the client.
-const WHATSAPP_STANDALONE_PRICES: Record<BillingCycle, number> = {
-  monthly: 3499,
-  quarterly: 9447,
-  yearly: 33590,
-};
-
-const WHATSAPP_BUNDLE_PRICES: Record<BillingCycle, number> = {
+// WhatsApp is only ever sold as an add-on bundled into the same payment as a
+// website plan (one combined checkout, one Payment row) — see
+// lib/billing/actions.ts#submitPayment. There's no separate standalone
+// checkout anymore, so there's only one rate.
+const WHATSAPP_ADDON_PRICES: Record<BillingCycle, number> = {
   monthly: 2999,
   quarterly: 8097,
   yearly: 28790,
@@ -109,21 +100,14 @@ const WHATSAPP_BUNDLE_PRICES: Record<BillingCycle, number> = {
  * a real business never notices it while abuse still has a ceiling. */
 export const WHATSAPP_CONVERSATION_CAP = 5000;
 
-function resolveWhatsAppPrice(cycle: BillingCycle, isBundle: boolean): number {
-  const table = isBundle ? WHATSAPP_BUNDLE_PRICES : WHATSAPP_STANDALONE_PRICES;
-  const keyPrefix = isBundle ? "WHATSAPP_BUNDLE" : "WHATSAPP_STANDALONE";
-  const key = `PLAN_PRICE_PKR_${keyPrefix}_${cycle.toUpperCase()}`;
+export function whatsappAddonPrice(cycle: BillingCycle): number {
+  const key = `PLAN_PRICE_PKR_WHATSAPP_ADDON_${cycle.toUpperCase()}`;
   const fromEnv = process.env[key];
   if (fromEnv) {
     const parsed = Number(fromEnv);
     if (Number.isFinite(parsed) && parsed > 0) return Math.round(parsed);
   }
-  return table[cycle];
-}
-
-/** hasActiveWebsitePlan should be `tenant.status === "active"` at the moment of payment. */
-export function whatsappAddonPrice(cycle: BillingCycle, hasActiveWebsitePlan: boolean): number {
-  return resolveWhatsAppPrice(cycle, hasActiveWebsitePlan);
+  return WHATSAPP_ADDON_PRICES[cycle];
 }
 
 export function isPlanId(value: string): value is PlanId {

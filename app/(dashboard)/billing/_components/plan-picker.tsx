@@ -14,18 +14,25 @@ export function PlanPicker({
   defaultPlanId,
   invoiceRef,
   instructions,
+  whatsappEnabled,
+  whatsappPrices,
+  whatsappDefaultChecked,
 }: {
   plans: PlanOption[];
   defaultPlanId: string;
   invoiceRef: string;
   instructions: PaymentInstructions;
+  whatsappEnabled: boolean;
+  whatsappPrices: Record<BillingCycle, number>;
+  whatsappDefaultChecked: boolean;
 }) {
   const initial = plans.find((p) => p.id === defaultPlanId) ?? plans[0];
   const [planId, setPlanId] = useState(initial.id);
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const [includeWhatsapp, setIncludeWhatsapp] = useState(whatsappEnabled && whatsappDefaultChecked);
 
   const plan = plans.find((p) => p.id === planId) ?? initial;
-  const amountPKR = plan.prices[cycle];
+  const amountPKR = plan.prices[cycle] + (includeWhatsapp ? whatsappPrices[cycle] : 0);
 
   function selectPlan(nextPlan: PlanOption, nextCycle: BillingCycle) {
     setPlanId(nextPlan.id);
@@ -79,8 +86,25 @@ export function PlanPicker({
         })}
       </div>
 
+      {whatsappEnabled && (
+        <label className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-surface/60 px-4 py-3 text-sm">
+          <input
+            type="checkbox"
+            checked={includeWhatsapp}
+            onChange={(e) => setIncludeWhatsapp(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-accent"
+          />
+          <span className="flex-1">
+            <span className="font-medium text-foreground">Add WhatsApp</span>{" "}
+            <span className="text-muted">
+              — Rs {whatsappPrices[cycle].toLocaleString()}/{CYCLE_META[cycle].label.toLowerCase()}
+            </span>
+          </span>
+        </label>
+      )}
+
       <h2 className="mt-6 font-heading text-lg font-semibold tracking-tight">
-        Pay Rs {plan.prices[cycle].toLocaleString()} for the {plan.label} plan
+        Pay Rs {amountPKR.toLocaleString()} for the {plan.label} plan{includeWhatsapp ? " + WhatsApp" : ""}
         <span className="text-sm font-normal text-muted"> ({CYCLE_META[cycle].label.toLowerCase()})</span>
       </h2>
       <p className="mt-1.5 text-sm text-muted">
@@ -115,6 +139,7 @@ export function PlanPicker({
         <input type="hidden" name="invoiceRef" value={invoiceRef} />
         <input type="hidden" name="planId" value={planId} />
         <input type="hidden" name="billingCycle" value={cycle} />
+        <input type="hidden" name="includeWhatsapp" value={includeWhatsapp ? "on" : "off"} />
 
         <div>
           <label htmlFor="method" className="block text-sm font-medium">Paid via</label>
@@ -145,7 +170,8 @@ export function PlanPicker({
             className={`${inputClass} cursor-not-allowed opacity-80`}
           />
           <p className="mt-1 text-xs text-muted">
-            Set by the {plan.label} {CYCLE_META[cycle].label.toLowerCase()} plan — not editable.
+            Set by the {plan.label} {CYCLE_META[cycle].label.toLowerCase()} plan
+            {includeWhatsapp ? " plus the WhatsApp add-on" : ""} — not editable.
           </p>
         </div>
 

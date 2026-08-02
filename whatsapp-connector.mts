@@ -94,7 +94,7 @@ async function handleInboundMessage(tenantId: string, sock: WASocket, fromJid: s
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
   if (!tenant) return;
 
-  if (SUSPENDED_WHATSAPP_STATUSES.has(tenant.whatsappStatus)) return;
+  if (!tenant.whatsappEnabled || SUSPENDED_WHATSAPP_STATUSES.has(tenant.whatsappStatus)) return;
 
   const sessionId = `whatsapp:${tenantId}:${fromJid}`;
 
@@ -282,6 +282,15 @@ async function processPairingJobs(): Promise<void> {
   if (!job) return;
 
   try {
+    const tenant = await prisma.tenant.findUnique({ where: { id: job.tenantId }, select: { whatsappEnabled: true } });
+    if (!tenant?.whatsappEnabled) {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: { status: "failed", finishedAt: new Date(), error: "WhatsApp add-on not enabled for this tenant" },
+      });
+      return;
+    }
+
     await prisma.whatsAppAccount.upsert({
       where: { tenantId: job.tenantId },
       create: { tenantId: job.tenantId, status: "pairing" },
@@ -311,7 +320,7 @@ async function syncDisconnectedAccounts(): Promise<void> {
 
 async function resumeConnectedAccounts(): Promise<void> {
   const accounts = await prisma.whatsAppAccount.findMany({
-    where: { status: "connected" },
+    where: { status: "connected", tenant: { whatsappEnabled: true } },
     select: { tenantId: true },
   });
   for (const account of accounts) {

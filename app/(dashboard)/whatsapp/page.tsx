@@ -18,6 +18,9 @@ export default async function WhatsAppPage({
 
   async function connect() {
     "use server";
+    const current = await prisma.tenant.findUnique({ where: { id: tenant.id }, select: { whatsappEnabled: true } });
+    if (!current?.whatsappEnabled) redirect("/whatsapp");
+
     await prisma.job.create({
       data: { tenantId: tenant.id, type: "whatsapp_pair", status: "pending", payload: {} },
     });
@@ -42,6 +45,26 @@ export default async function WhatsAppPage({
     account?.status === "pairing" ||
     account?.status === "connecting" ||
     (connecting === "1" && account?.status !== "connected");
+
+  if (!tenant.whatsappEnabled) {
+    return (
+      <div className="max-w-2xl">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">Connect Your WhatsApp</h1>
+        <div className="glass mt-6 rounded-2xl p-6">
+          <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-4 py-2 text-sm font-medium text-muted">
+            <span className="h-2 w-2 rounded-full bg-muted" />
+            Not enabled
+          </p>
+          <p className="mt-4 text-sm text-foreground">
+            The WhatsApp add-on isn&apos;t enabled on your account yet.
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Contact us and we&apos;ll turn it on for you.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl">

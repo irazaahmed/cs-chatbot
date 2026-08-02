@@ -74,6 +74,23 @@ async function grantTrial(formData: FormData) {
   redirect(`/admin/tenants/${id}?saved=1`);
 }
 
+// Manual allowlist for the WhatsApp add-on, entirely separate from billing:
+// a tenant can't reach the connect flow or pay for WhatsApp until an admin
+// flips this on (see whatsappEnabled in schema.prisma).
+async function toggleWhatsAppAccess(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  const enable = String(formData.get("enable")) === "true";
+  if (!id) return;
+
+  await prisma.tenant.update({ where: { id }, data: { whatsappEnabled: enable } });
+
+  revalidatePath(`/admin/tenants/${id}`);
+  revalidatePath("/admin");
+  redirect(`/admin/tenants/${id}?saved=1`);
+}
+
 // Wipes only the crawled knowledge base (Document rows). Tenant, billing,
 // and conversation history are untouched, and a recrawl fully recovers it.
 async function clearCrawledData(formData: FormData) {
@@ -274,6 +291,35 @@ export default async function TenantDetailPage({
               className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
             >
               Grant 10-day trial
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div className="mt-6 glass rounded-2xl p-6">
+        <h2 className="font-heading font-semibold">WhatsApp access</h2>
+        <p className="mt-1 text-sm text-muted">
+          Manual allowlist, separate from billing. Until this is on, the tenant can&apos;t reach the
+          connect flow or pay for the WhatsApp add-on — the dashboard just shows it&apos;s not enabled yet.
+        </p>
+        <div className="mt-4 flex items-center gap-3">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+              tenant.whatsappEnabled
+                ? "border-emerald-400/30 bg-emerald-400/10 text-success-text"
+                : "border-border bg-surface/60 text-muted"
+            }`}
+          >
+            {tenant.whatsappEnabled ? "Enabled" : "Not enabled"}
+          </span>
+          <form action={toggleWhatsAppAccess}>
+            <input type="hidden" name="id" value={tenant.id} />
+            <input type="hidden" name="enable" value={(!tenant.whatsappEnabled).toString()} />
+            <button
+              type="submit"
+              className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
+            >
+              {tenant.whatsappEnabled ? "Disable WhatsApp" : "Enable WhatsApp"}
             </button>
           </form>
         </div>

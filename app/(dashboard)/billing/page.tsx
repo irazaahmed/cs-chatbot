@@ -4,7 +4,6 @@ import { generateInvoiceRef } from "@/lib/billing/invoice";
 import { getPaymentInstructions } from "@/lib/billing/instructions";
 import { getPlanOptions, whatsappAddonPrice, type BillingCycle } from "@/lib/billing/plans";
 import { PlanPicker } from "./_components/plan-picker";
-import { WhatsAppAddonPicker } from "./_components/whatsapp-addon-picker";
 
 const STATUS_PILLS: Record<string, { label: string; className: string }> = {
   inactive: {
@@ -42,21 +41,13 @@ export default async function BillingPage({
   const { error } = await searchParams;
 
   const pendingPayment = await prisma.payment.findFirst({
-    where: { tenantId: tenant.id, status: "submitted", addon: null },
+    where: { tenantId: tenant.id, status: "submitted" },
     orderBy: { periodStart: "desc" },
   });
-  const pendingWhatsAppPayment = await prisma.payment.findFirst({
-    where: { tenantId: tenant.id, status: "submitted", addon: "whatsapp" },
-    orderBy: { periodStart: "desc" },
-  });
-  const whatsappAccount = await prisma.whatsAppAccount.findUnique({ where: { tenantId: tenant.id } });
 
   const instructions = getPaymentInstructions();
   const plans = getPlanOptions();
   const invoiceRef = pendingPayment ? pendingPayment.invoiceRef : await generateInvoiceRef();
-  const whatsappInvoiceRef = pendingWhatsAppPayment
-    ? pendingWhatsAppPayment.invoiceRef
-    : await generateInvoiceRef(new Set([invoiceRef]));
 
   const statusPill = STATUS_PILLS[tenant.status] ?? {
     label: tenant.status,
@@ -67,12 +58,12 @@ export default async function BillingPage({
     className: "border-border bg-surface/60 text-muted",
   };
 
-  const isBundle = tenant.status === "active";
   const whatsappPrices: Record<BillingCycle, number> = {
-    monthly: whatsappAddonPrice("monthly", isBundle),
-    quarterly: whatsappAddonPrice("quarterly", isBundle),
-    yearly: whatsappAddonPrice("yearly", isBundle),
+    monthly: whatsappAddonPrice("monthly"),
+    quarterly: whatsappAddonPrice("quarterly"),
+    yearly: whatsappAddonPrice("yearly"),
   };
+  const whatsappDefaultChecked = tenant.whatsappStatus === "active" || tenant.whatsappStatus === "trialing";
 
   return (
     <div className="max-w-2xl">
@@ -99,6 +90,26 @@ export default async function BillingPage({
             </span>
           </div>
         )}
+        {tenant.whatsappEnabled && (
+          <>
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-sm">
+              <span className="text-muted">WhatsApp status</span>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-medium ${whatsappStatusPill.className}`}
+              >
+                {whatsappStatusPill.label}
+              </span>
+            </div>
+            {tenant.whatsappPeriodEnd && (
+              <div className="mt-3 flex items-center justify-between text-sm">
+                <span className="text-muted">WhatsApp period ends</span>
+                <span className="font-medium tabular-nums">
+                  {tenant.whatsappPeriodEnd.toLocaleDateString()}
+                </span>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {pendingPayment ? (
@@ -123,44 +134,10 @@ export default async function BillingPage({
             defaultPlanId={tenant.planId}
             invoiceRef={invoiceRef}
             instructions={instructions}
+            whatsappEnabled={tenant.whatsappEnabled}
+            whatsappPrices={whatsappPrices}
+            whatsappDefaultChecked={whatsappDefaultChecked}
           />
-        </>
-      )}
-
-      {whatsappAccount && (
-        <>
-          <div className="glass mt-10 rounded-2xl p-6">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted">WhatsApp status</span>
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-medium ${whatsappStatusPill.className}`}
-              >
-                {whatsappStatusPill.label}
-              </span>
-            </div>
-            {tenant.whatsappPeriodEnd && (
-              <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="text-muted">Current period ends</span>
-                <span className="font-medium tabular-nums">
-                  {tenant.whatsappPeriodEnd.toLocaleDateString()}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {pendingWhatsAppPayment ? (
-            <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 text-sm text-warning-text">
-              Payment <span className="font-mono">{pendingWhatsAppPayment.invoiceRef}</span> submitted and
-              awaiting approval. Your access is already extended while we review it — no action needed.
-            </div>
-          ) : (
-            <WhatsAppAddonPicker
-              prices={whatsappPrices}
-              isBundle={isBundle}
-              invoiceRef={whatsappInvoiceRef}
-              instructions={instructions}
-            />
-          )}
         </>
       )}
     </div>

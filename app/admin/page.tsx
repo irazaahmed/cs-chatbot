@@ -23,10 +23,13 @@ async function approvePayment(formData: FormData) {
   const now = new Date();
   const cycle = isBillingCycle(payment.billingCycle) ? payment.billingCycle : "monthly";
 
+  const websiteUpdate = { status: "active", planId: payment.planId, periodEnd: addMonths(now, cycleMonths(cycle)) };
   const tenantUpdateData =
-    payment.addon === "whatsapp"
-      ? { whatsappStatus: "active", whatsappPeriodEnd: addMonths(now, cycleMonths(cycle)) }
-      : { status: "active", planId: payment.planId, periodEnd: addMonths(now, cycleMonths(cycle)) };
+    payment.addon === "bundle"
+      ? { ...websiteUpdate, whatsappStatus: "active", whatsappPeriodEnd: addMonths(now, cycleMonths(cycle)) }
+      : payment.addon === "whatsapp"
+        ? { whatsappStatus: "active", whatsappPeriodEnd: addMonths(now, cycleMonths(cycle)) }
+        : websiteUpdate;
 
   await prisma.$transaction([
     prisma.payment.update({ where: { id }, data: { status: "verified", reviewedAt: now } }),
@@ -61,7 +64,7 @@ export default async function AdminPage() {
   const tenantIds = Array.from(new Set(payments.map((p) => p.tenantId)));
   const tenants = await prisma.tenant.findMany({
     where: { id: { in: tenantIds } },
-    select: { id: true, name: true, websiteUrl: true, status: true },
+    select: { id: true, name: true, websiteUrl: true },
   });
   const tenantById = new Map(tenants.map((t) => [t.id, t]));
 
@@ -125,9 +128,11 @@ export default async function AdminPage() {
                   <div>
                     <dt className="text-xs uppercase tracking-wider text-muted">Plan requested</dt>
                     <dd className="mt-0.5 font-medium capitalize">
-                      {payment.addon === "whatsapp"
-                        ? `WhatsApp (${tenantById.get(payment.tenantId)?.status === "active" ? "bundle" : "standalone"})`
-                        : payment.planId}
+                      {payment.addon === "bundle"
+                        ? `${payment.planId} + WhatsApp`
+                        : payment.addon === "whatsapp"
+                          ? "WhatsApp only"
+                          : payment.planId}
                       <span className="ml-1.5 text-xs font-normal text-muted">
                         ({CYCLE_META[isBillingCycle(payment.billingCycle) ? payment.billingCycle : "monthly"].label})
                       </span>

@@ -10,6 +10,12 @@ import { isPlanId, isBillingCycle, cycleMonths, addMonths, planPrice, whatsappAd
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** One combined payment for the website plan and, optionally, the WhatsApp
+ * add-on bundled into the same checkout (Ahmed's call: whichever plan you
+ * pick, that's the one bill — no separate WhatsApp payment flow). The
+ * WhatsApp checkbox only has any effect if tenant.whatsappEnabled is true
+ * (admin allowlist, see schema.prisma) — re-checked server-side, never
+ * trusted from the client. */
 export async function submitPayment(formData: FormData) {
   const { tenant } = await getCurrentTenant();
 
@@ -25,12 +31,14 @@ export async function submitPayment(formData: FormData) {
   const planId = isPlanId(planIdRaw) ? planIdRaw : "starter";
   const cycleRaw = String(formData.get("billingCycle") ?? "");
   const billingCycle = isBillingCycle(cycleRaw) ? cycleRaw : "monthly";
+  const includeWhatsapp = tenant.whatsappEnabled && String(formData.get("includeWhatsapp") ?? "") === "on";
   const file = formData.get("screenshot") as File | null;
 
   // The amount is never taken from the client — it's the listed price for
-  // the chosen plan+cycle, full stop. A visitor typing an arbitrary number
-  // into the amount field must never end up on the invoice.
-  const amountPKR = planPrice(planId, billingCycle);
+  // the chosen plan+cycle (plus the WhatsApp add-on if selected and allowed),
+  // full stop. A visitor typing an arbitrary number into the amount field
+  // must never end up on the invoice.
+  const amountPKR = planPrice(planId, billingCycle) + (includeWhatsapp ? whatsappAddonPrice(billingCycle) : 0);
 
   if (!senderName || !invoiceRefValue || !file || file.size === 0) {
     redirect("/billing?error=1");
@@ -53,6 +61,7 @@ export async function submitPayment(formData: FormData) {
         invoiceRef: invoiceRefValue,
         planId,
         billingCycle,
+        addon: includeWhatsapp ? "bundle" : null,
         amountPKR,
         method,
         senderName,
@@ -73,83 +82,17 @@ export async function submitPayment(formData: FormData) {
   // is enough — the status ladder (lib/billing/ladder.ts) reads periodEnd,
   // so this alone keeps them from being demoted during the review window.
   // The plan itself (page/message caps) only changes once an admin verifies
-  // the payment against the real bank statement — see approvePayment.
+  // the payment against the real bank statement — see approvePayment. Same
+  // policy applies to whatsappPeriodEnd when the add-on was included.
   const base = tenant.periodEnd && tenant.periodEnd > now ? tenant.periodEnd : now;
-  await prisma.tenant.update({
-    where: { id: tenant.id },
-    data: { periodEnd: new Date(base.getTime() + 3 * DAY_MS) },
-  });
-
-  revalidatePath("/billing");
-  redirect("/billing");
-}
-
-/** Same manual-payment flow as submitPayment, but for the WhatsApp add-on:
- * a separate Payment row (addon: "whatsapp"), price resolved server-side from
- * whether the tenant already has an active website plan (standalone vs
- * bundle rate, see lib/billing/plans.ts#whatsappAddonPrice), and it extends
- * tenant.whatsappPeriodEnd instead of the website plan's periodEnd. */
-export async function submitWhatsAppAddonPayment(formData: FormData) {
-  const { tenant } = await getCurrentTenant();
-
-  const alreadyPending = await prisma.payment.findFirst({
-    where: { tenantId: tenant.id, status: "submitted", addon: "whatsapp" },
-  });
-  if (alreadyPending) redirect("/billing");
-
-  const senderName = String(formData.get("senderName") ?? "").trim().slice(0, 200);
-  const method = String(formData.get("method") ?? "bank");
-  const invoiceRefValue = String(formData.get("invoiceRef") ?? "").trim();
-  const cycleRaw = String(formData.get("billingCycle") ?? "");
-  const billingCycle = isBillingCycle(cycleRaw) ? cycleRaw : "monthly";
-  const file = formData.get("screenshot") as File | null;
-
-  // Never trust a client-supplied amount: resolve it from the tenant's
-  // current website-plan status, exactly as it stands right now.
-  const isBundle = tenant.status === "active";
-  const amountPKR = whatsappAddonPrice(billingCycle, isBundle);
-
-  if (!senderName || !invoiceRefValue || !file || file.size === 0) {
-    redirect("/billing?error=1");
+  const tenantUpdate: { periodEnd: Date; whatsappPeriodEnd?: Date } = {
+    periodEnd: new Date(base.getTime() + 3 * DAY_MS),
+  };
+  if (includeWhatsapp) {
+    const waBase = tenant.whatsappPeriodEnd && tenant.whatsappPeriodEnd > now ? tenant.whatsappPeriodEnd : now;
+    tenantUpdate.whatsappPeriodEnd = new Date(waBase.getTime() + 3 * DAY_MS);
   }
-
-  const paymentId = randomUUID();
-  let proofFilename: string;
-  try {
-    proofFilename = await saveProofFile(paymentId, file);
-  } catch {
-    redirect("/billing?error=2");
-  }
-
-  const now = new Date();
-  try {
-    await prisma.payment.create({
-      data: {
-        id: paymentId,
-        tenantId: tenant.id,
-        invoiceRef: invoiceRefValue,
-        addon: "whatsapp",
-        billingCycle,
-        amountPKR,
-        method,
-        senderName,
-        proofUrl: proofFilename,
-        status: "submitted",
-        periodStart: now,
-        periodEnd: addMonths(now, cycleMonths(billingCycle)),
-      },
-    });
-  } catch {
-    redirect("/billing?error=3");
-  }
-
-  // Same "approval must never block access" policy as the website plan, but
-  // applied to whatsappPeriodEnd instead.
-  const base = tenant.whatsappPeriodEnd && tenant.whatsappPeriodEnd > now ? tenant.whatsappPeriodEnd : now;
-  await prisma.tenant.update({
-    where: { id: tenant.id },
-    data: { whatsappPeriodEnd: new Date(base.getTime() + 3 * DAY_MS) },
-  });
+  await prisma.tenant.update({ where: { id: tenant.id }, data: tenantUpdate });
 
   revalidatePath("/billing");
   redirect("/billing");

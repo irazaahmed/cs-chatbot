@@ -34,6 +34,10 @@ model Tenant {
   // one channel lapsing never disables the other.
   whatsappStatus    String    @default("inactive") // inactive | trialing | active | past_due | suspended
   whatsappPeriodEnd DateTime?
+  // Admin-only allowlist gate, entirely separate from billing: a tenant can't
+  // see the connect flow or get billed for WhatsApp until an admin flips this
+  // on for them (manual capacity/onboarding control, not self-serve).
+  whatsappEnabled   Boolean   @default(false)
 
   brandConfig    Json
   systemPrompt   String   @db.Text
