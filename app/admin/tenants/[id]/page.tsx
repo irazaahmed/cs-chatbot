@@ -49,7 +49,7 @@ async function updateTenant(formData: FormData) {
   redirect(`/admin/tenants/${id}?saved=1`);
 }
 
-// Quick trial grant: no invoice, no payment — just a fixed window to let a
+// Quick trial grant: no invoice, no payment, just a fixed window to let a
 // prospect try the product. Runs the tenant through the same "trialing"
 // status the ladder (lib/billing/ladder.ts) already knows how to expire on
 // its own once periodEnd passes, so this isn't a special case to remember
@@ -74,7 +74,7 @@ async function grantTrial(formData: FormData) {
   redirect(`/admin/tenants/${id}?saved=1`);
 }
 
-// Wipes only the crawled knowledge base (Document rows) — tenant, billing,
+// Wipes only the crawled knowledge base (Document rows). Tenant, billing,
 // and conversation history are untouched, and a recrawl fully recovers it.
 async function clearCrawledData(formData: FormData) {
   "use server";
@@ -113,7 +113,7 @@ async function deleteTenant(formData: FormData) {
 
   // Belt-and-suspenders: under a slow/congested connection, a transaction can
   // report success without the write actually being visible yet. Confirm the
-  // row is really gone before telling the admin it worked — silently lying
+  // row is really gone before telling the admin it worked. Silently lying
   // about a delete is worse than a slow one.
   const stillThere = await prisma.tenant.findUnique({ where: { id }, select: { id: true } });
   if (stillThere) redirect(`/admin/tenants/${id}?error=delete_failed`);
@@ -203,7 +203,7 @@ export default async function TenantDetailPage({
             <div className="flex justify-between gap-4">
               <dt className="text-muted">Allowed domains</dt>
               <dd className="text-right text-foreground">
-                {tenant.allowedDomains.length ? tenant.allowedDomains.join(", ") : "—"}
+                {tenant.allowedDomains.length ? tenant.allowedDomains.join(", ") : "None"}
               </dd>
             </div>
           </dl>
@@ -244,7 +244,7 @@ export default async function TenantDetailPage({
 
       {error === "delete_failed" && (
         <p className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-danger-text">
-          Delete didn&apos;t go through — the database connection may be slow or unstable right now.
+          Delete didn&apos;t go through. The database connection may be slow or unstable right now.
           Nothing was removed. Please try again.
         </p>
       )}
@@ -252,7 +252,7 @@ export default async function TenantDetailPage({
       <div className="mt-6 glass rounded-2xl p-6">
         <h2 className="font-heading font-semibold">Grant a trial</h2>
         <p className="mt-1 text-sm text-muted">
-          Sets status to trialing and periodEnd to N days from now — no invoice, no payment. The
+          Sets status to trialing and periodEnd to N days from now, no invoice, no payment. The
           trial ends itself automatically when periodEnd passes (same status ladder as billing).
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
@@ -282,7 +282,7 @@ export default async function TenantDetailPage({
       <div className="mt-6 glass rounded-2xl p-6">
         <h2 className="font-heading font-semibold">Manage subscription</h2>
         <p className="mt-1 text-sm text-muted">
-          For manual overrides — comps, corrections, or acting on a support request. Approving a
+          For manual overrides: comps, corrections, or acting on a support request. Approving a
           submitted payment (below) is still the normal path for a real payment.
         </p>
         <form action={updateTenant} className="mt-4 flex flex-wrap items-end gap-4">
@@ -343,7 +343,7 @@ export default async function TenantDetailPage({
           <p className="text-sm font-medium text-foreground">Clear crawled data</p>
           <p className="mt-1 text-sm text-muted">
             Deletes every crawled/uploaded page for this tenant. The tenant, billing, and
-            conversation history are untouched — a recrawl on the Website tab fully recovers it.
+            conversation history are untouched. A recrawl on the Website tab fully recovers it.
           </p>
           <form action={clearCrawledData} className="mt-3">
             <input type="hidden" name="id" value={tenant.id} />
@@ -359,7 +359,7 @@ export default async function TenantDetailPage({
         <div className="mt-6 border-t border-red-500/20 pt-4">
           <p className="text-sm font-medium text-foreground">Delete tenant</p>
           <p className="mt-1 text-sm text-muted">
-            Permanently deletes this tenant and everything tied to it — crawled data, conversations,
+            Permanently deletes this tenant and everything tied to it: crawled data, conversations,
             leads, appointments, WhatsApp connection, and payment history. This cannot be undone.
           </p>
           <DeleteTenantForm tenantName={tenant.name} action={deleteTenant} />
@@ -406,7 +406,7 @@ export default async function TenantDetailPage({
                       </td>
                       <td className="px-4 py-3 tabular-nums text-muted">{p.periodStart.toLocaleDateString()}</td>
                       <td className="px-4 py-3 tabular-nums text-muted">
-                        {p.reviewedAt ? p.reviewedAt.toLocaleDateString() : "—"}
+                        {p.reviewedAt ? p.reviewedAt.toLocaleDateString() : "None"}
                       </td>
                       <td className="px-4 py-3">
                         <a

@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 /**
- * Type-to-confirm guard for an irreversible action — the delete button stays
+ * Type-to-confirm guard for an irreversible action. The delete button stays
  * disabled until the typed text exactly matches the tenant's name, so a
  * misclick can't take out a real customer's account.
  */

@@ -5,8 +5,8 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/client";
 
 // Postgres-backed replacement for Baileys' own useMultiFileAuthState (which
-// stores creds + every signal key as separate files on disk). Same shape —
-// one JSON blob (WhatsAppAccount.authState) instead of a folder — so the
+// stores creds + every signal key as separate files on disk). Same shape,
+// one JSON blob (WhatsAppAccount.authState) instead of a folder, so the
 // connector process can run on any host/redeploy with no mounted volume; the
 // session lives in the same database as everything else in this app.
 //

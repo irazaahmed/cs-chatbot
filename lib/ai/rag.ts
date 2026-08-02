@@ -4,7 +4,7 @@ import { similaritySearch, type SimilarityMatch } from "@/lib/db/vector";
 const HISTORY_LIMIT = 6;
 
 // A fixed lookup used to pull contact details (phone/email/WhatsApp) out of
-// whatever was crawled, independent of the visitor's actual question — so the
+// whatever was crawled, independent of the visitor's actual question, so the
 // bot can still point to a human when it can't answer, instead of a bare
 // "contact us". Exported so the preview flow (which searches an in-memory
 // chunk list, not the tenant-scoped vector index) can reuse the same query.
@@ -35,7 +35,7 @@ export async function retrieveContactInfo(tenantId: string): Promise<SimilarityM
 
 /**
  * Builds the message list for the LLM. `history` must come from the
- * persisted Conversation row, never from the client request body — trusting
+ * persisted Conversation row, never from the client request body. Trusting
  * client-supplied history would let a visitor inject arbitrary fake turns
  * into the prompt.
  */
@@ -56,18 +56,18 @@ export function buildMessages(
   // phone/email) is then picked up by the structured-extraction pass in the
   // chat route, which creates the Lead.
   const leadGenInstruction = leadCapture
-    ? "You also act as a lead generator for this business. When a visitor shows clear buying intent " +
-      "— asking about pricing or plans, how to purchase or sign up, requesting a quote, or wanting a " +
-      "specific service done for them — first answer their question, then in the SAME reply warmly " +
+    ? "You also act as a lead generator for this business. When a visitor shows clear buying intent, " +
+      "such as asking about pricing or plans, how to purchase or sign up, requesting a quote, or wanting a " +
+      "specific service done for them, first answer their question, then in the SAME reply warmly " +
       "invite them to leave their details so the team can follow up, asking for their name and " +
       "phone/WhatsApp number together in one short sentence (email is fine too). Ask for both at once " +
-      "in a single message — never interrogate the visitor one question at a time, and never ask them " +
+      "in a single message. Never interrogate the visitor one question at a time, and never ask them " +
       "to restate their problem or message, you already have it from the conversation. Before asking " +
       "for anything, re-read the conversation: if the visitor has ALREADY given their name, or " +
       "already given a phone/WhatsApp number or email, take that value from what they said earlier " +
-      "and never ask for it again — only ask for whatever detail is still genuinely missing. Do this only " +
+      "and never ask for it again. Only ask for whatever detail is still genuinely missing. Do this only " +
       "ONCE. The moment the visitor has shared a way to reach them, stop asking completely and reply " +
-      "with a brief, warm thank-you saying the team will get back to them soon — ask no further " +
+      "with a brief, warm thank-you saying the team will get back to them soon. Ask no further " +
       "questions after that. If they decline or ignore the request, drop it and keep helping normally. " +
       "Never ask for contact details during ordinary questions or small talk."
     : null;
@@ -78,10 +78,10 @@ export function buildMessages(
   // interrogation.
   const appointmentInstruction =
     "If a visitor wants to book an appointment, call, meeting, or visit, ask for their name, a " +
-    "phone/WhatsApp number or email, and their preferred day and time — all together in one message, " +
+    "phone/WhatsApp number or email, and their preferred day and time, all together in one message, " +
     "never one question at a time. First re-read the conversation: if the visitor has already given " +
-    "their name or a contact number/email earlier, take it from there and do not ask for it again — " +
-    "only ask for the details still missing. Once you have those, confirm warmly that the team will " +
+    "their name or a contact number/email earlier, take it from there and do not ask for it again. " +
+    "Only ask for the details still missing. Once you have those, confirm warmly that the team will " +
     "reach out to finalize it, and stop re-asking.";
 
   // Backs the widget's "Talk to a human" button when the owner hasn't set an
@@ -105,8 +105,8 @@ export function buildMessages(
 
   const system = [
     systemPrompt,
-    "For questions specifically about this business — its services, pricing, policies, hours, " +
-      "or anything only the business itself would know — answer only using the context below. " +
+    "For questions specifically about this business, such as its services, pricing, policies, or " +
+      "hours, or anything only the business itself would know, answer only using the context below. " +
       "If the context doesn't cover it, say so plainly, and if contact details are given below, " +
       'invite the visitor to reach out directly by name (e.g. "you can reach us on WhatsApp at ' +
       '..." or "email us at ...") instead of a generic "contact us". Never invent business facts.',
@@ -117,20 +117,24 @@ export function buildMessages(
     appointmentInstruction,
     humanHandoffInstruction,
     `Today's date is ${new Date().toISOString().slice(0, 10)}.`,
-    "Keep your answers short and conversational — usually two to four sentences. Get straight to " +
-      "the point and never pad the reply. Only give a longer or step-by-step answer if the visitor " +
-      "explicitly asks for more detail.",
+    "Keep every answer short and to the point: one to three sentences by default. Never pad a reply " +
+      "with extra context, caveats, or restated questions. Only go longer, and even then stay tight, " +
+      "if the visitor explicitly asks for more detail or a step-by-step walkthrough.",
     "Write in natural, plain language. Do not tack on citation markers, source URLs, or " +
-      "'(source: ...)' / [1] notes to your answer — just answer the question directly. The only " +
+      "'(source: ...)' / [1] notes to your answer, just answer the question directly. The only " +
       "exception is when the visitor is specifically asking to see links, pages, or projects (for " +
       "example: show me your projects, what pages do you have, send me the link); then include the " +
       "actual URLs, because that is the answer being asked for.",
+    "Never use an em dash (—) or en dash (–) anywhere in your reply, under any circumstance. They " +
+      "read as AI-generated and undermine trust. If you need a pause or emphasis, rephrase with a " +
+      "period, comma, or a plain sentence instead. A single well-placed, fitting emoji is fine if it " +
+      "genuinely adds something, but keep the overall tone professional, not casual or gimmicky.",
     languageInstruction,
     `Context:\n${contextBlock}`,
     ...(contactBlock
       ? [
-          "Contact details found on the business's website (only use these to help a visitor " +
-            `reach a human — never as an answer about what the business does):\n${contactBlock}`,
+          "Contact details found on the business's website (only use these to help a visitor reach " +
+            `a human, never as an answer about what the business does):\n${contactBlock}`,
         ]
       : []),
   ].join("\n\n");

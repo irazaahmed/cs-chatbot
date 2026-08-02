@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 /**
  * Refreshes the /whatsapp page every few seconds while we're waiting for the
- * connector to publish a QR code or flip the account to connected — the rest
+ * connector to publish a QR code or flip the account to connected. The rest
  * of the app is deliberately server-rendered with no client polling, but the
  * pairing step needs the page to update itself without the user hitting
  * refresh (Baileys QR codes also rotate periodically while unscanned).

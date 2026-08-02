@@ -8,8 +8,8 @@ import { TRIAL_DAYS } from "@/lib/billing/plans";
 const PREVIEW_URL_COOKIE = "cybrum_preview_url";
 
 // Best-effort prefill from the landing-page preview cookie (see
-// signInWithGoogle's caller in app/(marketing)/page.tsx). Never throws —
-// a missing/malformed cookie just means an empty form, same as today.
+// signInWithGoogle's caller in app/(marketing)/page.tsx). Never throws.
+// A missing/malformed cookie just means an empty form, same as today.
 function readPreviewDefaults(rawUrl: string | undefined): { websiteUrl: string; name: string } {
   if (!rawUrl) return { websiteUrl: "", name: "" };
   try {
@@ -31,7 +31,7 @@ async function createTenant(formData: FormData) {
   // One tenant per account. The page-load check below redirects away before
   // this form ever renders for a returning user, but that doesn't stop a
   // resubmitted/double-clicked form from racing a second tenant into
-  // existence — check again here, at the point that actually writes.
+  // existence, so check again here, at the point that actually writes.
   const existing = await prisma.tenant.findFirst({ where: { ownerId: session.user.id } });
   if (existing) redirect("/playground");
 

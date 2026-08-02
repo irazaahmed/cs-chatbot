@@ -22,7 +22,7 @@ export default async function WhatsAppPage({
       data: { tenantId: tenant.id, type: "whatsapp_pair", status: "pending", payload: {} },
     });
     // The connector needs a few seconds to claim the job and generate a QR
-    // (it polls every 5s) — redirect with a flag so the page polls itself in
+    // (it polls every 5s). Redirect with a flag so the page polls itself in
     // the meantime instead of sitting on the stale "Connect" button, which
     // otherwise looks like the click did nothing.
     redirect("/whatsapp?connecting=1");
@@ -47,11 +47,11 @@ export default async function WhatsAppPage({
     <div className="max-w-2xl">
       <h1 className="font-heading text-2xl font-semibold tracking-tight">Connect Your WhatsApp</h1>
       <p className="mt-1 text-sm text-muted">
-        Connect your own WhatsApp Business number — the same AI that answers on your website will answer here too,
+        Connect your own WhatsApp Business number. The same AI that answers on your website will answer here too,
         24/7, from the same knowledge base, with the same lead and appointment capture.
       </p>
       <p className="mt-3 rounded-2xl border border-border bg-surface/60 px-4 py-3 text-xs text-muted">
-        This WhatsApp bot runs on Cybrum Solutions&apos; own infrastructure — it is not Meta&apos;s official WhatsApp
+        This WhatsApp bot runs on Cybrum Solutions&apos; own infrastructure. It is not Meta&apos;s official WhatsApp
         Business API.
       </p>
 
@@ -108,7 +108,7 @@ export default async function WhatsAppPage({
             Connected
           </p>
           <p className="mt-4 text-sm text-foreground">
-            Number: <span className="text-muted">{account.phoneNumber ?? "—"}</span>
+            Number: <span className="text-muted">{account.phoneNumber ?? "Unknown"}</span>
           </p>
           {account.connectedAt && (
             <p className="mt-1 text-xs text-muted">

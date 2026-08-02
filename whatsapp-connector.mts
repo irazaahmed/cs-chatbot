@@ -1,5 +1,5 @@
 // Standalone WhatsApp connector (mirrors worker.ts's pattern: a long-lived
-// process next to the Next.js app, not a route — Baileys holds a persistent
+// process next to the Next.js app, not a route. Baileys holds a persistent
 // WebSocket per tenant, which a stateless request/response route can't do).
 //
 // Run with: npm run whatsapp-connector
@@ -7,7 +7,7 @@
 // Responsibilities:
 // 1. On boot, reopen a Baileys socket for every tenant whose WhatsAppAccount
 //    is already "connected" (auth state lives in Postgres, see
-//    lib/whatsapp/pg-auth-state.ts — no mounted volume needed).
+//    lib/whatsapp/pg-auth-state.ts, no mounted volume needed).
 // 2. Poll the existing Job table for "whatsapp_pair" jobs (same mechanism
 //    /install already uses for "crawl" jobs) to start pairing a new tenant
 //    and publish the QR code for the dashboard to show.
@@ -15,8 +15,8 @@
 //    dashboard (the /whatsapp page's Disconnect action) and tear down that
 //    tenant's socket.
 // 4. On every inbound WhatsApp message, run the exact same pipeline
-//    app/api/chat/route.ts uses for the website widget — retrieval, prompt
-//    building, OpenAI, lead/appointment capture — just non-streaming and
+//    app/api/chat/route.ts uses for the website widget: retrieval, prompt
+//    building, OpenAI, lead/appointment capture, just non-streaming and
 //    keyed by the sender's WhatsApp id instead of a browser sessionId.
 
 import type { Job, Prisma } from "@prisma/client";
@@ -41,7 +41,7 @@ const SUSPENDED_WHATSAPP_STATUSES = new Set(["suspended"]);
 
 const sockets = new Map<string, WASocket>();
 // Tenants that have had at least one QR shown during the current connection
-// attempt — Baileys has no explicit "QR scanned" event, so the signal used
+// attempt. Baileys has no explicit "QR scanned" event, so the signal used
 // for the "connecting" UI state is: we were showing a QR, and now got a
 // connection.update with no fresh qr in it (see connection.update handler).
 const qrShownTenants = new Set<string>();
@@ -161,7 +161,7 @@ async function handleInboundMessage(tenantId: string, sock: WASocket, fromJid: s
 async function openSocketForTenant(tenantId: string): Promise<void> {
   if (sockets.has(tenantId)) return;
 
-  // Named to match Baileys' own useMultiFileAuthState convention — not a React hook.
+  // Named to match Baileys' own useMultiFileAuthState convention, not a React hook.
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { state, saveCreds } = await usePgAuthState(tenantId);
   const { version } = await fetchLatestBaileysVersion();
@@ -188,7 +188,7 @@ async function openSocketForTenant(tenantId: string): Promise<void> {
         data: { status: "pairing", qrCode: qrDataUrl },
       });
     } else if (connection === "connecting" && qrShownTenants.has(tenantId)) {
-      // Phone scanned the QR — Baileys stops emitting `qr` and starts the
+      // Phone scanned the QR. Baileys stops emitting `qr` and starts the
       // handshake, but stays "connecting" for several seconds before "open".
       await prisma.whatsAppAccount.update({
         where: { tenantId },

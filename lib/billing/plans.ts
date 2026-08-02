@@ -3,7 +3,7 @@
 // picker, the admin approval flow, and the cap-enforcement in the chat API all
 // read from here so a plan's price, caps, and features never drift apart.
 //
-// Nothing else in the billing layer defines caps or prices — status.ts imports
+// Nothing else in the billing layer defines caps or prices. status.ts imports
 // its caps from here, so this file must not import from status.ts (no cycle).
 
 export const PLAN_IDS = ["starter", "pro", "business"] as const;
@@ -12,10 +12,10 @@ export type PlanId = (typeof PLAN_IDS)[number];
 export const BILLING_CYCLES = ["monthly", "quarterly", "yearly"] as const;
 export type BillingCycle = (typeof BILLING_CYCLES)[number];
 
-/** Page cap for the Business plan — effectively unlimited, shown as "Unlimited". */
+/** Page cap for the Business plan, effectively unlimited, shown as "Unlimited". */
 export const UNLIMITED_PAGE_CAP = 100_000;
 
-/** Free trial length granted at signup — see app/onboarding/page.tsx. */
+/** Free trial length granted at signup, see app/onboarding/page.tsx. */
 export const TRIAL_DAYS = 3;
 
 export interface CycleMeta {
@@ -29,7 +29,7 @@ export interface CycleMeta {
 export const CYCLE_META: Record<BillingCycle, CycleMeta> = {
   monthly: { id: "monthly", label: "Monthly", months: 1, saveLabel: null },
   quarterly: { id: "quarterly", label: "Quarterly", months: 3, saveLabel: "Save 10%" },
-  yearly: { id: "yearly", label: "Yearly", months: 12, saveLabel: "Save 20% — 2 months free" },
+  yearly: { id: "yearly", label: "Yearly", months: 12, saveLabel: "Save 20%, 2 months free" },
 };
 
 interface PlanDef {

@@ -141,7 +141,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link href="/install" className="font-medium underline underline-offset-2">
               Website
             </Link>{" "}
-            tab to finish setup — nothing gets crawled until then.
+            tab to finish setup. Nothing gets crawled until then.
           </div>
         )}
         {tenant.status === "trialing" && tenant.periodEnd && (
