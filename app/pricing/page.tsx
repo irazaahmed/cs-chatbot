@@ -6,21 +6,22 @@ import { site, cybrum } from "@/lib/site";
 import { PricingCards } from "./_components/pricing-cards";
 
 export const metadata: Metadata = {
-  title: "Pricing — CS Chatbot",
+  title: "Pricing — CS Chatbot for Website & WhatsApp",
   description:
-    "Simple monthly pricing in PKR for the Cybrum Solutions Chatbot. Every plan includes the full product — pick a plan by how many pages the bot learns and how many visitor conversations it answers each month. Save with quarterly or yearly billing.",
+    "Simple monthly pricing in PKR for the Cybrum Solutions Chatbot. Every plan includes the full website product, plus an optional WhatsApp add-on — bundled with any plan or on its own. Save with quarterly or yearly billing.",
   keywords: [
     "chatbot pricing Pakistan",
     "cheap chatbot for website PKR",
     "chatbot monthly plan Pakistan",
     "website chatbot vs WhatsApp chatbot",
+    "WhatsApp AI chatbot pricing Pakistan",
     "JazzCash EasyPaisa chatbot subscription",
   ],
   alternates: { canonical: "/pricing" },
   openGraph: {
-    title: "Pricing — CS Chatbot",
+    title: "Pricing — CS Chatbot for Website & WhatsApp",
     description:
-      "Simple monthly pricing in PKR. Still cheaper than one support hire. Save 10% quarterly or 20% yearly.",
+      "Simple monthly pricing in PKR. Still cheaper than one support hire. WhatsApp add-on available. Save 10% quarterly or 20% yearly.",
     url: `${site.url}/pricing`,
     siteName: "CS Chatbot",
     type: "website",
@@ -46,7 +47,7 @@ export default function PricingPage() {
     "@type": "Product",
     name: site.fullName,
     description:
-      "An AI chatbot trained only on your website's content. Answers with sources, captures leads, and speaks English, Urdu, and Roman Urdu.",
+      "An AI chatbot trained only on your website's content, with an optional WhatsApp add-on. Answers with sources, captures leads, and speaks English, Urdu, and Roman Urdu.",
     brand: { "@type": "Brand", name: "Cybrum Solutions" },
     offers: [
       ...plans.map((p) => ({

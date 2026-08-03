@@ -18,7 +18,8 @@ export function SiteFooter() {
             </span>
             <p className="mt-3 text-sm leading-relaxed text-muted">
               An AI chatbot trained only on your website&apos;s content — answers with
-              sources, in English, Urdu, or Roman Urdu.
+              sources, in English, Urdu, or Roman Urdu, on your website and on
+              WhatsApp.
             </p>
           </div>
 

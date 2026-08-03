@@ -20,15 +20,17 @@ const BASE_URL = "https://chatbot.cybrumsolutions.dev";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
-  title: "CS Chatbot — Create a Free AI Chatbot for Your Website",
+  title: "CS Chatbot — Free AI Chatbot for Your Website & WhatsApp",
   description:
-    "Create a free AI chatbot for your website in minutes. Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Answers only from your own content, in English, Urdu, or Roman Urdu.",
+    "Create a free AI chatbot for your website in minutes, with an optional WhatsApp add-on for your own number. Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Answers only from your own content, in English, Urdu, or Roman Urdu.",
   keywords: [
     "create a chatbot",
     "create free chatbot",
     "free chatbot for website",
     "AI chatbot for website",
     "chatbot for website free",
+    "AI chatbot for WhatsApp",
+    "WhatsApp AI chatbot Pakistan",
     "easy way to create a chatbot",
     "website chatbot builder",
     "no-code chatbot builder",
@@ -37,18 +39,18 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/" },
   openGraph: {
-    title: "CS Chatbot — Create a Free AI Chatbot for Your Website",
+    title: "CS Chatbot — Free AI Chatbot for Your Website & WhatsApp",
     description:
-      "Paste your URL, watch it learn your site, and chat instantly — no signup, no card. A Cybrum Solutions product.",
+      "Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Optional WhatsApp add-on. A Cybrum Solutions product.",
     url: BASE_URL,
     siteName: "CS Chatbot",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "CS Chatbot — Create a Free AI Chatbot for Your Website",
+    title: "CS Chatbot — Free AI Chatbot for Your Website & WhatsApp",
     description:
-      "Paste your URL, watch it learn your site, and chat instantly — no signup, no card.",
+      "Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Optional WhatsApp add-on.",
   },
   verification: {
     google: "B-ewPtxWvI8ES5EEiQ89Q-rEYdQF82AbE_5uJu4ZRPc",

@@ -12,7 +12,7 @@ export const site = {
   shortName: "CS Chatbot",
   fullName: "Cybrum Solutions Chatbot",
   url: "https://chatbot.cybrumsolutions.dev",
-  tagline: "An AI chatbot trained on your own website.",
+  tagline: "An AI chatbot trained on your own website, also available on WhatsApp.",
 } as const;
 
 /** The parent company site and the ways to reach the team. */

@@ -9,19 +9,20 @@ import { site, cybrum } from "@/lib/site";
 export const metadata: Metadata = {
   title: "About — CS Chatbot",
   description:
-    "The Cybrum Solutions Chatbot is an AI chat assistant trained only on your website's content. It answers with sources, captures leads, and speaks English, Urdu, and Roman Urdu.",
+    "The Cybrum Solutions Chatbot is an AI chat assistant trained only on your website's content, with an optional WhatsApp add-on. It answers with sources, captures leads, and speaks English, Urdu, and Roman Urdu.",
   keywords: [
     "Cybrum Solutions chatbot",
     "CS Chatbot",
     "AI chatbot for website",
     "website chatbot Pakistan",
+    "WhatsApp AI chatbot Pakistan",
     "chatbot with source citations",
   ],
   alternates: { canonical: "/about" },
   openGraph: {
     title: "About — CS Chatbot",
     description:
-      "An AI chatbot trained only on your website's content. A Cybrum Solutions product.",
+      "An AI chatbot trained only on your website's content, with an optional WhatsApp add-on. A Cybrum Solutions product.",
     url: `${site.url}/about`,
     siteName: "CS Chatbot",
     type: "website",
@@ -97,7 +98,8 @@ export default function AboutPage() {
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
             {site.fullName} — <b className="text-foreground">CS Chatbot</b>{" "}
             for short — is an AI chat assistant that reads your website and answers your visitors from that
-            content alone. It cites its sources, captures leads, and speaks your customers&apos;
+            content alone, on your website and, as an optional add-on, on your own WhatsApp number.
+            It cites its sources, captures leads, and speaks your customers&apos;
             language, so no visitor leaves without an answer.
           </p>
         </Reveal>
@@ -113,7 +115,8 @@ export default function AboutPage() {
             <b className="text-foreground">your</b> website, turns them into a private
             knowledge base, and answers strictly from it. The result is a bot that sounds
             like your business because it only knows your business — with a link to the exact
-            page behind every answer.
+            page behind every answer. Connect your own WhatsApp Business number and the same
+            bot, trained on the same content, answers there too.
           </p>
         </div>
       </Reveal>
@@ -162,7 +165,7 @@ export default function AboutPage() {
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted sm:text-base">
             CS Chatbot is a product of Cybrum Solutions, an AI-native studio building agents,
-            automation, and web systems. Same team, same support.
+            automation, and web systems. Same team, same support, on your website and on WhatsApp.
           </p>
           <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
             <Link

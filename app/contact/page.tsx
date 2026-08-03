@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
   openGraph: {
     title: "Contact — CS Chatbot",
-    description: "Talk to the Cybrum Solutions team about CS Chatbot.",
+    description: "Talk to the Cybrum Solutions team about CS Chatbot, on your website or on WhatsApp.",
     url: `${site.url}/contact`,
     siteName: "CS Chatbot",
     type: "website",

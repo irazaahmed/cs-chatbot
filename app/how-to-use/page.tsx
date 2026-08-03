@@ -8,18 +8,19 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   title: "How to use — CS Chatbot",
   description:
-    "Set up your website chatbot in five steps: paste your URL, preview it, sign in, verify your domain, and install one script tag. No coding required.",
+    "Set up your website chatbot in five steps: paste your URL, preview it, sign in, verify your domain, and install one script tag. No coding required. Add WhatsApp any time after.",
   keywords: [
     "how to create a free chatbot for my website",
     "how to add a chatbot to my website for free",
     "do I need to know how to code to add a chatbot",
     "how long does it take to set up a website chatbot",
     "embeddable website chatbot",
+    "how to add WhatsApp AI chatbot",
   ],
   alternates: { canonical: "/how-to-use" },
   openGraph: {
     title: "How to use — CS Chatbot",
-    description: "From your URL to a live chatbot in five steps — no coding required.",
+    description: "From your URL to a live chatbot in five steps — no coding required. WhatsApp add-on available.",
     url: `${site.url}/how-to-use`,
     siteName: "CS Chatbot",
     type: "website",
@@ -95,7 +96,8 @@ export default function HowToUsePage() {
         <Reveal delay={0.16}>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
             No coding, no developer, no setup call. If you can copy and paste, you can put
-            CS Chatbot on your website.
+            CS Chatbot on your website — and add it to your own WhatsApp number as an
+            optional add-on any time after.
           </p>
         </Reveal>
       </div>
@@ -171,6 +173,20 @@ export default function HowToUsePage() {
           ))}
         </div>
       </div>
+
+      {/* WhatsApp add-on */}
+      <Reveal className="mx-auto mt-16 max-w-3xl">
+        <div className="rounded-2xl border border-accent/25 bg-accent/5 p-6 backdrop-blur-sm sm:p-8">
+          <p className="font-heading text-lg font-semibold tracking-tight">
+            Want it on WhatsApp too?
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            Once you&apos;re live on your website, request WhatsApp access from your dashboard.
+            The same bot, trained on the same content, starts answering on your own WhatsApp
+            Business number too — no separate setup, no second knowledge base.
+          </p>
+        </div>
+      </Reveal>
 
       {/* CTA */}
       <Reveal className="mt-20">
