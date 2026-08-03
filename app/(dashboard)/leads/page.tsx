@@ -1,5 +1,6 @@
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
+import { ChannelBadge } from "../_components/channel-badge";
 
 interface StoredMessage {
   role: "user" | "assistant";
@@ -69,6 +70,7 @@ export default async function LeadsPage() {
                 <thead className="bg-surface/80 text-left text-muted">
                   <tr>
                     <th className="px-5 py-3 font-medium">Name</th>
+                    <th className="px-5 py-3 font-medium">Channel</th>
                     <th className="px-5 py-3 font-medium">Email</th>
                     <th className="px-5 py-3 font-medium">Phone</th>
                     <th className="px-5 py-3 font-medium">Interested in</th>
@@ -86,6 +88,9 @@ export default async function LeadsPage() {
                     return (
                       <tr key={lead.id} className="border-t border-border transition-colors hover:bg-accent/5">
                         <td className="px-5 py-3 text-foreground">{lead.name || "—"}</td>
+                        <td className="px-5 py-3">
+                          <ChannelBadge channel={lead.channel} />
+                        </td>
                         <td className="px-5 py-3 text-muted">{lead.email || "—"}</td>
                         <td className="px-5 py-3 text-muted">{lead.phone || "—"}</td>
                         <td className="max-w-xs px-5 py-3 text-muted">

@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
+import { ChannelBadge } from "../_components/channel-badge";
 
 const STATUS_IDS = ["requested", "confirmed", "canceled"] as const;
 type StatusId = (typeof STATUS_IDS)[number];
@@ -56,6 +57,7 @@ export default async function AppointmentsPage() {
                 <thead className="bg-surface/80 text-left text-muted">
                   <tr>
                     <th className="px-5 py-3 font-medium">Name</th>
+                    <th className="px-5 py-3 font-medium">Channel</th>
                     <th className="px-5 py-3 font-medium">Contact</th>
                     <th className="px-5 py-3 font-medium">Requested time</th>
                     <th className="px-5 py-3 font-medium">Notes</th>
@@ -67,6 +69,9 @@ export default async function AppointmentsPage() {
                   {appointments.map((appt) => (
                     <tr key={appt.id} className="border-t border-border transition-colors hover:bg-accent/5">
                       <td className="px-5 py-3 text-foreground">{appt.name || "—"}</td>
+                      <td className="px-5 py-3">
+                        <ChannelBadge channel={appt.channel} />
+                      </td>
                       <td className="px-5 py-3 text-muted">{appt.contact || "—"}</td>
                       <td className="px-5 py-3 text-muted">{appt.requestedTime || "—"}</td>
                       <td className="px-5 py-3 text-muted">{appt.notes || "—"}</td>

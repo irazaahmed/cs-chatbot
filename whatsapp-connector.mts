@@ -156,6 +156,7 @@ async function handleInboundMessage(tenantId: string, sock: WASocket, fromJid: s
     history: priorMessages,
     latestMessage: text,
     conversationId: conversationRecord.id,
+    channel: "whatsapp",
   });
 }
 

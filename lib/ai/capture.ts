@@ -16,8 +16,12 @@ export async function captureStructuredSignal(params: {
    *  null there — dedup is skipped, which is safe because the cheap pre-filter
    *  only fires on the single turn that actually carries the contact info. */
   conversationId?: string | null;
+  /** Which surface this signal came from — stored on the Lead/Appointment row
+   *  so the dashboard can show where a contact reached out from. Defaults to
+   *  "web" since that's every caller except the WhatsApp connector. */
+  channel?: "web" | "whatsapp";
 }): Promise<void> {
-  const { tenantId, leadCaptureEnabled, history, latestMessage, conversationId } = params;
+  const { tenantId, leadCaptureEnabled, history, latestMessage, conversationId, channel = "web" } = params;
 
   try {
     if (!looksLikeContactOrBookingSignal(latestMessage)) return;
@@ -36,6 +40,7 @@ export async function captureStructuredSignal(params: {
           phone: signal.contact && !signal.contact.includes("@") ? signal.contact : null,
           interest: signal.notes,
           conversationId: conversationId ?? null,
+          channel,
         },
       });
     } else if (signal.type === "appointment") {
@@ -53,6 +58,7 @@ export async function captureStructuredSignal(params: {
           requestedTime: signal.requestedTime,
           notes: signal.notes,
           conversationId: conversationId ?? null,
+          channel,
         },
       });
     }

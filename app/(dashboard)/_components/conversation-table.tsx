@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/client";
+import { ChannelBadge } from "./channel-badge";
 
 interface DisplayMessage {
   role: string;
@@ -41,6 +42,7 @@ export async function ConversationTable({ tenantId, answeredOnly }: { tenantId: 
           <thead className="bg-surface/80 text-left text-muted">
             <tr>
               <th className="px-5 py-3 font-medium">First message</th>
+              <th className="px-5 py-3 font-medium">Channel</th>
               <th className="px-5 py-3 font-medium">Messages</th>
               <th className="px-5 py-3 font-medium">Answered</th>
               <th className="px-5 py-3 font-medium">Tokens</th>
@@ -52,6 +54,9 @@ export async function ConversationTable({ tenantId, answeredOnly }: { tenantId: 
               <tr key={c.id} className="border-t border-border transition-colors hover:bg-accent/5">
                 <td className="max-w-xs truncate px-5 py-3 text-foreground">
                   {firstUserMessage(c.messages) || "(empty)"}
+                </td>
+                <td className="px-5 py-3">
+                  <ChannelBadge channel={c.channel} />
                 </td>
                 <td className="px-5 py-3 tabular-nums text-muted">{messageCount(c.messages)}</td>
                 <td className="px-5 py-3">
