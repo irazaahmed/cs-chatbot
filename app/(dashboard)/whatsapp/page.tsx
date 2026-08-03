@@ -16,7 +16,7 @@ export default async function WhatsAppPage({
   const { tenant } = await getCurrentTenant();
   const { connecting } = await searchParams;
 
-  async function connect() {
+  async function connectWithQr() {
     "use server";
     const current = await prisma.tenant.findUnique({ where: { id: tenant.id }, select: { whatsappEnabled: true } });
     if (!current?.whatsappEnabled) redirect("/whatsapp");
@@ -31,11 +31,32 @@ export default async function WhatsAppPage({
     redirect("/whatsapp?connecting=1");
   }
 
+  async function connectWithPhoneNumber(formData: FormData) {
+    "use server";
+    const current = await prisma.tenant.findUnique({ where: { id: tenant.id }, select: { whatsappEnabled: true } });
+    if (!current?.whatsappEnabled) redirect("/whatsapp");
+
+    // Only used to pick the job's pairing method — the connector re-strips
+    // and validates it before ever calling Baileys with it.
+    const phoneNumber = String(formData.get("phoneNumber") ?? "").trim();
+    if (!phoneNumber) redirect("/whatsapp");
+
+    await prisma.job.create({
+      data: {
+        tenantId: tenant.id,
+        type: "whatsapp_pair",
+        status: "pending",
+        payload: { method: "code", phoneNumber },
+      },
+    });
+    redirect("/whatsapp?connecting=1");
+  }
+
   async function disconnect() {
     "use server";
     await prisma.whatsAppAccount.update({
       where: { tenantId: tenant.id },
-      data: { status: "disconnected", qrCode: null },
+      data: { status: "disconnected", qrCode: null, pairingCode: null },
     });
     redirect("/whatsapp");
   }
@@ -105,16 +126,38 @@ export default async function WhatsAppPage({
       </p>
 
       {!isPairing && (!account || account.status === "disconnected") && (
-        <div className="glass mt-6 rounded-2xl p-6">
-          <h2 className="font-heading font-semibold">Connect your number</h2>
-          <p className="mt-1 text-sm text-muted">
-            You&apos;ll scan a QR code with WhatsApp on your phone, the same way you&apos;d link WhatsApp Web.
-          </p>
-          <form action={connect} className="mt-4">
-            <button type="submit" className={primaryButtonClass}>
-              Connect WhatsApp
-            </button>
-          </form>
+        <div className="glass mt-6 grid gap-4 rounded-2xl p-6 sm:grid-cols-2">
+          <div>
+            <h2 className="font-heading font-semibold">Scan a QR code</h2>
+            <p className="mt-1 text-sm text-muted">
+              Open WhatsApp on your phone and scan a code, the same way you&apos;d link WhatsApp Web.
+              You&apos;ll need a second screen (a computer, or any other device) to show the code on.
+            </p>
+            <form action={connectWithQr} className="mt-4">
+              <button type="submit" className={primaryButtonClass}>
+                Connect with QR code
+              </button>
+            </form>
+          </div>
+          <div className="border-t border-border pt-4 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0">
+            <h2 className="font-heading font-semibold">Enter a pairing code</h2>
+            <p className="mt-1 text-sm text-muted">
+              Only have the one phone? Enter its WhatsApp number below and you&apos;ll get a code to
+              type into WhatsApp instead of scanning — no second device needed.
+            </p>
+            <form action={connectWithPhoneNumber} className="mt-4 flex flex-col gap-2.5">
+              <input
+                type="tel"
+                name="phoneNumber"
+                required
+                placeholder="923001234567 (country code, no +)"
+                className="h-11 rounded-full border border-border bg-surface/60 px-4 text-sm text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
+              />
+              <button type="submit" className={secondaryButtonClass}>
+                Get pairing code
+              </button>
+            </form>
+          </div>
         </div>
       )}
 
@@ -144,8 +187,20 @@ export default async function WhatsAppPage({
               />
               <p className="mt-4 text-xs text-muted">This page updates automatically once you scan.</p>
             </>
+          ) : account?.pairingCode ? (
+            <>
+              <h2 className="font-heading font-semibold">Enter this pairing code</h2>
+              <p className="mt-1 text-sm text-muted">
+                Open WhatsApp on your phone → Settings → Linked Devices → Link a Device → Link with
+                phone number instead, then type in the code below.
+              </p>
+              <p className="mx-auto mt-4 w-fit rounded-2xl border border-border bg-surface px-6 py-4 font-heading text-3xl font-semibold tracking-[0.2em] text-accent-bright">
+                {account.pairingCode}
+              </p>
+              <p className="mt-4 text-xs text-muted">This page updates automatically once you enter it.</p>
+            </>
           ) : (
-            <p className="py-10 text-sm text-muted">Generating your QR code…</p>
+            <p className="py-10 text-sm text-muted">Generating your code…</p>
           )}
         </div>
       )}

@@ -69,6 +69,10 @@ model WhatsAppAccount {
   status      String    @default("disconnected") // disconnected | pairing | connected
   authState   Json?
   qrCode      String?
+  // Set instead of qrCode when the tenant pairs by phone number rather than
+  // scanning — lets someone with only one phone link it without a second
+  // screen (enter this code under WhatsApp's "Link with phone number instead").
+  pairingCode String?
   connectedAt DateTime?
   lastSeenAt  DateTime?
   createdAt   DateTime  @default(now())
