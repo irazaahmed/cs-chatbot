@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageShell } from "@/components/marketing/PageShell";
 import { JsonLd } from "@/components/JsonLd";
-import { getPlanOptions } from "@/lib/billing/plans";
+import { getPlanOptions, whatsappAddonPrice, BILLING_CYCLES, type BillingCycle } from "@/lib/billing/plans";
 import { site, cybrum } from "@/lib/site";
 import { PricingCards } from "./_components/pricing-cards";
 
@@ -30,6 +30,17 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   const plans = getPlanOptions();
 
+  // WhatsApp isn't a plan (no page/conversation caps of its own beyond
+  // WHATSAPP_CONVERSATION_CAP) — resolved separately and rendered as its own
+  // cards below the plan grid. No tenant session here, so "standalone" is
+  // always the un-bundled rate (see lib/billing/plans.ts#whatsappAddonPrice).
+  const whatsappBundlePrices = {} as Record<BillingCycle, number>;
+  const whatsappStandalonePrices = {} as Record<BillingCycle, number>;
+  for (const cycle of BILLING_CYCLES) {
+    whatsappBundlePrices[cycle] = whatsappAddonPrice(cycle, true);
+    whatsappStandalonePrices[cycle] = whatsappAddonPrice(cycle, false);
+  }
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -37,13 +48,29 @@ export default function PricingPage() {
     description:
       "An AI chatbot trained only on your website's content. Answers with sources, captures leads, and speaks English, Urdu, and Roman Urdu.",
     brand: { "@type": "Brand", name: "Cybrum Solutions" },
-    offers: plans.map((p) => ({
-      "@type": "Offer",
-      name: `${p.label} plan`,
-      price: String(p.prices.monthly),
-      priceCurrency: "PKR",
-      url: `${site.url}/pricing`,
-    })),
+    offers: [
+      ...plans.map((p) => ({
+        "@type": "Offer",
+        name: `${p.label} plan`,
+        price: String(p.prices.monthly),
+        priceCurrency: "PKR",
+        url: `${site.url}/pricing`,
+      })),
+      {
+        "@type": "Offer",
+        name: "WhatsApp Add-on",
+        price: String(whatsappBundlePrices.monthly),
+        priceCurrency: "PKR",
+        url: `${site.url}/pricing`,
+      },
+      {
+        "@type": "Offer",
+        name: "WhatsApp Standalone",
+        price: String(whatsappStandalonePrices.monthly),
+        priceCurrency: "PKR",
+        url: `${site.url}/pricing`,
+      },
+    ],
   };
 
   return (
@@ -57,13 +84,18 @@ export default function PricingPage() {
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted">
           Every plan includes the full product. Plans differ only in how many pages the
-          bot learns and how many visitor conversations it answers each month.
+          bot learns and how many visitor conversations it answers each month. WhatsApp
+          is available as an optional add-on on any plan, or on its own.
         </p>
       </div>
 
       {/* Cards + cycle toggle */}
       <div className="mt-12">
-        <PricingCards plans={plans} />
+        <PricingCards
+          plans={plans}
+          whatsappBundlePrices={whatsappBundlePrices}
+          whatsappStandalonePrices={whatsappStandalonePrices}
+        />
       </div>
 
       {/* Reassurance */}

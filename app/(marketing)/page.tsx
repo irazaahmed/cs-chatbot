@@ -46,6 +46,11 @@ const benefits = [
     description:
       "Your bot answers the way your customers actually type — English, اردو, or Roman Urdu — and captures leads while it chats.",
   },
+  {
+    title: "Also answers on your own WhatsApp number",
+    description:
+      "Optional add-on: connect your own WhatsApp Business number and the same AI, trained on the same content, with the same lead capture, answers there too.",
+  },
 ];
 
 const steps = [
@@ -82,6 +87,11 @@ const faqs = [
     question: "Does it support Urdu or Roman Urdu?",
     answer:
       "Yes. The chatbot replies the way your customers actually type — English, اردو, or Roman Urdu — which most website chatbots built for Pakistani businesses don't handle well.",
+  },
+  {
+    question: "Does it work on WhatsApp too?",
+    answer:
+      "Yes, as an optional add-on. Connect your own WhatsApp Business number and the exact same AI, trained on the exact same content, with the same lead capture, answers there too. It's enabled per account — request it from your dashboard after you sign up.",
   },
 ];
 
@@ -426,7 +436,7 @@ export default function LandingPage() {
         <div className="divider-animated mx-auto mt-16 h-px w-full max-w-3xl" />
 
         {/* Benefits */}
-        <div className="mt-16 grid gap-6 md:grid-cols-3">
+        <div className="mt-16 grid gap-6 sm:grid-cols-2">
           {benefits.map((b, i) => (
             <Reveal key={b.title} delay={i * 0.08} className="h-full">
               <GlowCard className="h-full">

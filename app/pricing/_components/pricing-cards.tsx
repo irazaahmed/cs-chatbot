@@ -9,7 +9,15 @@ import { BILLING_CYCLES, CYCLE_META, formatPages } from "@/lib/billing/plans";
  * are resolved on the server (env-overridable) and passed in as props, so no
  * price is hardcoded here — the client only switches which cycle is shown.
  */
-export function PricingCards({ plans }: { plans: PlanOption[] }) {
+export function PricingCards({
+  plans,
+  whatsappBundlePrices,
+  whatsappStandalonePrices,
+}: {
+  plans: PlanOption[];
+  whatsappBundlePrices: Record<BillingCycle, number>;
+  whatsappStandalonePrices: Record<BillingCycle, number>;
+}) {
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
   return (
@@ -104,6 +112,37 @@ export function PricingCards({ plans }: { plans: PlanOption[] }) {
           </div>
         ))}
       </div>
+
+      {/* WhatsApp add-on */}
+      <div className="mx-auto mt-8 grid max-w-3xl gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl border border-accent/25 bg-accent/5 p-6 text-center backdrop-blur-sm">
+          <p className="font-heading text-base font-semibold tracking-tight text-foreground sm:text-lg">
+            Add WhatsApp to any plan:{" "}
+            <span className="text-accent-bright">
+              Rs {whatsappBundlePrices[cycle].toLocaleString()} / {CYCLE_META[cycle].label.toLowerCase()}
+            </span>
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            The same AI, the same crawled content, and the same lead capture, now also
+            answering on your own WhatsApp Business number.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card/60 p-6 text-center backdrop-blur-sm">
+          <p className="font-heading text-base font-semibold tracking-tight text-foreground sm:text-lg">
+            WhatsApp only, no website plan:{" "}
+            <span className="text-accent-bright">
+              Rs {whatsappStandalonePrices[cycle].toLocaleString()} / {CYCLE_META[cycle].label.toLowerCase()}
+            </span>
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            Just the WhatsApp number, no website widget. Same AI, same knowledge base.
+          </p>
+        </div>
+      </div>
+      <p className="mx-auto mt-4 max-w-2xl text-center text-xs text-muted">
+        WhatsApp is enabled per account. Request it from your dashboard after you sign up
+        and we will turn it on for you.
+      </p>
     </div>
   );
 }

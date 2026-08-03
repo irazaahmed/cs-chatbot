@@ -56,6 +56,7 @@ These are not suggestions. Violating any of these is a bug, even if the code run
 | LLM | OpenAI, mini/nano class only | Via provider abstraction |
 | Embeddings | `text-embedding-3-small`, 1536 dims | |
 | Widget | Vanilla TypeScript, no framework | Bundled with esbuild, Shadow DOM |
+| WhatsApp | Baileys (`@whiskeysockets/baileys`) | Optional add-on. One socket per connected tenant, standalone connector process |
 | Email | Deferred to Phase 4 | Google OAuth needs no email. Do not add Resend yet |
 | File storage | VPS local disk | Payment screenshots. R2 only if disk runs out |
 | Deploy target | Ubuntu VPS via Coolify | Not decided until Phase 5 |
@@ -89,11 +90,19 @@ Owner's browser (app.cybrumsolutions.dev)
 
 Worker process (node worker.js, separate terminal / process)
   └─ poll jobs table every 5s → crawl → extract → chunk → embed → store
+
+WhatsApp connector (node whatsapp-connector.mts, separate terminal / process, opt-in per tenant)
+  └─ hold a persistent Baileys socket per connected tenant
+       ├─ reopen sockets for already-connected tenants on boot
+       ├─ poll jobs table for pairing requests, publish QR to the dashboard
+       └─ inbound message → same retrieval/prompt/LLM pipeline as /api/chat,
+          non-streaming, keyed by the sender's WhatsApp id
 ```
 
-**Three separately runnable pieces:** the Next.js app, the worker, and the widget
-bundle. The worker must be a standalone process, never a Next.js route, because
-crawls run for minutes.
+**Four separately runnable pieces:** the Next.js app, the worker, the WhatsApp
+connector, and the widget bundle. The worker and the WhatsApp connector must be
+standalone processes, never Next.js routes — crawls run for minutes and the
+WhatsApp socket must stay open, neither of which a stateless route can do.
 
 ---
 
@@ -127,6 +136,15 @@ model Tenant {
   planId         String   @default("starter")
   periodEnd      DateTime?
 
+  // WhatsApp add-on — independent of the website plan's status/periodEnd so
+  // one channel lapsing never disables the other.
+  whatsappStatus    String    @default("inactive") // inactive | trialing | active | past_due | suspended
+  whatsappPeriodEnd DateTime?
+  // Admin-only allowlist gate, separate from billing: a tenant can't see the
+  // connect flow or get billed for WhatsApp until an admin flips this on.
+  whatsappEnabled   Boolean   @default(false)
+  whatsappRequestedAt DateTime? // set when tenant requests access, cleared on approval
+
   brandConfig    Json                      // color, botName, avatar, greeting, position
   systemPrompt   String   @db.Text
   language       String   @default("en")   // en | ur | roman_ur
@@ -136,8 +154,25 @@ model Tenant {
   conversations  Conversation[]
   leads          Lead[]
   payments       Payment[]
+  whatsappAccount WhatsAppAccount?
 
   @@index([publicKey])
+}
+
+// One WhatsApp Business number per tenant. authState holds the Baileys
+// AuthenticationState as JSON so the connector survives redeploys without a
+// mounted volume (see lib/whatsapp/pg-auth-state.ts).
+model WhatsAppAccount {
+  id          String    @id @default(cuid())
+  tenantId    String    @unique
+  phoneNumber String?
+  status      String    @default("disconnected") // disconnected | pairing | connected
+  authState   Json?
+  qrCode      String?
+  connectedAt DateTime?
+  lastSeenAt  DateTime?
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model Document {
@@ -178,6 +213,7 @@ model Conversation {
   answered  Boolean  @default(true)   // false = bot could not answer
   inputTokens  Int   @default(0)
   outputTokens Int   @default(0)
+  channel   String   @default("web") // web | whatsapp — counted against separate caps
   createdAt DateTime @default(now())
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -203,6 +239,9 @@ model Payment {
   id          String    @id @default(cuid())
   tenantId    String
   invoiceRef  String    @unique   // CYB-2026-0042, customer puts this in transaction remarks
+  planId      String    @default("starter") // applied to Tenant.planId on approval
+  billingCycle String   @default("monthly") // monthly | quarterly | yearly
+  addon       String?             // null = plan payment; "whatsapp" = WhatsApp add-on payment
   amountPKR   Int
   method      String              // jazzcash | easypaisa | raast | bank
   senderName  String
@@ -296,6 +335,10 @@ cycles: monthly (base), quarterly (10% off 3 months), yearly (20% off 12
 months). Prices and caps live in `lib/billing/plans.ts` (the single source of
 truth); env vars `PLAN_PRICE_PKR_<PLAN>_<CYCLE>` override the compiled defaults.
 
+The WhatsApp add-on has its own conversation cap, tracked separately from the
+website plan's (`WHATSAPP_CONVERSATION_CAP` in `lib/billing/plans.ts`), keyed
+off `Conversation.channel`. See section 9 for its pricing and gating.
+
 ---
 
 ## 7. RAG
@@ -385,6 +428,25 @@ Never hard-kill a live widget. Degrade in steps.
 A suspended tenant returns HTTP 200 with `{ disabled: true, message }`. Never a
 404 or 500, which would surface as an error on the customer's website.
 
+### WhatsApp add-on
+
+Optional, opt-in, admin-gated — never self-serve. `Tenant.whatsappEnabled` is
+flipped by an admin only; a tenant who wants it clicks "Request WhatsApp
+access" and waits (`whatsappRequestedAt`, surfaced on `/admin`).
+
+Pricing is two-rate, resolved in `lib/billing/plans.ts#whatsappAddonPrice`:
+- **Bundle rate** when paid alongside an active/being-purchased website plan.
+- **Standalone rate** (higher) when the tenant has no website plan at all.
+
+Both are sold through the same combined checkout as the website plan
+(`lib/billing/actions.ts#submitPayment`) — one payment, one screenshot, one
+`invoiceRef`, `Payment.addon = "whatsapp"` marks the add-on portion.
+
+WhatsApp has its own, simpler status ladder (`Tenant.whatsappStatus`, driven
+by `whatsappPeriodEnd`), independent of the website plan's so one channel
+lapsing never disables the other: `past_due` immediately, `suspended` at day
+7. No forced-branding step and no `canceled` state.
+
 ---
 
 ## 10. SECURITY
@@ -471,8 +533,11 @@ cs-chatbot/
 │   ├── db/vector.ts                # all raw pgvector SQL
 │   ├── crawl/                      # fetch, robots, sitemap, extract, chunk
 │   ├── billing/status.ts
+│   ├── billing/plans.ts            # plan + WhatsApp add-on prices and caps
+│   ├── whatsapp/pg-auth-state.ts   # Baileys auth state persisted in Postgres
 │   └── security/                   # origin check, rate limit, url validation
 ├── worker.js                       # standalone job runner
+├── whatsapp-connector.mts          # standalone WhatsApp connector (opt-in add-on)
 └── widget/
     ├── src/index.ts
     └── build.mjs                   # esbuild
@@ -527,7 +592,8 @@ monitoring via UptimeRobot free tier.
 
 - Do not add Docker, Redis, BullMQ, Pinecone, Qdrant, or Kubernetes.
 - Do not add Stripe or any card processor in Phase 1 to 4.
-- Do not build WhatsApp, Instagram, or Slack channels. Website only.
+- Do not build Instagram or Slack channels. WhatsApp is the one approved
+  additional channel (opt-in, admin-gated add-on — see section 9).
 - Do not build voice. Text only.
 - Do not use a flagship LLM model. Mini or nano class only. A flagship model
   costs more per customer than the customer pays.
