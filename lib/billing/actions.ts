@@ -7,6 +7,7 @@ import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { saveProofFile } from "@/lib/billing/proof-storage";
 import { isPlanId, isBillingCycle, cycleMonths, addMonths, planPrice, whatsappAddonPrice } from "@/lib/billing/plans";
+import { sendPaymentSubmittedEmail, sendAdminPaymentSubmittedEmail } from "@/lib/email/notify";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -84,6 +85,12 @@ export async function submitPayment(formData: FormData) {
   } catch {
     redirect("/billing?error=3");
   }
+
+  const owner = await prisma.user.findUnique({ where: { id: tenant.ownerId }, select: { email: true } });
+  if (owner?.email) {
+    await sendPaymentSubmittedEmail(owner.email, tenant.name, invoiceRefValue, amountPKR);
+  }
+  await sendAdminPaymentSubmittedEmail(tenant.name, invoiceRefValue, amountPKR, method);
 
   // CLAUDE.md section 9: "the tenant gets a 3-day provisional extension
   // immediately. Approval must never block access." Extending periodEnd

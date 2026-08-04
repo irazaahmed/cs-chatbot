@@ -57,7 +57,7 @@ These are not suggestions. Violating any of these is a bug, even if the code run
 | Embeddings | `text-embedding-3-small`, 1536 dims | |
 | Widget | Vanilla TypeScript, no framework | Bundled with esbuild, Shadow DOM |
 | WhatsApp | Baileys (`@whiskeysockets/baileys`) | Optional add-on. One socket per connected tenant, standalone connector process |
-| Email | Deferred to Phase 4 | Google OAuth needs no email. Do not add Resend yet |
+| Email | Resend, REST API via `fetch`, no SDK | `lib/email/provider.ts` only, sent from `chatbot@cybrumsolutions.dev` |
 | File storage | VPS local disk | Payment screenshots. R2 only if disk runs out |
 | Deploy target | Ubuntu VPS via Coolify | Not decided until Phase 5 |
 
@@ -535,6 +535,9 @@ cs-chatbot/
 │   ├── billing/status.ts
 │   ├── billing/plans.ts            # plan + WhatsApp add-on prices and caps
 │   ├── whatsapp/pg-auth-state.ts   # Baileys auth state persisted in Postgres
+│   ├── email/provider.ts           # THE ONLY place the Resend API is called
+│   ├── email/templates.ts          # branded HTML builders per lifecycle event
+│   ├── email/notify.ts             # high-level, best-effort send-per-event functions
 │   └── security/                   # origin check, rate limit, url validation
 ├── worker.js                       # standalone job runner
 ├── whatsapp-connector.mts          # standalone WhatsApp connector (opt-in add-on)

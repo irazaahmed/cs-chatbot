@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/client";
 import { TRIAL_DAYS } from "@/lib/billing/plans";
+import { sendWelcomeEmail } from "@/lib/email/notify";
 
 const PREVIEW_URL_COOKIE = "cybrum_preview_url";
 
@@ -64,6 +65,10 @@ async function createTenant(formData: FormData) {
       systemPrompt: `You are a helpful support assistant for ${name}.`,
     },
   });
+
+  if (session.user.email) {
+    await sendWelcomeEmail(session.user.email, name);
+  }
 
   redirect("/install");
 }

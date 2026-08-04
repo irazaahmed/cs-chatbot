@@ -3,7 +3,8 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/current";
 import { prisma } from "@/lib/db/client";
 import { getTenantsOverview } from "@/lib/admin/overview";
-import { isBillingCycle, cycleMonths, addMonths, CYCLE_META } from "@/lib/billing/plans";
+import { isBillingCycle, cycleMonths, addMonths, CYCLE_META, planLabel } from "@/lib/billing/plans";
+import { sendPaymentApprovedEmail, sendPaymentRejectedEmail } from "@/lib/email/notify";
 
 const STATUS_PILLS: Record<string, string> = {
   trialing: "border-border bg-surface/60 text-muted",
@@ -17,24 +18,34 @@ async function approvePayment(formData: FormData) {
   "use server";
   await requireAdmin();
   const id = String(formData.get("id"));
-  const payment = await prisma.payment.findUnique({ where: { id } });
+  const payment = await prisma.payment.findUnique({
+    where: { id },
+    include: { tenant: { include: { owner: true } } },
+  });
   if (!payment || payment.status !== "submitted") return;
 
   const now = new Date();
   const cycle = isBillingCycle(payment.billingCycle) ? payment.billingCycle : "monthly";
+  const periodEnd = addMonths(now, cycleMonths(cycle));
 
-  const websiteUpdate = { status: "active", planId: payment.planId, periodEnd: addMonths(now, cycleMonths(cycle)) };
+  const websiteUpdate = { status: "active", planId: payment.planId, periodEnd };
   const tenantUpdateData =
     payment.addon === "bundle"
-      ? { ...websiteUpdate, whatsappStatus: "active", whatsappPeriodEnd: addMonths(now, cycleMonths(cycle)) }
+      ? { ...websiteUpdate, whatsappStatus: "active", whatsappPeriodEnd: periodEnd }
       : payment.addon === "whatsapp"
-        ? { whatsappStatus: "active", whatsappPeriodEnd: addMonths(now, cycleMonths(cycle)) }
+        ? { whatsappStatus: "active", whatsappPeriodEnd: periodEnd }
         : websiteUpdate;
 
   await prisma.$transaction([
     prisma.payment.update({ where: { id }, data: { status: "verified", reviewedAt: now } }),
     prisma.tenant.update({ where: { id: payment.tenantId }, data: tenantUpdateData }),
   ]);
+
+  if (payment.tenant.owner.email) {
+    const label = payment.addon === "whatsapp" ? "WhatsApp add-on" : `${planLabel(payment.planId)} plan`;
+    await sendPaymentApprovedEmail(payment.tenant.owner.email, payment.tenant.name, label, periodEnd);
+  }
+
   revalidatePath("/admin");
 }
 
@@ -43,13 +54,21 @@ async function rejectPayment(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id"));
   const note = String(formData.get("note") ?? "").slice(0, 500);
-  const payment = await prisma.payment.findUnique({ where: { id } });
+  const payment = await prisma.payment.findUnique({
+    where: { id },
+    include: { tenant: { include: { owner: true } } },
+  });
   if (!payment || payment.status !== "submitted") return;
 
   await prisma.payment.update({
     where: { id },
     data: { status: "rejected", reviewedAt: new Date(), note: note || null },
   });
+
+  if (payment.tenant.owner.email) {
+    await sendPaymentRejectedEmail(payment.tenant.owner.email, payment.tenant.name, payment.invoiceRef, note || undefined);
+  }
+
   revalidatePath("/admin");
 }
 

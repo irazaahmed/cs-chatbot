@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/client";
+import { sendTrialEndedEmail } from "@/lib/email/notify";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -51,11 +52,19 @@ export async function applyStatusLadder(): Promise<number> {
   // the past_due/suspended/canceled ladder above. It just ends: suspended the
   // moment periodEnd passes, same graceful "chat unavailable" response as any
   // other suspended tenant, never a 404/500 on the customer's site.
-  const expiredTrials = await prisma.tenant.updateMany({
+  // findMany + loop instead of updateMany so each tenant's owner can be
+  // emailed that their trial ended (see lib/email/notify.ts).
+  const expiredTrials = await prisma.tenant.findMany({
     where: { status: "trialing", periodEnd: { lt: now } },
-    data: { status: "suspended" },
+    select: { id: true, name: true, owner: { select: { email: true } } },
   });
-  changed += expiredTrials.count;
+  for (const tenant of expiredTrials) {
+    await prisma.tenant.update({ where: { id: tenant.id }, data: { status: "suspended" } });
+    if (tenant.owner.email) {
+      await sendTrialEndedEmail(tenant.owner.email, tenant.name);
+    }
+    changed++;
+  }
 
   // Parallel pass for the WhatsApp add-on — entirely independent of the
   // website plan's ladder above, keyed off whatsappStatus/whatsappPeriodEnd.

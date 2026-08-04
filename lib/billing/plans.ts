@@ -153,6 +153,10 @@ export function planConversationCap(planId: string): number {
   return (PLAN_DEFS[planId as PlanId] ?? PLAN_DEFS.starter).conversationCap;
 }
 
+export function planLabel(planId: string): string {
+  return (PLAN_DEFS[planId as PlanId] ?? PLAN_DEFS.starter).label;
+}
+
 export function cycleMonths(cycle: BillingCycle): number {
   return CYCLE_META[cycle].months;
 }
