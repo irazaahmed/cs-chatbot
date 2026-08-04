@@ -8,9 +8,11 @@ import { useState } from "react";
  * misclick can't take out a real customer's account.
  */
 export function DeleteTenantForm({
+  tenantId,
   tenantName,
   action,
 }: {
+  tenantId: string;
   tenantName: string;
   action: (formData: FormData) => void;
 }) {
@@ -24,6 +26,7 @@ export function DeleteTenantForm({
       onSubmit={() => setSubmitting(true)}
       className="mt-4"
     >
+      <input type="hidden" name="id" value={tenantId} />
       <label htmlFor="confirmName" className="block text-xs font-medium text-muted">
         Type <span className="font-semibold text-foreground">{tenantName}</span> to confirm
       </label>

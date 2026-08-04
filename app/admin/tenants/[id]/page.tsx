@@ -469,7 +469,7 @@ export default async function TenantDetailPage({
             Permanently deletes this tenant and everything tied to it: crawled data, conversations,
             leads, appointments, WhatsApp connection, and payment history. This cannot be undone.
           </p>
-          <DeleteTenantForm tenantName={tenant.name} action={deleteTenant} />
+          <DeleteTenantForm tenantId={tenant.id} tenantName={tenant.name} action={deleteTenant} />
         </div>
       </div>
 

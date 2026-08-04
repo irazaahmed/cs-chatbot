@@ -17,6 +17,14 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
+  experimental: {
+    // Default is 1MB, too small for a phone screenshot of the payment proof
+    // (lib/billing/actions.ts#submitPayment) — those routinely run 2-5MB.
+    // lib/billing/proof-storage.ts already enforces the real 5MB ceiling with
+    // a friendly error; this just needs enough headroom (plus multipart
+    // overhead) for that check to ever be reached instead of a hard 413.
+    serverActions: { bodySizeLimit: "6mb" },
+  },
 };
 
 export default nextConfig;
