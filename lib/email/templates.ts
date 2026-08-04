@@ -7,7 +7,7 @@ import { site, cybrum } from "@/lib/site";
 
 const ACCENT = "#1e88e8";
 const INK = "#0B0E14";
-const LOGO_URL = `${site.url}/logo-dark-theme.png`;
+const LOGO_URL = `${site.url}/icon.png`;
 
 export function escapeHtml(value: string): string {
   return value
@@ -97,7 +97,7 @@ export function welcomeEmailHtml(tenantName: string, trialDays: number): string 
   const body = `
     ${greeting(tenantName)}
     ${paragraph(`Welcome to ${site.shortName}! Your account is live and your ${trialDays}-day free trial has started.`)}
-    ${paragraph("Next step: install the widget on your website and start feeding it your content so it can answer questions about your business, 24/7.")}
+    ${paragraph("Next step: install the widget on your website and start feeding it your content so it can answer questions about your business, 24/7. You can also connect your own WhatsApp number as an add-on, so the same AI answers there too.")}
     ${button("Go to your dashboard", `${site.url}/install`)}
   `;
   return emailShell(body, `Your ${site.shortName} trial has started`);
