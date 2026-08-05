@@ -93,6 +93,10 @@ model Document {
   // pipeline produced this row. Lets replaceDocuments (crawl/recrawl) wipe
   // only web-sourced rows without touching uploaded PDFs, and vice versa.
   kind       String                   @default("web")
+  // On-disk path for kind != "web" uploads (see lib/knowledge/file-storage.ts).
+  // Null for crawled pages. Lets a delete (per-item or whole-account) also
+  // remove the physical file instead of just the DB rows.
+  filePath   String?
 
   tenant     Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 

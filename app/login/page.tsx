@@ -2,7 +2,13 @@ import Link from "next/link";
 import { signIn } from "@/auth";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ deleted?: string }>;
+}) {
+  const { deleted } = await searchParams;
+
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4">
       <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-background">
@@ -30,6 +36,11 @@ export default function LoginPage() {
           CS<span className="text-accent"> Chatbot</span>
         </h1>
         <p className="mt-2 text-sm text-muted">Sign in to manage your chatbot.</p>
+        {deleted && (
+          <p className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm text-success-text">
+            Your account has been deleted.
+          </p>
+        )}
         <form
           action={async () => {
             "use server";

@@ -11,10 +11,12 @@ export function DeleteTenantForm({
   tenantId,
   tenantName,
   action,
+  actionLabel = "Permanently delete tenant",
 }: {
   tenantId: string;
   tenantName: string;
   action: (formData: FormData) => void;
+  actionLabel?: string;
 }) {
   const [confirmText, setConfirmText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -42,7 +44,7 @@ export function DeleteTenantForm({
         disabled={!matches || submitting}
         className="mt-3 rounded-full border border-red-400/40 px-5 py-2 text-sm font-medium text-danger-text transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
       >
-        {submitting ? "Deleting…" : "Permanently delete tenant"}
+        {submitting ? "Deleting…" : actionLabel}
       </button>
     </form>
   );

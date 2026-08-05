@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin/current";
 import { prisma } from "@/lib/db/client";
 import { getMonthlyConversationUsage } from "@/lib/billing/status";
 import { PLAN_IDS, isPlanId, planPageCap, planConversationCap, formatPages } from "@/lib/billing/plans";
+import { deleteTenantCompletely } from "@/lib/tenant/delete";
 import { DeleteTenantForm } from "@/components/admin/DeleteTenantForm";
 
 const STATUS_IDS = ["trialing", "active", "past_due", "suspended", "canceled"] as const;
@@ -126,10 +127,9 @@ async function clearCrawledData(formData: FormData) {
   redirect(`/admin/tenants/${id}?saved=1`);
 }
 
-// Irreversible. Payment has no onDelete: Cascade (kept for audit trail
-// elsewhere), so it must be cleared explicitly or the tenant delete fails on
-// the FK; every other relation (Document, Conversation, Lead, Appointment,
-// RateLimitBucket, WhatsAppAccount) already cascades from the schema.
+// Irreversible. See lib/tenant/delete.ts#deleteTenantCompletely for exactly
+// what gets removed (DB rows + uploaded files) — shared with the self-serve
+// account delete on the dashboard's Settings tab so the two can't drift apart.
 async function deleteTenant(formData: FormData) {
   "use server";
   await requireAdmin();
@@ -141,13 +141,7 @@ async function deleteTenant(formData: FormData) {
   const exists = await prisma.tenant.findUnique({ where: { id }, select: { id: true } });
   if (!exists) redirect("/admin");
 
-  await prisma.$transaction(
-    async (tx) => {
-      await tx.payment.deleteMany({ where: { tenantId: id } });
-      await tx.tenant.delete({ where: { id } });
-    },
-    { timeout: 20_000, maxWait: 20_000 }
-  );
+  await deleteTenantCompletely(id);
 
   // Belt-and-suspenders: under a slow/congested connection, a transaction can
   // report success without the write actually being visible yet. Confirm the

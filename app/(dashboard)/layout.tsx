@@ -16,6 +16,7 @@ const TABS = [
   { href: "/appointments", label: "Appointments" },
   { href: "/usage", label: "Usage" },
   { href: "/billing", label: "Billing" },
+  { href: "/settings", label: "Settings" },
 ];
 
 function trialDaysLeft(periodEnd: Date, now: Date): number {

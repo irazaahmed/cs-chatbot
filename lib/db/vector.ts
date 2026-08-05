@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { unlink } from "node:fs/promises";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./client";
 
@@ -13,6 +14,9 @@ export interface DocumentChunk {
   content: string;
   tokenCount: number;
   embedding: number[];
+  // On-disk path for uploaded (non-"web") chunks, so a later delete can also
+  // remove the physical file. Null/omitted for crawled pages.
+  filePath?: string | null;
 }
 
 function toVectorLiteral(embedding: number[]): string {
@@ -35,11 +39,11 @@ async function insertChunks(
     const rows = batch.map(
       (chunk) => Prisma.sql`(
         ${randomUUID()}, ${tenantId}, ${chunk.sourceUrl}, ${chunk.title}, ${chunk.content},
-        ${chunk.tokenCount}, ${toVectorLiteral(chunk.embedding)}::vector, ${kind}
+        ${chunk.tokenCount}, ${toVectorLiteral(chunk.embedding)}::vector, ${kind}, ${chunk.filePath ?? null}
       )`
     );
     await tx.$executeRaw`
-      INSERT INTO "Document" (id, "tenantId", "sourceUrl", title, content, "tokenCount", embedding, kind)
+      INSERT INTO "Document" (id, "tenantId", "sourceUrl", title, content, "tokenCount", embedding, kind, "filePath")
       VALUES ${Prisma.join(rows)}
     `;
   }
@@ -65,6 +69,11 @@ export async function replaceDocuments(tenantId: string, chunks: DocumentChunk[]
  * re-uploading the same file replaces just its own content) and inserts the
  * new set. Never touches web-crawled documents or other uploads. Shared by
  * both the "pdf" and "docx" upload kinds — only kind + sourceUrl differ.
+ *
+ * Also unlinks the previous upload's physical file once the DB swap commits:
+ * each upload gets a fresh randomly-named file on disk (lib/knowledge/file-storage.ts),
+ * so without this, re-uploading the same filename repeatedly would leak one
+ * orphaned file per re-upload forever.
  */
 export async function replaceUploadedDocument(
   tenantId: string,
@@ -72,6 +81,12 @@ export async function replaceUploadedDocument(
   sourceUrl: string,
   chunks: DocumentChunk[]
 ): Promise<void> {
+  const previous = await prisma.document.findMany({
+    where: { tenantId, kind, sourceUrl, filePath: { not: null } },
+    select: { filePath: true },
+    distinct: ["filePath"],
+  });
+
   await prisma.$transaction(
     async (tx) => {
       await tx.$executeRaw`
@@ -81,6 +96,10 @@ export async function replaceUploadedDocument(
     },
     { timeout: 30_000 }
   );
+
+  for (const { filePath } of previous) {
+    if (filePath) await unlink(filePath).catch(() => {});
+  }
 }
 
 export interface SimilarityMatch {

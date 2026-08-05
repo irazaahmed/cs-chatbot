@@ -106,7 +106,7 @@ async function processUploadedFileJob(job: Job, kind: "pdf" | "docx"): Promise<v
   const tenant = await prisma.tenant.findUnique({ where: { id: job.tenantId } });
   if (!tenant) throw new Error(`Tenant ${job.tenantId} not found`);
 
-  const { filename, text } = await extractUploadedText(job, kind);
+  const { filePath, filename, text } = await extractUploadedText(job, kind);
 
   const sourceUrl = `${kind}://${filename}`;
   const chunks = chunkContent(text).map((chunk) => ({
@@ -114,6 +114,7 @@ async function processUploadedFileJob(job: Job, kind: "pdf" | "docx"): Promise<v
     title: filename,
     content: chunk.content,
     tokenCount: chunk.tokenCount,
+    filePath,
   }));
 
   const embeddings = await embedTexts(chunks.map((c) => c.content));

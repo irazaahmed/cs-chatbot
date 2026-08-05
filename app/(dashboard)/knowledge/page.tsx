@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { unlink } from "node:fs/promises";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentTenant } from "@/lib/tenant/current";
@@ -77,6 +78,23 @@ export default async function KnowledgePage({
         payload: { filePath, filename: file.name },
       },
     });
+    revalidatePath("/knowledge");
+  }
+
+  async function deleteKnowledgeItem(formData: FormData) {
+    "use server";
+    const sourceUrl = String(formData.get("sourceUrl") ?? "");
+    const kind = String(formData.get("kind") ?? "");
+    if (!sourceUrl || !kind) return;
+
+    const rows = await prisma.document.findMany({
+      where: { tenantId: tenant.id, sourceUrl, kind },
+      select: { filePath: true },
+    });
+    await prisma.document.deleteMany({ where: { tenantId: tenant.id, sourceUrl, kind } });
+    for (const { filePath } of rows) {
+      if (filePath) await unlink(filePath).catch(() => {});
+    }
     revalidatePath("/knowledge");
   }
 
@@ -189,6 +207,7 @@ export default async function KnowledgePage({
                   <th className="px-5 py-3 font-medium">Page</th>
                   <th className="px-5 py-3 font-medium">Chunks</th>
                   <th className="px-5 py-3 font-medium">Tokens</th>
+                  <th className="px-5 py-3 font-medium" />
                 </tr>
               </thead>
               <tbody>
@@ -217,6 +236,18 @@ export default async function KnowledgePage({
                     </td>
                     <td className="px-5 py-3 tabular-nums text-muted">{info.chunkCount}</td>
                     <td className="px-5 py-3 tabular-nums text-muted">{info.tokenCount}</td>
+                    <td className="px-5 py-3 text-right">
+                      <form action={deleteKnowledgeItem}>
+                        <input type="hidden" name="sourceUrl" value={url} />
+                        <input type="hidden" name="kind" value={info.kind} />
+                        <button
+                          type="submit"
+                          className="rounded-full px-3 py-1 text-xs font-medium text-danger-text transition-colors hover:bg-red-500/10"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </td>
                   </tr>
                 ))}
               </tbody>
