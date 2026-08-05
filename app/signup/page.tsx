@@ -1,20 +1,19 @@
 import Link from "next/link";
-import { signIn } from "@/auth";
-import { login } from "@/lib/auth/actions";
+import { signUp, signInWithGoogle } from "@/lib/auth/actions";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const inputClass =
   "w-full rounded-xl border border-border bg-surface/60 px-4 py-3 text-sm text-foreground placeholder:text-muted/70 outline-none transition-[border-color,box-shadow] duration-300 focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-accent)_18%,transparent)]";
 
-export default async function LoginPage({
+export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ deleted?: string; error?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
-  const { deleted, error } = await searchParams;
+  const { error } = await searchParams;
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-4">
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-16">
       <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-background">
         <div className="absolute inset-0 bg-grid-lines opacity-40" />
         <div className="glow-orb animate-float-slow absolute left-1/2 top-1/3 h-[30rem] w-[30rem] -translate-x-1/2 -translate-y-1/2 [--glow:color-mix(in_srgb,var(--color-accent)_14%,transparent)]" />
@@ -37,21 +36,11 @@ export default async function LoginPage({
           </svg>
         </span>
         <h1 className="mt-5 font-heading text-2xl font-semibold tracking-tight">
-          CS<span className="text-accent"> Chatbot</span>
+          Create your <span className="text-accent">account</span>
         </h1>
-        <p className="mt-2 text-sm text-muted">Sign in to manage your chatbot.</p>
-        {deleted && (
-          <p className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm text-success-text">
-            Your account has been deleted.
-          </p>
-        )}
-        <form
-          action={async () => {
-            "use server";
-            await signIn("google", { redirectTo: "/playground" });
-          }}
-          className="mt-7"
-        >
+        <p className="mt-2 text-sm text-muted">Set up your chatbot in minutes.</p>
+
+        <form action={signInWithGoogle} className="mt-7">
           <GoogleSignInButton />
         </form>
 
@@ -61,26 +50,43 @@ export default async function LoginPage({
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        <form action={login} className="flex flex-col gap-4 text-left">
+        <form action={signUp} className="flex flex-col gap-4 text-left">
+          <input type="text" name="name" required placeholder="Full name" className={inputClass} />
           <input type="email" name="email" required placeholder="Email address" className={inputClass} />
-          <input type="password" name="password" required placeholder="Password" className={inputClass} />
+          <input
+            type="password"
+            name="password"
+            required
+            minLength={8}
+            placeholder="Password (min 8 characters)"
+            className={inputClass}
+          />
 
-          {error && (
-            <p className="text-sm text-red-400">Wrong email or password. Please try again.</p>
+          {error === "exists" && (
+            <p className="text-sm text-red-400">
+              An account with that email already exists.{" "}
+              <Link href="/login" className="underline">
+                Log in instead
+              </Link>
+              .
+            </p>
+          )}
+          {error === "validation" && (
+            <p className="text-sm text-red-400">Please fill in every field (password: 8+ characters).</p>
           )}
 
           <button
             type="submit"
             className="btn-sheen mt-1 inline-flex h-12 w-full items-center justify-center rounded-full bg-accent font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_36px_-6px_var(--color-accent)]"
           >
-            Log in
+            Create account
           </button>
         </form>
 
         <p className="mt-6 text-sm text-muted">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-accent-bright hover:underline">
-            Sign up
+          Already have an account?{" "}
+          <Link href="/login" className="text-accent-bright hover:underline">
+            Log in
           </Link>
         </p>
 

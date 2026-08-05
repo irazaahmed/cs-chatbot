@@ -10,6 +10,10 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
+  // Null for accounts created via Google sign-in (no password set) — the
+  // Credentials provider's authorize() rejects login for those, they must
+  // use the Google button instead.
+  passwordHash String?
   tenants   Tenant[]
   createdAt DateTime @default(now())
 }
