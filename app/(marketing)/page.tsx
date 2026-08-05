@@ -39,7 +39,7 @@ const benefits = [
   {
     title: "Live in minutes, not weeks",
     description:
-      "Paste your URL, watch it learn your site, and chat instantly. Installing on your website is a single script tag.",
+      "Paste your URL, watch it learn your site, and chat instantly. No website yet? Upload a PDF or Word doc at signup instead. Installing on your website is a single script tag.",
   },
   {
     title: "Urdu & Roman Urdu built in",
@@ -92,6 +92,11 @@ const faqs = [
     question: "Does it work on WhatsApp too?",
     answer:
       "Yes, as an optional add-on. Connect your own WhatsApp Business number and the exact same AI, trained on the exact same content, with the same lead capture, answers there too. It's enabled per account — request it from your dashboard after you sign up.",
+  },
+  {
+    question: "What if I don't have a website?",
+    answer:
+      "No problem. When you sign up, you can upload a PDF or Word document instead of a website URL, and the chatbot trains on that. You still get a widget to install anywhere, with a domain of your choosing.",
   },
 ];
 

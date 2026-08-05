@@ -48,7 +48,7 @@ async function insertChunks(
 /**
  * Deletes existing *web-sourced* documents for a tenant and inserts the new
  * crawl result, atomically. Scoped to kind='web' so a recrawl never wipes
- * out uploaded PDFs (see replacePdfDocument).
+ * out uploaded files (see replaceUploadedDocument).
  */
 export async function replaceDocuments(tenantId: string, chunks: DocumentChunk[]): Promise<void> {
   await prisma.$transaction(
@@ -61,21 +61,23 @@ export async function replaceDocuments(tenantId: string, chunks: DocumentChunk[]
 }
 
 /**
- * Deletes any existing chunks for this specific PDF (so re-uploading the
- * same file replaces just its own content) and inserts the new set. Never
- * touches web-crawled documents or other PDFs.
+ * Deletes any existing chunks for this specific uploaded file (so
+ * re-uploading the same file replaces just its own content) and inserts the
+ * new set. Never touches web-crawled documents or other uploads. Shared by
+ * both the "pdf" and "docx" upload kinds — only kind + sourceUrl differ.
  */
-export async function replacePdfDocument(
+export async function replaceUploadedDocument(
   tenantId: string,
+  kind: string,
   sourceUrl: string,
   chunks: DocumentChunk[]
 ): Promise<void> {
   await prisma.$transaction(
     async (tx) => {
       await tx.$executeRaw`
-        DELETE FROM "Document" WHERE "tenantId" = ${tenantId} AND kind = 'pdf' AND "sourceUrl" = ${sourceUrl}
+        DELETE FROM "Document" WHERE "tenantId" = ${tenantId} AND kind = ${kind} AND "sourceUrl" = ${sourceUrl}
       `;
-      await insertChunks(tx, tenantId, "pdf", chunks);
+      await insertChunks(tx, tenantId, kind, chunks);
     },
     { timeout: 30_000 }
   );

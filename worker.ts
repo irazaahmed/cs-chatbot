@@ -12,11 +12,12 @@ import { prisma } from "./lib/db/client";
 import { crawlSite } from "./lib/crawl/crawler";
 import { chunkContent } from "./lib/crawl/chunk";
 import { embedTexts } from "./lib/ai/embed";
-import { replaceDocuments, replacePdfDocument, type DocumentChunk } from "./lib/db/vector";
+import { replaceDocuments, replaceUploadedDocument, type DocumentChunk } from "./lib/db/vector";
 import { planPageCap } from "./lib/billing/plans";
 import { applyStatusLadder } from "./lib/billing/ladder";
 import { purgeOldConversations, CONVERSATION_RETENTION_DAYS } from "./lib/retention";
 import { extractText, getDocumentProxy } from "unpdf";
+import mammoth from "mammoth";
 
 const POLL_INTERVAL_MS = 5000;
 const STATUS_LADDER_INTERVAL_TICKS = 60; // ~5 minutes at 5s/tick — billing status isn't urgent
@@ -81,26 +82,36 @@ async function processCrawlJob(job: Job): Promise<void> {
   });
 }
 
-// PDF ingestion (CLAUDE.md-additive: a second knowledge source alongside the
-// website crawl). sourceUrl for a PDF is a synthetic "pdf://<filename>"
+// Uploaded-file ingestion (CLAUDE.md-additive: a second knowledge source
+// alongside the website crawl, also usable in place of one at onboarding —
+// see app/onboarding/page.tsx). sourceUrl is a synthetic "<kind>://<filename>"
 // identifier (never a real fetchable URL) so it lines up with Document's
 // existing sourceUrl column without a schema change beyond `kind`, and so
 // re-uploading the same filename replaces just that file's chunks.
-async function processPdfJob(job: Job): Promise<void> {
+async function extractUploadedText(job: Job, kind: "pdf" | "docx"): Promise<{ filePath: string; filename: string; text: string }> {
+  const payload = job.payload as { filePath?: string; filename?: string } | null;
+  if (!payload?.filePath || !payload.filename) throw new Error(`${job.type} job missing filePath/filename`);
+
+  const fileBuffer = await readFile(payload.filePath);
+  if (kind === "pdf") {
+    const pdf = await getDocumentProxy(new Uint8Array(fileBuffer));
+    const { text } = await extractText(pdf, { mergePages: true });
+    return { filePath: payload.filePath, filename: payload.filename, text };
+  }
+  const { value: text } = await mammoth.extractRawText({ buffer: fileBuffer });
+  return { filePath: payload.filePath, filename: payload.filename, text };
+}
+
+async function processUploadedFileJob(job: Job, kind: "pdf" | "docx"): Promise<void> {
   const tenant = await prisma.tenant.findUnique({ where: { id: job.tenantId } });
   if (!tenant) throw new Error(`Tenant ${job.tenantId} not found`);
 
-  const payload = job.payload as { filePath?: string; filename?: string } | null;
-  if (!payload?.filePath || !payload.filename) throw new Error("pdf_ingest job missing filePath/filename");
+  const { filename, text } = await extractUploadedText(job, kind);
 
-  const fileBuffer = await readFile(payload.filePath);
-  const pdf = await getDocumentProxy(new Uint8Array(fileBuffer));
-  const { text } = await extractText(pdf, { mergePages: true });
-
-  const sourceUrl = `pdf://${payload.filename}`;
+  const sourceUrl = `${kind}://${filename}`;
   const chunks = chunkContent(text).map((chunk) => ({
     sourceUrl,
-    title: payload.filename ?? null,
+    title: filename,
     content: chunk.content,
     tokenCount: chunk.tokenCount,
   }));
@@ -108,17 +119,19 @@ async function processPdfJob(job: Job): Promise<void> {
   const embeddings = await embedTexts(chunks.map((c) => c.content));
   const documentChunks: DocumentChunk[] = chunks.map((chunk, i) => ({ ...chunk, embedding: embeddings[i] }));
 
-  await replacePdfDocument(tenant.id, sourceUrl, documentChunks);
+  await replaceUploadedDocument(tenant.id, kind, sourceUrl, documentChunks);
 
   await prisma.job.update({
     where: { id: job.id },
-    data: { status: "done", finishedAt: new Date(), progress: { done: 1, total: 1, currentUrl: payload.filename } },
+    data: { status: "done", finishedAt: new Date(), progress: { done: 1, total: 1, currentUrl: filename } },
   });
 }
 
 async function processJob(job: Job): Promise<void> {
   if (job.type === "pdf_ingest") {
-    await processPdfJob(job);
+    await processUploadedFileJob(job, "pdf");
+  } else if (job.type === "docx_ingest") {
+    await processUploadedFileJob(job, "docx");
   } else {
     await processCrawlJob(job);
   }

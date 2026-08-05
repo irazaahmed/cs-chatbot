@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { planPageCap } from "@/lib/billing/plans";
-import { savePdfFile } from "@/lib/knowledge/pdf-storage";
+import { detectUploadKind, saveKnowledgeFile } from "@/lib/knowledge/file-storage";
 
 interface JobProgress {
   done: number;
@@ -27,9 +27,9 @@ function parseProgress(raw: unknown): JobProgress | null {
 }
 
 const UPLOAD_ERRORS: Record<string, string> = {
-  "1": "Choose a PDF file first.",
+  "1": "Choose a PDF or DOCX file first.",
   "2": "You're at your plan's page limit — remove something or upgrade before adding more.",
-  "3": "That file couldn't be saved — make sure it's a PDF under 10MB.",
+  "3": "That file couldn't be saved — make sure it's a PDF or DOCX under 10MB.",
 };
 
 export default async function KnowledgePage({
@@ -48,10 +48,13 @@ export default async function KnowledgePage({
     revalidatePath("/knowledge");
   }
 
-  async function uploadPdf(formData: FormData) {
+  async function uploadDocument(formData: FormData) {
     "use server";
-    const file = formData.get("pdf") as File | null;
+    const file = formData.get("document") as File | null;
     if (!file || file.size === 0) redirect("/knowledge?error=1");
+
+    const kind = detectUploadKind(file);
+    if (!kind) redirect("/knowledge?error=1");
 
     const pageCount = await prisma.document
       .findMany({ where: { tenantId: tenant.id }, select: { sourceUrl: true }, distinct: ["sourceUrl"] })
@@ -61,7 +64,7 @@ export default async function KnowledgePage({
     const docId = randomUUID();
     let filePath: string;
     try {
-      filePath = await savePdfFile(tenant.id, docId, file);
+      filePath = await saveKnowledgeFile(tenant.id, docId, file, kind);
     } catch {
       redirect("/knowledge?error=3");
     }
@@ -69,7 +72,7 @@ export default async function KnowledgePage({
     await prisma.job.create({
       data: {
         tenantId: tenant.id,
-        type: "pdf_ingest",
+        type: kind === "pdf" ? "pdf_ingest" : "docx_ingest",
         status: "pending",
         payload: { filePath, filename: file.name },
       },
@@ -99,8 +102,8 @@ export default async function KnowledgePage({
   });
   const progress = latestJob ? parseProgress(latestJob.progress) : null;
 
-  const latestPdfJob = await prisma.job.findFirst({
-    where: { tenantId: tenant.id, type: "pdf_ingest" },
+  const latestUploadJob = await prisma.job.findFirst({
+    where: { tenantId: tenant.id, type: { in: ["pdf_ingest", "docx_ingest"] } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -114,11 +117,11 @@ export default async function KnowledgePage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <form action={uploadPdf} className="flex items-center gap-2">
+          <form action={uploadDocument} className="flex items-center gap-2">
             <input
               type="file"
-              name="pdf"
-              accept="application/pdf"
+              name="document"
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               required
               className="max-w-[180px] text-xs text-muted file:mr-2 file:rounded-full file:border-0 file:bg-accent/15 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent-bright hover:file:bg-accent/25"
             />
@@ -126,7 +129,7 @@ export default async function KnowledgePage({
               type="submit"
               className="rounded-full border border-border bg-surface/60 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
             >
-              Upload PDF
+              Upload PDF or DOCX
             </button>
           </form>
           <form action={triggerRecrawl}>
@@ -161,22 +164,22 @@ export default async function KnowledgePage({
         </p>
       )}
 
-      {latestPdfJob && (latestPdfJob.status === "pending" || latestPdfJob.status === "running") && (
+      {latestUploadJob && (latestUploadJob.status === "pending" || latestUploadJob.status === "running") && (
         <p className="mt-2 flex items-center gap-2 text-xs text-muted">
           <span className="flex items-center gap-1">
             <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright" />
             <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.15s]" />
             <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.3s]" />
           </span>
-          Processing uploaded PDF…
+          Processing uploaded document…
         </p>
       )}
 
       <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
         {pages.size === 0 ? (
           <p className="p-6 text-sm text-muted">
-            No pages indexed yet.{" "}
-            {tenant.verified ? "Trigger a crawl above." : "Verify your domain first on the Install tab."}
+            No pages indexed yet. Upload a PDF or DOCX above,{" "}
+            {tenant.verified ? "or trigger a crawl." : "or verify your domain first on the Install tab to crawl your site."}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -193,9 +196,7 @@ export default async function KnowledgePage({
                   <tr key={url} className="border-t border-border transition-colors hover:bg-accent/5">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2">
-                        {info.kind === "pdf" ? (
-                          <span className="text-foreground">{info.title || url}</span>
-                        ) : (
+                        {info.kind === "web" ? (
                           <a
                             href={url}
                             target="_blank"
@@ -204,10 +205,12 @@ export default async function KnowledgePage({
                           >
                             {info.title || url}
                           </a>
+                        ) : (
+                          <span className="text-foreground">{info.title || url}</span>
                         )}
-                        {info.kind === "pdf" && (
+                        {info.kind !== "web" && (
                           <span className="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-bright">
-                            PDF
+                            {info.kind}
                           </span>
                         )}
                       </div>
