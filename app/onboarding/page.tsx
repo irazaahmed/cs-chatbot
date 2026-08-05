@@ -12,11 +12,12 @@ const MAX_UPLOAD_FILES = 5;
 
 const ONBOARDING_ERRORS: Record<string, string> = {
   "1": "Enter a business name.",
-  "2": "Enter a website URL, or a domain and at least one file to upload.",
+  "2": "Fill in the required field above, and add at least one file to upload.",
   "3": `You can upload up to ${MAX_UPLOAD_FILES} files at a time.`,
   "4": "That doesn't look like a valid URL.",
   "5": "Only PDF and DOCX files are supported.",
   "6": "One of those files is too large — max 10MB each.",
+  "7": "Enter a valid WhatsApp number, with country code and no plus sign.",
 };
 
 // Best-effort prefill from the landing-page preview cookie (see
@@ -60,18 +61,11 @@ async function createTenant(formData: FormData) {
   const mode = String(formData.get("mode") ?? "website");
 
   if (mode === "upload") {
-    const domainInput = String(formData.get("domain") ?? "").trim();
+    const installTarget = String(formData.get("installTarget") ?? "website");
     const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
 
-    if (!domainInput || files.length === 0) redirect("/onboarding?error=2");
+    if (files.length === 0) redirect("/onboarding?error=2");
     if (files.length > MAX_UPLOAD_FILES) redirect("/onboarding?error=3");
-
-    let normalizedDomain: URL;
-    try {
-      normalizedDomain = new URL(domainInput);
-    } catch {
-      redirect("/onboarding?error=4");
-    }
 
     const kinds: UploadKind[] = [];
     for (const file of files) {
@@ -81,21 +75,56 @@ async function createTenant(formData: FormData) {
       kinds.push(kind);
     }
 
+    // Two install targets, both skip domain-ownership verification since
+    // there's no crawl to justify one (see CLAUDE.md section 10 for the
+    // website case; WhatsApp has no origin concept at all).
+    let websiteUrl: string;
+    let allowedDomains: string[];
+    let whatsappRequestedAt: Date | null = null;
+
+    if (installTarget === "whatsapp") {
+      // WhatsApp is admin-gated, never self-serve (CLAUDE.md section 9) — this
+      // only records a request, same as the dashboard's "Request WhatsApp
+      // access" button (app/(dashboard)/whatsapp/page.tsx#requestAccess). An
+      // admin still has to enable it, and the tenant still pairs the number
+      // for real via QR/pairing code from the dashboard afterwards. The
+      // number here is just a wa.me placeholder for Tenant.websiteUrl (still
+      // a required field) that doubles as a readable hint for the admin on
+      // the WhatsApp requests list, which already renders `tenant.websiteUrl`.
+      const rawNumber = String(formData.get("whatsappNumber") ?? "").trim();
+      const digits = rawNumber.replace(/\D/g, "");
+      if (digits.length < 8 || digits.length > 15) redirect("/onboarding?error=7");
+      websiteUrl = `https://wa.me/${digits}`;
+      allowedDomains = [];
+      whatsappRequestedAt = new Date();
+    } else {
+      const domainInput = String(formData.get("domain") ?? "").trim();
+      if (!domainInput) redirect("/onboarding?error=2");
+      let normalizedDomain: URL;
+      try {
+        normalizedDomain = new URL(domainInput);
+      } catch {
+        redirect("/onboarding?error=4");
+      }
+      websiteUrl = normalizedDomain.toString();
+      allowedDomains = [normalizedDomain.hostname];
+    }
+
     // Trained from uploaded files, not a crawl, so there's nothing to verify
-    // ownership of — mark verified immediately and register the domain the
-    // widget will run on (see CLAUDE.md section 10, origin allowlist).
+    // ownership of — mark verified immediately.
     const tenant = await prisma.tenant.create({
       data: {
         ownerId: session.user.id,
         name,
         publicKey: `pk_live_${randomBytes(16).toString("hex")}`,
-        websiteUrl: normalizedDomain.toString(),
-        allowedDomains: [normalizedDomain.hostname],
+        websiteUrl,
+        allowedDomains,
         verified: true,
         verifyToken: randomBytes(16).toString("hex"),
         periodEnd: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
         brandConfig: DEFAULT_BRAND_CONFIG,
         systemPrompt: `You are a helpful support assistant for ${name}.`,
+        whatsappRequestedAt,
       },
     });
 
@@ -215,7 +244,7 @@ export default async function OnboardingPage({
         </div>
 
         {/* Website mode: crawled after domain-ownership verification on /install. */}
-        <div className="group-has-[input[value=upload]:checked]:hidden">
+        <div className="group-has-[input[name=mode][value=upload]:checked]:hidden">
           <label htmlFor="websiteUrl" className={fieldLabelClass}>
             Website URL
           </label>
@@ -230,12 +259,42 @@ export default async function OnboardingPage({
         </div>
 
         {/* Upload mode: no crawl, no ownership check — see createTenant above. */}
-        <div className="hidden group-has-[input[value=upload]:checked]:block">
-          <label htmlFor="domain" className={fieldLabelClass}>
-            Where will you install the chatbot?
-          </label>
-          <input id="domain" name="domain" type="url" placeholder="https://yourbusiness.com" className={fieldClass} />
-          <p className="mt-1 text-xs text-muted">The domain the chat widget will be allowed to run on.</p>
+        <div className="hidden group-has-[input[name=mode][value=upload]:checked]:block">
+          <p className="mt-6 text-sm font-medium">Install on</p>
+          <div className="mt-2 flex gap-1 rounded-full border border-border bg-surface/60 p-1">
+            <label className={tabLabelClass}>
+              <input type="radio" name="installTarget" value="website" defaultChecked className="sr-only" />
+              Website
+            </label>
+            <label className={tabLabelClass}>
+              <input type="radio" name="installTarget" value="whatsapp" className="sr-only" />
+              WhatsApp
+            </label>
+          </div>
+
+          <div className="group-has-[input[name=installTarget][value=whatsapp]:checked]:hidden">
+            <label htmlFor="domain" className={fieldLabelClass}>
+              Where will you install the chatbot?
+            </label>
+            <input id="domain" name="domain" type="url" placeholder="https://yourbusiness.com" className={fieldClass} />
+            <p className="mt-1 text-xs text-muted">The domain the chat widget will be allowed to run on.</p>
+          </div>
+
+          <div className="hidden group-has-[input[name=installTarget][value=whatsapp]:checked]:block">
+            <label htmlFor="whatsappNumber" className={fieldLabelClass}>
+              Your WhatsApp Business number
+            </label>
+            <input
+              id="whatsappNumber"
+              name="whatsappNumber"
+              type="tel"
+              placeholder="923001234567 (country code, no +)"
+              className={fieldClass}
+            />
+            <p className="mt-1 text-xs text-muted">
+              We&apos;ll enable WhatsApp for your account and you&apos;ll connect this number from the dashboard.
+            </p>
+          </div>
 
           <label htmlFor="files" className={fieldLabelClass}>
             Upload PDF or DOCX
