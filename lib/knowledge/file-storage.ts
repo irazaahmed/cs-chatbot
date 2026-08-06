@@ -1,12 +1,11 @@
-import { writeFile, mkdir } from "node:fs/promises";
-import path from "node:path";
-
-// Same pattern as lib/billing/proof-storage.ts: VPS local disk, no vendor
-// bucket. Unlike a payment screenshot, nothing ever needs to re-serve these
-// files — the worker reads them once to extract text (see worker.ts's
-// "pdf_ingest"/"docx_ingest" jobs) and the extracted text is what actually
-// gets embedded, so there's no authenticated-download route for these.
-const UPLOAD_DIR = path.join(process.cwd(), "uploads", "knowledge-files");
+// Same pattern as lib/billing/proof-storage.ts was going to be — except the
+// app and worker run as separate Coolify services (separate containers, no
+// shared volume between them, see [[vps-deployment-target]]), so writing to
+// local disk here and reading it back from worker.ts's "pdf_ingest"/
+// "docx_ingest" jobs always ENOENTs in production: the worker container has
+// never seen the app container's filesystem. Instead the file's bytes travel
+// through the Job's payload (Postgres, reachable from both processes) as
+// base64, and nothing is ever written to disk at all.
 export const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 
 export type UploadKind = "pdf" | "docx";
@@ -28,12 +27,7 @@ export function detectUploadKind(file: File): UploadKind | null {
   return null;
 }
 
-export async function saveKnowledgeFile(
-  tenantId: string,
-  docId: string,
-  file: File,
-  kind: UploadKind
-): Promise<string> {
+export async function readKnowledgeFile(file: File, kind: UploadKind): Promise<string> {
   if (file.type && file.type !== ALLOWED_MIME[kind] && !file.name.toLowerCase().endsWith(EXTENSION[kind])) {
     throw new Error(`Only ${kind.toUpperCase()} files are allowed.`);
   }
@@ -41,9 +35,6 @@ export async function saveKnowledgeFile(
     throw new Error("File is too large (max 10MB).");
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
-  const filename = `${tenantId}-${docId}${EXTENSION[kind]}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(UPLOAD_DIR, filename), buffer);
-  return path.join(UPLOAD_DIR, filename);
+  return buffer.toString("base64");
 }

@@ -1,11 +1,11 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/client";
 import { TRIAL_DAYS } from "@/lib/billing/plans";
 import { sendWelcomeEmail } from "@/lib/email/notify";
-import { detectUploadKind, saveKnowledgeFile, MAX_UPLOAD_SIZE_BYTES, type UploadKind } from "@/lib/knowledge/file-storage";
+import { detectUploadKind, readKnowledgeFile, MAX_UPLOAD_SIZE_BYTES, type UploadKind } from "@/lib/knowledge/file-storage";
 
 const PREVIEW_URL_COOKIE = "cybrum_preview_url";
 const MAX_UPLOAD_FILES = 5;
@@ -80,23 +80,24 @@ async function createTenant(formData: FormData) {
     // website case; WhatsApp has no origin concept at all).
     let websiteUrl: string;
     let allowedDomains: string[];
-    let whatsappRequestedAt: Date | null = null;
+    let whatsappEnabled = false;
 
     if (installTarget === "whatsapp") {
-      // WhatsApp is admin-gated, never self-serve (CLAUDE.md section 9) — this
-      // only records a request, same as the dashboard's "Request WhatsApp
-      // access" button (app/(dashboard)/whatsapp/page.tsx#requestAccess). An
-      // admin still has to enable it, and the tenant still pairs the number
-      // for real via QR/pairing code from the dashboard afterwards. The
-      // number here is just a wa.me placeholder for Tenant.websiteUrl (still
-      // a required field) that doubles as a readable hint for the admin on
-      // the WhatsApp requests list, which already renders `tenant.websiteUrl`.
+      // Unlike the dashboard's "Request WhatsApp access" button (an existing,
+      // website-plan tenant asking to add the channel later, still admin-gated
+      // per CLAUDE.md section 9), a tenant who picks WhatsApp as their install
+      // target right here at signup gets it enabled immediately — there is no
+      // website channel for them to fall back on, so gating it behind an
+      // admin would leave a brand-new signup with a chatbot they can't use at
+      // all. The number here is just a wa.me placeholder for
+      // Tenant.websiteUrl (still a required field); the tenant still pairs
+      // the number for real via QR/pairing code from the dashboard after this.
       const rawNumber = String(formData.get("whatsappNumber") ?? "").trim();
       const digits = rawNumber.replace(/\D/g, "");
       if (digits.length < 8 || digits.length > 15) redirect("/onboarding?error=7");
       websiteUrl = `https://wa.me/${digits}`;
       allowedDomains = [];
-      whatsappRequestedAt = new Date();
+      whatsappEnabled = true;
     } else {
       const domainInput = String(formData.get("domain") ?? "").trim();
       if (!domainInput) redirect("/onboarding?error=2");
@@ -124,21 +125,20 @@ async function createTenant(formData: FormData) {
         periodEnd: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
         brandConfig: DEFAULT_BRAND_CONFIG,
         systemPrompt: `You are a helpful support assistant for ${name}.`,
-        whatsappRequestedAt,
+        whatsappEnabled,
       },
     });
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const kind = kinds[i];
-      const docId = randomUUID();
-      const filePath = await saveKnowledgeFile(tenant.id, docId, file, kind);
+      const content = await readKnowledgeFile(file, kind);
       await prisma.job.create({
         data: {
           tenantId: tenant.id,
           type: kind === "pdf" ? "pdf_ingest" : "docx_ingest",
           status: "pending",
-          payload: { filePath, filename: file.name },
+          payload: { content, filename: file.name },
         },
       });
     }

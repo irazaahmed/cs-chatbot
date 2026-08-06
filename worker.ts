@@ -6,7 +6,6 @@
 // Node can't resolve without a build step; tsx is already how every other
 // script in this repo runs, so this stays consistent rather than introducing
 // a second toolchain just for this one file).
-import { readFile } from "node:fs/promises";
 import type { Job } from "@prisma/client";
 import { prisma } from "./lib/db/client";
 import { crawlSite } from "./lib/crawl/crawler";
@@ -88,25 +87,25 @@ async function processCrawlJob(job: Job): Promise<void> {
 // identifier (never a real fetchable URL) so it lines up with Document's
 // existing sourceUrl column without a schema change beyond `kind`, and so
 // re-uploading the same filename replaces just that file's chunks.
-async function extractUploadedText(job: Job, kind: "pdf" | "docx"): Promise<{ filePath: string; filename: string; text: string }> {
-  const payload = job.payload as { filePath?: string; filename?: string } | null;
-  if (!payload?.filePath || !payload.filename) throw new Error(`${job.type} job missing filePath/filename`);
+async function extractUploadedText(job: Job, kind: "pdf" | "docx"): Promise<{ filename: string; text: string }> {
+  const payload = job.payload as { content?: string; filename?: string } | null;
+  if (!payload?.content || !payload.filename) throw new Error(`${job.type} job missing content/filename`);
 
-  const fileBuffer = await readFile(payload.filePath);
+  const fileBuffer = Buffer.from(payload.content, "base64");
   if (kind === "pdf") {
     const pdf = await getDocumentProxy(new Uint8Array(fileBuffer));
     const { text } = await extractText(pdf, { mergePages: true });
-    return { filePath: payload.filePath, filename: payload.filename, text };
+    return { filename: payload.filename, text };
   }
   const { value: text } = await mammoth.extractRawText({ buffer: fileBuffer });
-  return { filePath: payload.filePath, filename: payload.filename, text };
+  return { filename: payload.filename, text };
 }
 
 async function processUploadedFileJob(job: Job, kind: "pdf" | "docx"): Promise<void> {
   const tenant = await prisma.tenant.findUnique({ where: { id: job.tenantId } });
   if (!tenant) throw new Error(`Tenant ${job.tenantId} not found`);
 
-  const { filePath, filename, text } = await extractUploadedText(job, kind);
+  const { filename, text } = await extractUploadedText(job, kind);
 
   const sourceUrl = `${kind}://${filename}`;
   const chunks = chunkContent(text).map((chunk) => ({
@@ -114,7 +113,6 @@ async function processUploadedFileJob(job: Job, kind: "pdf" | "docx"): Promise<v
     title: filename,
     content: chunk.content,
     tokenCount: chunk.tokenCount,
-    filePath,
   }));
 
   const embeddings = await embedTexts(chunks.map((c) => c.content));

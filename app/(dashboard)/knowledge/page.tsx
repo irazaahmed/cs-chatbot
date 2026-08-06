@@ -1,11 +1,10 @@
-import { randomUUID } from "node:crypto";
 import { unlink } from "node:fs/promises";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { planPageCap } from "@/lib/billing/plans";
-import { detectUploadKind, saveKnowledgeFile } from "@/lib/knowledge/file-storage";
+import { detectUploadKind, readKnowledgeFile } from "@/lib/knowledge/file-storage";
 
 interface JobProgress {
   done: number;
@@ -62,10 +61,9 @@ export default async function KnowledgePage({
       .then((rows) => rows.length);
     if (pageCount >= planPageCap(tenant.planId)) redirect("/knowledge?error=2");
 
-    const docId = randomUUID();
-    let filePath: string;
+    let content: string;
     try {
-      filePath = await saveKnowledgeFile(tenant.id, docId, file, kind);
+      content = await readKnowledgeFile(file, kind);
     } catch {
       redirect("/knowledge?error=3");
     }
@@ -75,7 +73,7 @@ export default async function KnowledgePage({
         tenantId: tenant.id,
         type: kind === "pdf" ? "pdf_ingest" : "docx_ingest",
         status: "pending",
-        payload: { filePath, filename: file.name },
+        payload: { content, filename: file.name },
       },
     });
     revalidatePath("/knowledge");

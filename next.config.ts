@@ -18,12 +18,14 @@ const nextConfig: NextConfig = {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
   experimental: {
-    // Default is 1MB, too small for a phone screenshot of the payment proof
-    // (lib/billing/actions.ts#submitPayment) — those routinely run 2-5MB.
-    // lib/billing/proof-storage.ts already enforces the real 5MB ceiling with
-    // a friendly error; this just needs enough headroom (plus multipart
-    // overhead) for that check to ever be reached instead of a hard 413.
-    serverActions: { bodySizeLimit: "6mb" },
+    // Default is 1MB. Payment proof screenshots (lib/billing/actions.ts#submitPayment)
+    // routinely run 2-5MB. The onboarding knowledge upload
+    // (app/onboarding/page.tsx, mode="upload") allows up to 5 files at up to
+    // 10MB each in one submission (see MAX_UPLOAD_FILES / MAX_UPLOAD_SIZE_BYTES
+    // in lib/knowledge/file-storage.ts) — worst case ~50MB raw. This just needs
+    // enough headroom (plus multipart overhead) for those real per-file/per-request
+    // ceilings to ever be reached instead of a hard 413 before validation runs.
+    serverActions: { bodySizeLimit: "55mb" },
   },
 };
 
