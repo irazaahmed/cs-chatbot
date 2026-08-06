@@ -174,14 +174,25 @@ export function PlanPicker({
           <dt className="text-muted">EasyPaisa</dt>
           <dd className="font-medium tabular-nums">{instructions.easyPaisa}</dd>
         </div>
-        <div className="flex justify-between gap-6 rounded-xl bg-surface/60 px-4 py-2.5">
-          <dt className="text-muted">Bank</dt>
-          <dd className="text-right font-medium">
-            {instructions.bankName}
-            <br />
-            {instructions.bankAccountTitle}, {instructions.bankAccountNumber}
-            <br />
-            <span className="tabular-nums">{instructions.bankIban}</span>
+        <div className="rounded-xl bg-surface/60 px-4 py-3">
+          <dt className="text-xs font-medium uppercase tracking-wider text-muted">Bank transfer</dt>
+          <dd className="mt-2 flex flex-col gap-2">
+            <span className="flex flex-col gap-0.5">
+              <span className="text-xs text-muted">Bank</span>
+              <span className="font-medium">{instructions.bankName}</span>
+            </span>
+            <span className="flex flex-col gap-0.5">
+              <span className="text-xs text-muted">Account title</span>
+              <span className="font-medium">{instructions.bankAccountTitle}</span>
+            </span>
+            <span className="flex flex-col gap-0.5">
+              <span className="text-xs text-muted">Account number</span>
+              <span className="font-medium tabular-nums">{instructions.bankAccountNumber}</span>
+            </span>
+            <span className="flex flex-col gap-0.5">
+              <span className="text-xs text-muted">IBAN</span>
+              <span className="font-medium tabular-nums">{instructions.bankIban}</span>
+            </span>
           </dd>
         </div>
       </dl>
