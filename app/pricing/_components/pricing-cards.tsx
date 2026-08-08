@@ -113,7 +113,7 @@ export function PricingCards({
         ))}
       </div>
 
-      {/* WhatsApp add-on */}
+      {/* WhatsApp: an equal channel, priced independently */}
       <div className="mx-auto mt-8 grid max-w-3xl gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-accent/25 bg-accent/5 p-6 text-center backdrop-blur-sm">
           <p className="font-heading text-base font-semibold tracking-tight text-foreground sm:text-lg">
@@ -140,8 +140,8 @@ export function PricingCards({
         </div>
       </div>
       <p className="mx-auto mt-4 max-w-2xl text-center text-xs text-muted">
-        WhatsApp is enabled per account. Request it from your dashboard after you sign up
-        and we will turn it on for you.
+        Website and WhatsApp are both self-serve — turn either on from your dashboard any
+        time, no approval needed.
       </p>
     </div>
   );

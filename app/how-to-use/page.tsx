@@ -8,7 +8,7 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   title: "How to use — CS Chatbot",
   description:
-    "Set up your website chatbot in five steps: paste your URL, preview it, sign in, verify your domain, and install one script tag. No coding required. Add WhatsApp any time after.",
+    "Set up your chatbot in five steps: paste your URL, preview it, sign in, turn on Website and/or WhatsApp, and install one script tag. No coding required, no ownership proof needed.",
   keywords: [
     "how to create a free chatbot for my website",
     "how to add a chatbot to my website for free",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/how-to-use" },
   openGraph: {
     title: "How to use — CS Chatbot",
-    description: "From your URL to a live chatbot in five steps — no coding required. WhatsApp add-on available.",
+    description: "From your URL to a live chatbot in five steps — no coding required. Website and WhatsApp, your choice.",
     url: `${site.url}/how-to-use`,
     siteName: "CS Chatbot",
     type: "website",
@@ -37,8 +37,8 @@ const steps = [
     body: "Like what you see? Sign in with your Google account. One website per account keeps things simple; your dashboard is where everything is managed.",
   },
   {
-    title: "Verify you own the domain",
-    body: "Prove the site is yours with whichever method is easiest — a meta tag, a small file, or a DNS record. This is required before a full crawl; we never index a site nobody has verified.",
+    title: "Turn on Website and/or WhatsApp",
+    body: "Two independent channels, your choice — turn on one, both, or switch between them any time from your dashboard. No ownership proof needed for either.",
   },
   {
     title: "Let it learn your whole site",
@@ -48,12 +48,6 @@ const steps = [
     title: "Paste one script tag — you're live",
     body: "Copy the snippet from the Install tab and paste it into your site, the same way you'd add analytics. The chat bubble appears immediately, and the Install tab confirms when it detects the widget on your domain.",
   },
-];
-
-const verifyMethods = [
-  { name: "Meta tag", detail: "Add a <meta> tag to your site's <head>. Best if you can edit your theme or template." },
-  { name: "File upload", detail: "Upload a small text file to /.well-known/ on your server. Good for custom sites." },
-  { name: "DNS record", detail: "Add a TXT record at your domain registrar. No code changes to your website at all." },
 ];
 
 const afterInstall = [
@@ -96,8 +90,8 @@ export default function HowToUsePage() {
         <Reveal delay={0.16}>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
             No coding, no developer, no setup call. If you can copy and paste, you can put
-            CS Chatbot on your website — and add it to your own WhatsApp number as an
-            optional add-on any time after.
+            CS Chatbot on your website, your own WhatsApp number, or both — two equal
+            channels, no ownership proof needed for either.
           </p>
         </Reveal>
       </div>
@@ -138,24 +132,6 @@ export default function HowToUsePage() {
         </div>
       </Reveal>
 
-      {/* Verification methods */}
-      <div className="mx-auto mt-16 max-w-3xl">
-        <Reveal>
-          <h2 className="font-heading text-2xl font-semibold tracking-tight">Three ways to verify</h2>
-          <p className="mt-2 text-sm text-muted">Pick whichever fits your setup — you only need one.</p>
-        </Reveal>
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          {verifyMethods.map((m, i) => (
-            <Reveal key={m.name} delay={i * 0.06} className="h-full">
-              <div className="h-full rounded-2xl border border-border bg-card/60 p-5 backdrop-blur-sm">
-                <p className="font-heading font-semibold text-accent-bright">{m.name}</p>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{m.detail}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-
       {/* After install */}
       <div className="mx-auto mt-16 max-w-3xl">
         <Reveal>
@@ -174,16 +150,17 @@ export default function HowToUsePage() {
         </div>
       </div>
 
-      {/* WhatsApp add-on */}
+      {/* WhatsApp channel */}
       <Reveal className="mx-auto mt-16 max-w-3xl">
         <div className="rounded-2xl border border-accent/25 bg-accent/5 p-6 backdrop-blur-sm sm:p-8">
           <p className="font-heading text-lg font-semibold tracking-tight">
             Want it on WhatsApp too?
           </p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Once you&apos;re live on your website, request WhatsApp access from your dashboard.
+            Turn on the WhatsApp channel from your dashboard any time — no request, no waiting.
             The same bot, trained on the same content, starts answering on your own WhatsApp
-            Business number too — no separate setup, no second knowledge base.
+            Business number too, with its own 3-day trial — no separate setup, no second
+            knowledge base.
           </p>
         </div>
       </Reveal>

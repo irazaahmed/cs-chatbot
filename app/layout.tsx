@@ -20,9 +20,9 @@ const BASE_URL = "https://chatbot.cybrumsolutions.dev";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
-  title: "CS Chatbot — Free AI Chatbot for Your Website & WhatsApp",
+  title: "CS Chatbot — Free AI Chatbot for Your Website and WhatsApp",
   description:
-    "Create a free AI chatbot for your website in minutes, with an optional WhatsApp add-on for your own number. Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Answers only from your own content, in English, Urdu, or Roman Urdu.",
+    "Create a free AI chatbot for your website and your own WhatsApp number in minutes. Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Answers only from your own content, in English, Urdu, or Roman Urdu.",
   keywords: [
     "create a chatbot",
     "create free chatbot",
@@ -39,18 +39,18 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/" },
   openGraph: {
-    title: "CS Chatbot — Free AI Chatbot for Your Website & WhatsApp",
+    title: "CS Chatbot — Free AI Chatbot for Your Website and WhatsApp",
     description:
-      "Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Optional WhatsApp add-on. A Cybrum Solutions product.",
+      "Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Website and WhatsApp, your choice. A Cybrum Solutions product.",
     url: BASE_URL,
     siteName: "CS Chatbot",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "CS Chatbot — Free AI Chatbot for Your Website & WhatsApp",
+    title: "CS Chatbot — Free AI Chatbot for Your Website and WhatsApp",
     description:
-      "Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Optional WhatsApp add-on.",
+      "Paste your URL, watch it learn your site, and chat instantly — no signup, no card. Website and WhatsApp, your choice.",
   },
   verification: {
     google: "B-ewPtxWvI8ES5EEiQ89Q-rEYdQF82AbE_5uJu4ZRPc",

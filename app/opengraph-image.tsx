@@ -43,7 +43,7 @@ export default function OpengraphImage() {
           </div>
         </div>
         <div style={{ display: "flex", marginTop: 36, fontSize: 34, color: "#a7b0c0" }}>
-          A free AI chatbot for your website — now on WhatsApp too
+          A free AI chatbot for your website and WhatsApp
         </div>
       </div>
     ),

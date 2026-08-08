@@ -16,6 +16,7 @@ export function PlanPicker({
   defaultPlanId,
   invoiceRef,
   instructions,
+  websiteEnabled,
   whatsappEnabled,
   whatsappBundlePrices,
   whatsappStandaloneModePrices,
@@ -25,6 +26,7 @@ export function PlanPicker({
   defaultPlanId: string;
   invoiceRef: string;
   instructions: PaymentInstructions;
+  websiteEnabled: boolean;
   whatsappEnabled: boolean;
   /** Rate for the "Add WhatsApp" checkbox inside plan mode: always the bundle rate. */
   whatsappBundlePrices: Record<BillingCycle, number>;
@@ -33,7 +35,11 @@ export function PlanPicker({
   whatsappDefaultChecked: boolean;
 }) {
   const initial = plans.find((p) => p.id === defaultPlanId) ?? plans[0];
-  const [mode, setMode] = useState<Mode>("plan");
+  // Both channels toggled on: let the tenant switch between paying for the
+  // website plan (with WhatsApp optionally bundled in) or WhatsApp alone.
+  // Only one channel on: skip the switcher, there's only one thing to buy.
+  const bothEnabled = websiteEnabled && whatsappEnabled;
+  const [mode, setMode] = useState<Mode>(websiteEnabled ? "plan" : "whatsapp_only");
   const [planId, setPlanId] = useState(initial.id);
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [includeWhatsapp, setIncludeWhatsapp] = useState(whatsappEnabled && whatsappDefaultChecked);
@@ -51,7 +57,7 @@ export function PlanPicker({
 
   return (
     <div className="glass mt-6 rounded-3xl p-7">
-      {whatsappEnabled && (
+      {bothEnabled && (
         <div className="mb-5 inline-flex rounded-full border border-border bg-surface/60 p-1 text-sm font-medium">
           <button
             type="button"
@@ -235,7 +241,7 @@ export function PlanPicker({
           <p className="mt-1 text-xs text-muted">
             {mode === "whatsapp_only"
               ? "Set by the WhatsApp-only rate, not editable."
-              : `Set by the ${plan.label} ${CYCLE_META[cycle].label.toLowerCase()} plan${includeWhatsapp ? " plus the WhatsApp add-on" : ""}, not editable.`}
+              : `Set by the ${plan.label} ${CYCLE_META[cycle].label.toLowerCase()} plan${includeWhatsapp ? " plus WhatsApp" : ""}, not editable.`}
           </p>
         </div>
 

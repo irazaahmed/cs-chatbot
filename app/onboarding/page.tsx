@@ -1,9 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/client";
 import { TRIAL_DAYS } from "@/lib/billing/plans";
+import { enableWebsiteChannel } from "@/lib/tenant/channels";
 import { sendWelcomeEmail } from "@/lib/email/notify";
 import { detectUploadKind, readKnowledgeFile, MAX_UPLOAD_SIZE_BYTES, type UploadKind } from "@/lib/knowledge/file-storage";
 
@@ -75,29 +77,30 @@ async function createTenant(formData: FormData) {
       kinds.push(kind);
     }
 
-    // Two install targets, both skip domain-ownership verification since
-    // there's no crawl to justify one (see CLAUDE.md section 10 for the
-    // website case; WhatsApp has no origin concept at all).
+    // Both install targets are self-serve, no ownership proof needed — the
+    // chosen channel is turned on immediately, same as the dashboard's
+    // Website/WhatsApp toggles (see lib/tenant/channels.ts). The other
+    // channel stays off until the tenant flips it on later from the
+    // dashboard.
     let websiteUrl: string;
-    let allowedDomains: string[];
-    let whatsappEnabled = false;
+    let channelFields: Partial<Prisma.TenantUncheckedCreateInput>;
+    let redirectTo: string;
 
     if (installTarget === "whatsapp") {
-      // Unlike the dashboard's "Request WhatsApp access" button (an existing,
-      // website-plan tenant asking to add the channel later, still admin-gated
-      // per CLAUDE.md section 9), a tenant who picks WhatsApp as their install
-      // target right here at signup gets it enabled immediately — there is no
-      // website channel for them to fall back on, so gating it behind an
-      // admin would leave a brand-new signup with a chatbot they can't use at
-      // all. The number here is just a wa.me placeholder for
-      // Tenant.websiteUrl (still a required field); the tenant still pairs
-      // the number for real via QR/pairing code from the dashboard after this.
+      // The number here is just a wa.me placeholder for Tenant.websiteUrl
+      // (still a required field); the tenant still pairs the number for real
+      // via QR/pairing code from the dashboard after this.
       const rawNumber = String(formData.get("whatsappNumber") ?? "").trim();
       const digits = rawNumber.replace(/\D/g, "");
       if (digits.length < 8 || digits.length > 15) redirect("/onboarding?error=7");
       websiteUrl = `https://wa.me/${digits}`;
-      allowedDomains = [];
-      whatsappEnabled = true;
+      channelFields = {
+        allowedDomains: [],
+        whatsappEnabled: true,
+        whatsappStatus: "trialing",
+        whatsappPeriodEnd: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
+      };
+      redirectTo = "/whatsapp";
     } else {
       const domainInput = String(formData.get("domain") ?? "").trim();
       if (!domainInput) redirect("/onboarding?error=2");
@@ -108,24 +111,24 @@ async function createTenant(formData: FormData) {
         redirect("/onboarding?error=4");
       }
       websiteUrl = normalizedDomain.toString();
-      allowedDomains = [normalizedDomain.hostname];
+      channelFields = {
+        allowedDomains: [normalizedDomain.hostname],
+        websiteEnabled: true,
+        status: "trialing",
+        periodEnd: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
+      };
+      redirectTo = "/install";
     }
 
-    // Trained from uploaded files, not a crawl, so there's nothing to verify
-    // ownership of — mark verified immediately.
     const tenant = await prisma.tenant.create({
       data: {
         ownerId: session.user.id,
         name,
         publicKey: `pk_live_${randomBytes(16).toString("hex")}`,
         websiteUrl,
-        allowedDomains,
-        verified: true,
-        verifyToken: randomBytes(16).toString("hex"),
-        periodEnd: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
         brandConfig: DEFAULT_BRAND_CONFIG,
         systemPrompt: `You are a helpful support assistant for ${name}.`,
-        whatsappEnabled,
+        ...channelFields,
       },
     });
 
@@ -147,7 +150,7 @@ async function createTenant(formData: FormData) {
       await sendWelcomeEmail(session.user.email, name);
     }
 
-    redirect("/install");
+    redirect(redirectTo);
   }
 
   const websiteUrlInput = String(formData.get("websiteUrl") ?? "").trim();
@@ -160,19 +163,21 @@ async function createTenant(formData: FormData) {
     redirect("/onboarding?error=4");
   }
 
-  await prisma.tenant.create({
+  const tenant = await prisma.tenant.create({
     data: {
       ownerId: session.user.id,
       name,
       publicKey: `pk_live_${randomBytes(16).toString("hex")}`,
       websiteUrl: normalizedUrl.toString(),
       allowedDomains: [],
-      verifyToken: randomBytes(16).toString("hex"),
-      periodEnd: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
       brandConfig: DEFAULT_BRAND_CONFIG,
       systemPrompt: `You are a helpful support assistant for ${name}.`,
     },
   });
+
+  // Turns the website channel on and kicks off the first crawl — same
+  // self-serve toggle the dashboard's Website tab uses later.
+  await enableWebsiteChannel(tenant.id, normalizedUrl.toString());
 
   if (session.user.email) {
     await sendWelcomeEmail(session.user.email, name);
@@ -243,7 +248,7 @@ export default async function OnboardingPage({
           </label>
         </div>
 
-        {/* Website mode: crawled after domain-ownership verification on /install. */}
+        {/* Website mode: turns the website channel on and crawls immediately, see createTenant above. */}
         <div className="group-has-[input[name=mode][value=upload]:checked]:hidden">
           <label htmlFor="websiteUrl" className={fieldLabelClass}>
             Website URL
@@ -258,7 +263,7 @@ export default async function OnboardingPage({
           />
         </div>
 
-        {/* Upload mode: no crawl, no ownership check — see createTenant above. */}
+        {/* Upload mode: no crawl, trains from the uploaded files instead — see createTenant above. */}
         <div className="hidden group-has-[input[name=mode][value=upload]:checked]:block">
           <p className="mt-6 text-sm font-medium">Install on</p>
           <div className="mt-2 flex gap-1 rounded-full border border-border bg-surface/60 p-1">

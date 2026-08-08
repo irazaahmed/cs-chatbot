@@ -240,7 +240,9 @@ async function openSocketForTenant(
     if (connection === "open") {
       qrShownTenants.delete(tenantId);
       pairingByCodeTenants.delete(tenantId);
-      const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+      // whatsappStatus/whatsappPeriodEnd (trial or paid) is set when the
+      // tenant turns the channel on (lib/tenant/channels.ts), not here —
+      // pairing a phone number is a separate step from activating billing.
       await prisma.whatsAppAccount.update({
         where: { tenantId },
         data: {
@@ -252,9 +254,6 @@ async function openSocketForTenant(
           lastSeenAt: new Date(),
         },
       });
-      if (tenant && tenant.whatsappStatus === "inactive") {
-        await prisma.tenant.update({ where: { id: tenantId }, data: { whatsappStatus: "trialing" } });
-      }
       console.log(`[whatsapp-connector] tenant ${tenantId} connected`);
     }
 
@@ -329,7 +328,7 @@ async function processPairingJobs(): Promise<void> {
     if (!tenant?.whatsappEnabled) {
       await prisma.job.update({
         where: { id: job.id },
-        data: { status: "failed", finishedAt: new Date(), error: "WhatsApp add-on not enabled for this tenant" },
+        data: { status: "failed", finishedAt: new Date(), error: "WhatsApp channel not turned on for this tenant" },
       });
       return;
     }

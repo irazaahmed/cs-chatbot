@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { generateInvoiceRef } from "@/lib/billing/invoice";
@@ -122,6 +123,18 @@ export default async function BillingPage({
           Payment <span className="font-mono">{pendingPayment.invoiceRef}</span> submitted and awaiting
           approval. Your access is already extended while we review it, no action needed.
         </div>
+      ) : !tenant.websiteEnabled && !tenant.whatsappEnabled ? (
+        <div className="glass mt-6 rounded-2xl p-6 text-sm text-muted">
+          Turn on the{" "}
+          <Link href="/install" className="font-medium text-foreground underline underline-offset-2">
+            Website
+          </Link>{" "}
+          or{" "}
+          <Link href="/whatsapp" className="font-medium text-foreground underline underline-offset-2">
+            WhatsApp
+          </Link>{" "}
+          channel first — billing is based on whichever channel(s) you have on.
+        </div>
       ) : (
         <>
           {error && (
@@ -130,7 +143,9 @@ export default async function BillingPage({
                 ? "That file couldn't be saved. Use a JPEG, PNG, or WEBP under 5MB."
                 : error === "3"
                   ? "That invoice reference was already used. Refresh the page and try again."
-                  : "Please fill in all fields and attach a screenshot."}
+                  : error === "4"
+                    ? "Turn on a channel (Website or WhatsApp) before paying for it."
+                    : "Please fill in all fields and attach a screenshot."}
             </p>
           )}
 
@@ -139,6 +154,7 @@ export default async function BillingPage({
             defaultPlanId={tenant.planId}
             invoiceRef={invoiceRef}
             instructions={instructions}
+            websiteEnabled={tenant.websiteEnabled}
             whatsappEnabled={tenant.whatsappEnabled}
             whatsappBundlePrices={whatsappBundlePrices}
             whatsappStandaloneModePrices={whatsappStandaloneModePrices}

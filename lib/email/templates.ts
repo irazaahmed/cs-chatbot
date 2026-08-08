@@ -97,7 +97,7 @@ export function welcomeEmailHtml(tenantName: string, trialDays: number): string 
   const body = `
     ${greeting(tenantName)}
     ${paragraph(`Welcome to ${site.shortName}! Your account is live and your ${trialDays}-day free trial has started.`)}
-    ${paragraph("Next step: install the widget on your website and start feeding it your content so it can answer questions about your business, 24/7. You can also connect your own WhatsApp number as an add-on, so the same AI answers there too.")}
+    ${paragraph("Next step: install the widget on your website and start feeding it your content so it can answer questions about your business, 24/7. You can also turn on the WhatsApp channel any time, so the same AI answers on your own WhatsApp number too.")}
     ${button("Go to your dashboard", `${site.url}/install`)}
   `;
   return emailShell(body, `Your ${site.shortName} trial has started`);

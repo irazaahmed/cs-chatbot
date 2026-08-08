@@ -9,7 +9,7 @@ import { site, cybrum } from "@/lib/site";
 export const metadata: Metadata = {
   title: "About — CS Chatbot",
   description:
-    "The Cybrum Solutions Chatbot is an AI chat assistant trained only on your website's content, with an optional WhatsApp add-on. It answers with sources, captures leads, and speaks English, Urdu, and Roman Urdu.",
+    "The Cybrum Solutions Chatbot is an AI chat assistant trained on your own content, for your website and your WhatsApp Business number. It answers with sources, captures leads, and speaks English, Urdu, and Roman Urdu.",
   keywords: [
     "Cybrum Solutions chatbot",
     "CS Chatbot",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "About — CS Chatbot",
     description:
-      "An AI chatbot trained only on your website's content, with an optional WhatsApp add-on. A Cybrum Solutions product.",
+      "An AI chatbot trained on your own content, for your website and your WhatsApp Business number. A Cybrum Solutions product.",
     url: `${site.url}/about`,
     siteName: "CS Chatbot",
     type: "website",
@@ -98,8 +98,8 @@ export default function AboutPage() {
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
             {site.fullName} — <b className="text-foreground">CS Chatbot</b>{" "}
             for short — is an AI chat assistant that reads your website and answers your visitors from that
-            content alone, on your website and, as an optional add-on, on your own WhatsApp number.
-            It cites its sources, captures leads, and speaks your customers&apos;
+            content alone, on your website, your own WhatsApp number, or both — two equal channels you
+            switch on independently. It cites its sources, captures leads, and speaks your customers&apos;
             language, so no visitor leaves without an answer.
           </p>
         </Reveal>

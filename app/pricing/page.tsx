@@ -6,9 +6,9 @@ import { site, cybrum } from "@/lib/site";
 import { PricingCards } from "./_components/pricing-cards";
 
 export const metadata: Metadata = {
-  title: "Pricing — CS Chatbot for Website & WhatsApp",
+  title: "Pricing — CS Chatbot for Website and WhatsApp",
   description:
-    "Simple monthly pricing in PKR for the Cybrum Solutions Chatbot. Every plan includes the full website product, plus an optional WhatsApp add-on — bundled with any plan or on its own. Save with quarterly or yearly billing.",
+    "Simple monthly pricing in PKR for the Cybrum Solutions Chatbot. Website and WhatsApp are two equal, independently priced channels — bundle both or buy either on its own. Save with quarterly or yearly billing.",
   keywords: [
     "chatbot pricing Pakistan",
     "cheap chatbot for website PKR",
@@ -19,9 +19,9 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/pricing" },
   openGraph: {
-    title: "Pricing — CS Chatbot for Website & WhatsApp",
+    title: "Pricing — CS Chatbot for Website and WhatsApp",
     description:
-      "Simple monthly pricing in PKR. Still cheaper than one support hire. WhatsApp add-on available. Save 10% quarterly or 20% yearly.",
+      "Simple monthly pricing in PKR. Still cheaper than one support hire. Website and WhatsApp priced separately. Save 10% quarterly or 20% yearly.",
     url: `${site.url}/pricing`,
     siteName: "CS Chatbot",
     type: "website",
@@ -47,7 +47,7 @@ export default function PricingPage() {
     "@type": "Product",
     name: site.fullName,
     description:
-      "An AI chatbot trained only on your website's content, with an optional WhatsApp add-on. Answers with sources, captures leads, and speaks English, Urdu, and Roman Urdu.",
+      "An AI chatbot trained on your own content, for your website and your WhatsApp Business number. Answers with sources, captures leads, and speaks English, Urdu, and Roman Urdu.",
     brand: { "@type": "Brand", name: "Cybrum Solutions" },
     offers: [
       ...plans.map((p) => ({
@@ -59,7 +59,7 @@ export default function PricingPage() {
       })),
       {
         "@type": "Offer",
-        name: "WhatsApp Add-on",
+        name: "WhatsApp (bundled with a plan)",
         price: String(whatsappBundlePrices.monthly),
         priceCurrency: "PKR",
         url: `${site.url}/pricing`,
@@ -84,9 +84,9 @@ export default function PricingPage() {
           Simple monthly pricing in PKR
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted">
-          Every plan includes the full product. Plans differ only in how many pages the
-          bot learns and how many visitor conversations it answers each month. WhatsApp
-          is available as an optional add-on on any plan, or on its own.
+          Website and WhatsApp are two equal channels — turn on either or both. Website
+          plans differ only in how many pages the bot learns and how many visitor
+          conversations it answers each month.
         </p>
       </div>
 

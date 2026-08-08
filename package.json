@@ -12,6 +12,7 @@
     "start": "prisma db push && next start",
     "lint": "eslint",
     "seed-tenant": "tsx --env-file=.env scripts/seed-tenant.ts",
+    "backfill-website-enabled": "tsx --env-file=.env scripts/backfill-website-enabled.ts",
     "build:widget": "node widget/build.mjs",
     "worker": "tsx --env-file=.env worker.ts",
     "whatsapp-connector": "tsx --env-file=.env whatsapp-connector.mts"

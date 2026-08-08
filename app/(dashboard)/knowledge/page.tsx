@@ -151,8 +151,7 @@ export default async function KnowledgePage({
           <form action={triggerRecrawl}>
             <button
               type="submit"
-              disabled={!tenant.verified}
-              className="btn-sheen rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)] disabled:opacity-40"
+              className="btn-sheen rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)]"
             >
               Recrawl site
             </button>
@@ -194,8 +193,7 @@ export default async function KnowledgePage({
       <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
         {pages.size === 0 ? (
           <p className="p-6 text-sm text-muted">
-            No pages indexed yet. Upload a PDF or DOCX above,{" "}
-            {tenant.verified ? "or trigger a crawl." : "or verify your domain first on the Install tab to crawl your site."}
+            No pages indexed yet. Upload a PDF or DOCX above, or trigger a crawl.
           </p>
         ) : (
           <div className="overflow-x-auto">

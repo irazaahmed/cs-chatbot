@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
+import { enableWhatsappChannel, disableWhatsappChannel } from "@/lib/tenant/channels";
 import { PairingPoll } from "@/components/whatsapp/PairingPoll";
 
 const primaryButtonClass =
@@ -61,15 +62,15 @@ export default async function WhatsAppPage({
     redirect("/whatsapp");
   }
 
-  async function requestAccess() {
+  async function turnOnWhatsapp() {
     "use server";
-    const current = await prisma.tenant.findUnique({
-      where: { id: tenant.id },
-      select: { whatsappEnabled: true, whatsappRequestedAt: true },
-    });
-    if (current?.whatsappEnabled || current?.whatsappRequestedAt) redirect("/whatsapp");
+    await enableWhatsappChannel(tenant.id);
+    redirect("/whatsapp");
+  }
 
-    await prisma.tenant.update({ where: { id: tenant.id }, data: { whatsappRequestedAt: new Date() } });
+  async function turnOffWhatsapp() {
+    "use server";
+    await disableWhatsappChannel(tenant.id);
     redirect("/whatsapp");
   }
 
@@ -82,32 +83,22 @@ export default async function WhatsAppPage({
   if (!tenant.whatsappEnabled) {
     return (
       <div className="max-w-2xl">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">Connect Your WhatsApp</h1>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">WhatsApp</h1>
         <div className="glass mt-6 rounded-2xl p-6">
           <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-4 py-2 text-sm font-medium text-muted">
             <span className="h-2 w-2 rounded-full bg-muted" />
-            Not enabled
+            Off
           </p>
           <p className="mt-4 text-sm text-foreground">
-            The WhatsApp add-on isn&apos;t enabled on your account yet.
+            Turn on the WhatsApp channel to connect your own WhatsApp Business number. The same AI
+            that answers on your website will answer here too, from the same knowledge base.
           </p>
-          {tenant.whatsappRequestedAt ? (
-            <p className="mt-1 text-sm text-muted">
-              Request sent on {tenant.whatsappRequestedAt.toLocaleDateString()}. We will enable it for
-              you shortly.
-            </p>
-          ) : (
-            <>
-              <p className="mt-1 text-sm text-muted">
-                Request it and we will turn it on for your account.
-              </p>
-              <form action={requestAccess} className="mt-4">
-                <button type="submit" className={primaryButtonClass}>
-                  Request WhatsApp access
-                </button>
-              </form>
-            </>
-          )}
+          <p className="mt-1 text-sm text-muted">Your first activation starts a 3-day trial.</p>
+          <form action={turnOnWhatsapp} className="mt-4">
+            <button type="submit" className={primaryButtonClass}>
+              Turn on WhatsApp
+            </button>
+          </form>
         </div>
       </div>
     );
@@ -115,7 +106,13 @@ export default async function WhatsAppPage({
 
   return (
     <div className="max-w-2xl">
-      <h1 className="font-heading text-2xl font-semibold tracking-tight">Connect Your WhatsApp</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">Connect Your WhatsApp</h1>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-success-text">
+          <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-emerald-400" />
+          On
+        </span>
+      </div>
       <p className="mt-1 text-sm text-muted">
         Connect your own WhatsApp Business number. The same AI that answers on your website will answer here too,
         24/7, from the same knowledge base, with the same lead and appointment capture.
@@ -226,6 +223,12 @@ export default async function WhatsAppPage({
           </form>
         </div>
       )}
+
+      <form action={turnOffWhatsapp} className="mt-6">
+        <button type="submit" className="text-sm text-muted underline decoration-border underline-offset-4 transition-colors hover:text-danger-text">
+          Turn off the WhatsApp channel
+        </button>
+      </form>
     </div>
   );
 }

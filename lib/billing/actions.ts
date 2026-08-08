@@ -11,12 +11,13 @@ import { sendPaymentSubmittedEmail, sendAdminPaymentSubmittedEmail } from "@/lib
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** One combined payment covering either a website plan (with an optional
- * WhatsApp add-on bundled into the same checkout), or WhatsApp on its own
- * for a tenant who doesn't want a website plan at all. mode="whatsapp_only"
+/** One combined payment covering either a website plan (with WhatsApp
+ * optionally bundled into the same checkout), or WhatsApp on its own for a
+ * tenant who hasn't turned the website channel on. mode="whatsapp_only"
  * skips the plan portion entirely: no planId is purchased, only
- * whatsappPeriodEnd moves. The WhatsApp side of this only has any effect if
- * tenant.whatsappEnabled is true (admin allowlist, see schema.prisma),
+ * whatsappPeriodEnd moves. Both sides are gated on the tenant having turned
+ * that channel on themselves first (tenant.websiteEnabled /
+ * tenant.whatsappEnabled — self-serve toggles, see lib/tenant/channels.ts),
  * re-checked server-side, never trusted from the client. */
 export async function submitPayment(formData: FormData) {
   const { tenant } = await getCurrentTenant();
@@ -34,16 +35,19 @@ export async function submitPayment(formData: FormData) {
   const file = formData.get("screenshot") as File | null;
 
   const whatsappOnly = tenant.whatsappEnabled && String(formData.get("mode") ?? "") === "whatsapp_only";
+  if (!whatsappOnly && !tenant.websiteEnabled) {
+    redirect("/billing?error=4");
+  }
   const planIdRaw = String(formData.get("planId") ?? "");
   const planId = isPlanId(planIdRaw) ? planIdRaw : "starter";
   const includeWhatsapp =
     !whatsappOnly && tenant.whatsappEnabled && String(formData.get("includeWhatsapp") ?? "") === "on";
 
   // The amount is never taken from the client. It's the listed price for
-  // the chosen plan+cycle (plus the WhatsApp add-on if selected and allowed),
-  // full stop. A visitor typing an arbitrary number into the amount field
-  // must never end up on the invoice. The bundle rate applies whenever a
-  // plan is part of this same payment, or the tenant already has one active.
+  // the chosen plan+cycle (plus WhatsApp if selected and turned on), full
+  // stop. A visitor typing an arbitrary number into the amount field must
+  // never end up on the invoice. The bundle rate applies whenever a plan is
+  // part of this same payment, or the tenant already has one active.
   const hasWebsitePlan = !whatsappOnly || tenant.status === "active";
   const amountPKR = whatsappOnly
     ? whatsappAddonPrice(billingCycle, hasWebsitePlan)
@@ -98,7 +102,7 @@ export async function submitPayment(formData: FormData) {
   // so this alone keeps them from being demoted during the review window.
   // The plan itself (page/message caps) only changes once an admin verifies
   // the payment against the real bank statement — see approvePayment. Same
-  // policy applies to whatsappPeriodEnd when the add-on was included, or is
+  // policy applies to whatsappPeriodEnd when WhatsApp was included, or is
   // the only thing being paid for.
   const tenantUpdate: { periodEnd?: Date; whatsappPeriodEnd?: Date } = {};
   if (!whatsappOnly) {

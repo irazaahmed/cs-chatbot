@@ -42,7 +42,7 @@ async function approvePayment(formData: FormData) {
   ]);
 
   if (payment.tenant.owner.email) {
-    const label = payment.addon === "whatsapp" ? "WhatsApp add-on" : `${planLabel(payment.planId)} plan`;
+    const label = payment.addon === "whatsapp" ? "WhatsApp" : `${planLabel(payment.planId)} plan`;
     await sendPaymentApprovedEmail(payment.tenant.owner.email, payment.tenant.name, label, periodEnd);
   }
 
@@ -72,16 +72,6 @@ async function rejectPayment(formData: FormData) {
   revalidatePath("/admin");
 }
 
-async function enableWhatsAppRequest(formData: FormData) {
-  "use server";
-  await requireAdmin();
-  const id = String(formData.get("id"));
-  if (!id) return;
-
-  await prisma.tenant.update({ where: { id }, data: { whatsappEnabled: true, whatsappRequestedAt: null } });
-  revalidatePath("/admin");
-}
-
 export default async function AdminPage() {
   await requireAdmin();
 
@@ -96,12 +86,6 @@ export default async function AdminPage() {
     select: { id: true, name: true, websiteUrl: true },
   });
   const tenantById = new Map(tenants.map((t) => [t.id, t]));
-
-  const whatsappRequests = await prisma.tenant.findMany({
-    where: { whatsappEnabled: false, whatsappRequestedAt: { not: null } },
-    orderBy: { whatsappRequestedAt: "asc" },
-    select: { id: true, name: true, websiteUrl: true, whatsappRequestedAt: true },
-  });
 
   const overview = await getTenantsOverview();
 
@@ -166,7 +150,7 @@ export default async function AdminPage() {
                       {payment.addon === "bundle"
                         ? `${payment.planId} + WhatsApp`
                         : payment.addon === "whatsapp"
-                          ? "WhatsApp only"
+                          ? "WhatsApp"
                           : payment.planId}
                       <span className="ml-1.5 text-xs font-normal text-muted">
                         ({CYCLE_META[isBillingCycle(payment.billingCycle) ? payment.billingCycle : "monthly"].label})
@@ -220,45 +204,10 @@ export default async function AdminPage() {
         </div>
       )}
 
-      {whatsappRequests.length > 0 && (
-        <div className="mt-12">
-          <h2 className="font-heading text-xl font-semibold tracking-tight">WhatsApp requests</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted">
-            Tenants who asked for the WhatsApp add-on to be turned on.
-          </p>
-          <div className="mt-4 space-y-3">
-            {whatsappRequests.map((t) => (
-              <div
-                key={t.id}
-                className="glass flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5"
-              >
-                <div>
-                  <Link href={`/admin/tenants/${t.id}`} className="font-heading font-semibold hover:text-accent-bright hover:underline">
-                    {t.name}
-                  </Link>
-                  <p className="text-sm text-muted">
-                    {t.websiteUrl} · requested {t.whatsappRequestedAt?.toLocaleDateString()}
-                  </p>
-                </div>
-                <form action={enableWhatsAppRequest}>
-                  <input type="hidden" name="id" value={t.id} />
-                  <button
-                    type="submit"
-                    className="rounded-full bg-emerald-500 px-5 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-emerald-400 hover:shadow-[0_0_24px_-6px_rgb(16,185,129)]"
-                  >
-                    Enable WhatsApp
-                  </button>
-                </form>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="mt-12">
         <h2 className="font-heading text-xl font-semibold tracking-tight">All tenants</h2>
         <p className="mt-1 max-w-2xl text-sm text-muted">
-          Every signup: verification, plan, usage, and where they stand on billing, in one place.
+          Every signup: which channels are on, plan, usage, and where they stand on billing, in one place.
         </p>
 
         {overview.length === 0 ? (
@@ -274,7 +223,7 @@ export default async function AdminPage() {
                     <th className="px-4 py-3 font-medium">Business</th>
                     <th className="px-4 py-3 font-medium">Owner</th>
                     <th className="px-4 py-3 font-medium">Website</th>
-                    <th className="px-4 py-3 font-medium">Verified</th>
+                    <th className="px-4 py-3 font-medium">Channels</th>
                     <th className="px-4 py-3 font-medium">Plan</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium">Pages</th>
@@ -298,15 +247,26 @@ export default async function AdminPage() {
                         </a>
                       </td>
                       <td className="px-4 py-3">
-                        {t.verified ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-medium text-success-text">
-                            {t.verifyMethod ?? "yes"}
+                        <div className="flex flex-wrap gap-1.5">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                              t.websiteEnabled
+                                ? "border-emerald-400/30 bg-emerald-400/10 text-success-text"
+                                : "border-border bg-surface/60 text-muted"
+                            }`}
+                          >
+                            Website
                           </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-0.5 text-xs font-medium text-warning-text">
-                            no
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                              t.whatsappEnabled
+                                ? "border-emerald-400/30 bg-emerald-400/10 text-success-text"
+                                : "border-border bg-surface/60 text-muted"
+                            }`}
+                          >
+                            WhatsApp
                           </span>
-                        )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 capitalize text-muted">{t.planId}</td>
                       <td className="px-4 py-3">

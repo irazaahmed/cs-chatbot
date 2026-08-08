@@ -7,15 +7,15 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
   // Null for accounts created via Google sign-in (no password set) — the
   // Credentials provider's authorize() rejects login for those, they must
   // use the Google button instead.
   passwordHash String?
-  tenants   Tenant[]
-  createdAt DateTime @default(now())
+  tenants      Tenant[]
+  createdAt    DateTime @default(now())
 }
 
 model Tenant {
@@ -26,37 +26,32 @@ model Tenant {
   websiteUrl     String
   allowedDomains String[]
 
-  verified       Boolean  @default(false)
-  verifyToken    String
-  verifyMethod   String?
-
-  status         String   @default("trialing")
-  planId         String   @default("starter")
+  // Website and WhatsApp are two independent, self-serve channels. Each has
+  // its own on/off toggle and its own status/period pair below, so enabling,
+  // disabling, or billing one never touches the other. No ownership proof is
+  // required for either — allowedDomains is populated straight from the URL
+  // the tenant enters when they turn the website channel on (see
+  // lib/tenant/channels.ts); the origin allowlist, rate limiting, usage caps,
+  // and Turnstile are the defense layers instead.
+  websiteEnabled Boolean   @default(false)
+  status         String    @default("inactive") // inactive | trialing | active | past_due | suspended | canceled
+  planId         String    @default("starter")
   periodEnd      DateTime?
 
-  // WhatsApp add-on — independent of the website plan's status/periodEnd so
-  // one channel lapsing never disables the other.
   whatsappStatus    String    @default("inactive") // inactive | trialing | active | past_due | suspended
   whatsappPeriodEnd DateTime?
-  // Admin-only allowlist gate, entirely separate from billing: a tenant can't
-  // see the connect flow or get billed for WhatsApp until an admin flips this
-  // on for them (manual capacity/onboarding control, not self-serve).
   whatsappEnabled   Boolean   @default(false)
-  // Set when a tenant clicks "Request WhatsApp access" on /whatsapp while
-  // whatsappEnabled is still false; cleared once an admin enables them.
-  // Surfaced on /admin so requests don't get missed.
-  whatsappRequestedAt DateTime?
 
-  brandConfig    Json
-  systemPrompt   String   @db.Text
-  language       String   @default("en")
+  brandConfig  Json
+  systemPrompt String @db.Text
+  language     String @default("en")
 
-  owner          User     @relation(fields: [ownerId], references: [id])
-  documents      Document[]
-  conversations  Conversation[]
-  leads          Lead[]
-  appointments   Appointment[]
-  payments       Payment[]
+  owner            User              @relation(fields: [ownerId], references: [id])
+  documents        Document[]
+  conversations    Conversation[]
+  leads            Lead[]
+  appointments     Appointment[]
+  payments         Payment[]
   rateLimitBuckets RateLimitBucket[]
   whatsappAccount  WhatsAppAccount?
 
@@ -82,27 +77,27 @@ model WhatsAppAccount {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model Document {
-  id         String                   @id @default(cuid())
+  id         String                      @id @default(cuid())
   tenantId   String
   sourceUrl  String
   title      String?
-  content    String                   @db.Text
+  content    String                      @db.Text
   embedding  Unsupported("vector(1536)")
   tokenCount Int
   // "web" (crawled page) | "pdf" (uploaded document) — which ingestion
   // pipeline produced this row. Lets replaceDocuments (crawl/recrawl) wipe
   // only web-sourced rows without touching uploaded PDFs, and vice versa.
-  kind       String                   @default("web")
+  kind       String                      @default("web")
   // On-disk path for kind != "web" uploads (see lib/knowledge/file-storage.ts).
   // Null for crawled pages. Lets a delete (per-item or whole-account) also
   // remove the physical file instead of just the DB rows.
   filePath   String?
 
-  tenant     Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
@@ -134,7 +129,7 @@ model Conversation {
   channel      String   @default("web") // web | whatsapp
   createdAt    DateTime @default(now())
 
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, createdAt])
   @@index([tenantId, sessionId])
@@ -146,12 +141,12 @@ model Lead {
   name           String?
   email          String?
   phone          String?
-  interest       String?                   // what service/topic the visitor asked about
+  interest       String? // what service/topic the visitor asked about
   conversationId String?
   channel        String   @default("web") // web | whatsapp
   createdAt      DateTime @default(now())
 
-  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
@@ -177,29 +172,29 @@ model Appointment {
   channel        String   @default("web") // web | whatsapp
   createdAt      DateTime @default(now())
 
-  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
 }
 
 model Payment {
-  id          String    @id @default(cuid())
-  tenantId    String
-  invoiceRef  String    @unique
-  planId      String    @default("starter") // plan the tenant is paying to be on; applied to Tenant.planId on approval
-  billingCycle String   @default("monthly") // monthly | quarterly | yearly; sets the period length on approval
-  addon       String?   // null = normal plan payment; "whatsapp" = WhatsApp add-on payment (applies to Tenant.whatsappStatus/whatsappPeriodEnd instead of planId/status)
-  amountPKR   Int
-  method      String
-  senderName  String
-  proofUrl    String
-  status      String    @default("submitted")
-  periodStart DateTime
-  periodEnd   DateTime
-  reviewedAt  DateTime?
-  note        String?
+  id           String    @id @default(cuid())
+  tenantId     String
+  invoiceRef   String    @unique
+  planId       String    @default("starter") // plan the tenant is paying to be on; applied to Tenant.planId on approval
+  billingCycle String    @default("monthly") // monthly | quarterly | yearly; sets the period length on approval
+  addon        String? // null = normal plan payment; "whatsapp" = WhatsApp channel payment (applies to Tenant.whatsappStatus/whatsappPeriodEnd instead of planId/status)
+  amountPKR    Int
+  method       String
+  senderName   String
+  proofUrl     String
+  status       String    @default("submitted")
+  periodStart  DateTime
+  periodEnd    DateTime
+  reviewedAt   DateTime?
+  note         String?
 
-  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
 }
@@ -209,11 +204,11 @@ model Payment {
 model RateLimitBucket {
   id          String   @id @default(cuid())
   tenantId    String
-  key         String   // "ip:<address>" or "tenant"
+  key         String // "ip:<address>" or "tenant"
   windowStart DateTime
   count       Int      @default(0)
 
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, key, windowStart])
 }

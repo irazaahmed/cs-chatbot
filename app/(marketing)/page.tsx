@@ -47,16 +47,16 @@ const benefits = [
       "Your bot answers the way your customers actually type — English, اردو, or Roman Urdu — and captures leads while it chats.",
   },
   {
-    title: "Also answers on your own WhatsApp number",
+    title: "Website and WhatsApp — pick one or both",
     description:
-      "Optional add-on: connect your own WhatsApp Business number and the same AI, trained on the same content, with the same lead capture, answers there too.",
+      "The same AI, trained on the same content, with the same lead capture, answers on your website, on your own WhatsApp Business number, or both. Turn either on any time.",
   },
 ];
 
 const steps = [
   { n: "1", label: "Paste your URL" },
   { n: "2", label: "Chat with the preview" },
-  { n: "3", label: "Sign in & verify your domain" },
+  { n: "3", label: "Sign in & turn on Website or WhatsApp" },
   { n: "4", label: "Paste one script tag — live" },
 ];
 
@@ -71,7 +71,7 @@ const faqs = [
   {
     question: "How do I create a chatbot for my website?",
     answer:
-      "Paste your website's URL above. We read your pages, and you can chat with a bot trained on them right away. Like it? Sign in, verify you own the domain, and paste one script tag on your site — that's the whole setup.",
+      "Paste your website's URL above. We read your pages, and you can chat with a bot trained on them right away. Like it? Sign in, turn on the Website channel, and paste one script tag on your site — that's the whole setup, no ownership proof needed.",
   },
   {
     question: "Do I need to know how to code?",
@@ -91,7 +91,7 @@ const faqs = [
   {
     question: "Does it work on WhatsApp too?",
     answer:
-      "Yes, as an optional add-on. Connect your own WhatsApp Business number and the exact same AI, trained on the exact same content, with the same lead capture, answers there too. It's enabled per account — request it from your dashboard after you sign up.",
+      "Yes. Connect your own WhatsApp Business number and the exact same AI, trained on the exact same content, with the same lead capture, answers there too. It's an equal channel to your website, not an add-on — turn it on from your dashboard any time.",
   },
   {
     question: "What if I don't have a website?",
@@ -236,7 +236,7 @@ export default function LandingPage() {
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
         description:
-          "Create a free AI chatbot for your website, with an optional WhatsApp add-on. Trained only on your own content, cites its sources, and supports English, Urdu, and Roman Urdu.",
+          "Create a free AI chatbot for your website and WhatsApp. Trained only on your own content, cites its sources, and supports English, Urdu, and Roman Urdu.",
         url: "https://chatbot.cybrumsolutions.dev",
         offers: { "@type": "Offer", price: "0", priceCurrency: "PKR", description: "Free preview and free plan to get started" },
         provider: { "@type": "Organization", name: "Cybrum Solutions", url: CYBRUM_URL },

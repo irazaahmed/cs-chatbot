@@ -5,8 +5,8 @@ export interface TenantOverviewRow {
   name: string;
   ownerEmail: string;
   websiteUrl: string;
-  verified: boolean;
-  verifyMethod: string | null;
+  websiteEnabled: boolean;
+  whatsappEnabled: boolean;
   planId: string;
   status: string;
   periodEnd: Date | null;
@@ -63,8 +63,8 @@ export async function getTenantsOverview(): Promise<TenantOverviewRow[]> {
       name: t.name,
       ownerEmail: t.owner.email,
       websiteUrl: t.websiteUrl,
-      verified: t.verified,
-      verifyMethod: t.verifyMethod,
+      websiteEnabled: t.websiteEnabled,
+      whatsappEnabled: t.whatsappEnabled,
       planId: t.planId,
       status: t.status,
       periodEnd: t.periodEnd,

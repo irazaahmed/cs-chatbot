@@ -1,10 +1,13 @@
 # CLAUDE.md — cs-chatbot
 
-Multi-tenant website chatbot SaaS by Cybrum Solutions.
+Multi-tenant AI chatbot SaaS by Cybrum Solutions, for a business's Website and
+WhatsApp — two equal, independent channels.
 
-A business signs up, enters their website URL, we verify they own it, crawl and
-index the site, and give them a `<script>` tag. That script renders a RAG
-chatbot on their website, trained only on their own content.
+A business signs up, trains the bot from a website crawl and/or uploaded
+documents, then turns on the Website channel (a `<script>` tag), the WhatsApp
+channel (their own WhatsApp Business number), or both. Each channel is a
+self-serve on/off toggle with its own trial and its own billing; no domain
+ownership proof is required for either.
 
 Read this file fully before writing any code. Follow it exactly.
 
@@ -36,7 +39,12 @@ These are not suggestions. Violating any of these is a bug, even if the code run
    (case-sensitive). `./components/button` will not resolve to `Button.tsx` on
    the server.
 
-6. **Never crawl a domain that has not passed ownership verification.**
+6. **Website and WhatsApp are independent, self-serve channels.**
+   Each has its own on/off toggle (`websiteEnabled`, `whatsappEnabled`), its
+   own trial (granted once, the first time that channel is ever turned on),
+   and its own billing status/period. Enabling, disabling, or billing one
+   must never affect the other. No ownership proof is required to turn
+   either on — see section 10 for the layers that stand in for it.
 
 7. **Ask before adding a dependency.** Prefer the standard library and small,
    well-known packages. This project must stay easy to run on a 4GB VPS.
@@ -56,7 +64,7 @@ These are not suggestions. Violating any of these is a bug, even if the code run
 | LLM | OpenAI, mini/nano class only | Via provider abstraction |
 | Embeddings | `text-embedding-3-small`, 1536 dims | |
 | Widget | Vanilla TypeScript, no framework | Bundled with esbuild, Shadow DOM |
-| WhatsApp | Baileys (`@whiskeysockets/baileys`) | Optional add-on. One socket per connected tenant, standalone connector process |
+| WhatsApp | Baileys (`@whiskeysockets/baileys`) | Independent, self-serve channel. One socket per connected tenant, standalone connector process |
 | Email | Resend, REST API via `fetch`, no SDK | `lib/email/provider.ts` only, sent from `chatbot@cybrumsolutions.dev` |
 | File storage | VPS local disk | Payment screenshots. R2 only if disk runs out |
 | Deploy target | Ubuntu VPS via Coolify | Not decided until Phase 5 |
@@ -77,6 +85,7 @@ Visitor's browser (customer's website)
        └─ POST /api/chat  (Origin header, streaming SSE response)
             ├─ resolve tenant by publicKey
             ├─ check allowedDomains against Origin       → 403
+            ├─ check tenant.websiteEnabled                → disabled response
             ├─ check tenant.status                       → disabled response
             ├─ check monthly usage vs plan cap           → disabled response
             ├─ rate limit per tenant + per IP            → 429
@@ -125,25 +134,20 @@ model Tenant {
   name           String
   publicKey      String   @unique          // pk_live_xxx, safe to expose
   websiteUrl     String
-  allowedDomains String[]                  // origin allowlist
+  allowedDomains String[]                  // origin allowlist, set from the URL when Website is turned on — no ownership proof
 
-  verified       Boolean  @default(false)
-  verifyToken    String                    // for meta tag / DNS TXT / file
-  verifyMethod   String?                   // meta | dns | file
-
-  status         String   @default("trialing")
-  // trialing | active | past_due | suspended | canceled
+  // Website and WhatsApp are independent, self-serve channels — each has its
+  // own toggle and its own status/period pair, so one can never affect the
+  // other. See lib/tenant/channels.ts for the enable/disable + first-trial logic.
+  websiteEnabled Boolean  @default(false)
+  status         String   @default("inactive")
+  // inactive | trialing | active | past_due | suspended | canceled
   planId         String   @default("starter")
   periodEnd      DateTime?
 
-  // WhatsApp add-on — independent of the website plan's status/periodEnd so
-  // one channel lapsing never disables the other.
   whatsappStatus    String    @default("inactive") // inactive | trialing | active | past_due | suspended
   whatsappPeriodEnd DateTime?
-  // Admin-only allowlist gate, separate from billing: a tenant can't see the
-  // connect flow or get billed for WhatsApp until an admin flips this on.
   whatsappEnabled   Boolean   @default(false)
-  whatsappRequestedAt DateTime? // set when tenant requests access, cleared on approval
 
   brandConfig    Json                      // color, botName, avatar, greeting, position
   systemPrompt   String   @db.Text
@@ -241,7 +245,7 @@ model Payment {
   invoiceRef  String    @unique   // CYB-2026-0042, customer puts this in transaction remarks
   planId      String    @default("starter") // applied to Tenant.planId on approval
   billingCycle String   @default("monthly") // monthly | quarterly | yearly
-  addon       String?             // null = plan payment; "whatsapp" = WhatsApp add-on payment
+  addon       String?             // null = plan payment; "whatsapp" = WhatsApp channel payment
   amountPKR   Int
   method      String              // jazzcash | easypaisa | raast | bank
   senderName  String
@@ -290,19 +294,20 @@ Rules:
 
 ## 6. CRAWL AND INGESTION
 
-### Ownership verification (before any full crawl)
+### Training sources
 
-Three methods, user picks one:
-- **Meta tag:** `<meta name="cybrum-verify" content="{verifyToken}">` in `<head>`
-- **File:** `/.well-known/cybrum-verify.txt` containing the token
-- **DNS:** TXT record `cybrum-verify={verifyToken}`
+Crawling a URL and uploading PDF/DOCX files are two ways to populate the same
+tenant-scoped knowledge base (`Document`, filtered by `tenantId` as always).
+Neither requires ownership proof, and neither is tied to which channel(s) are
+on — a tenant can train from a crawl and only turn on WhatsApp, or upload
+files and only turn on Website. Turning the Website channel on
+(`lib/tenant/channels.ts#enableWebsiteChannel`) both sets `allowedDomains`
+from the given URL and queues the first crawl job; recrawling afterward is
+available any time from the Knowledge tab regardless of channel state.
 
-Verification is a fetch and a string check. On success set `verified = true` and
-add the hostname to `allowedDomains`.
-
-**Exception:** the public landing page preview crawl (see Phase 2) is capped at
-15 pages, is not stored against a tenant permanently, and does not require
-verification. Everything else does.
+The public landing page preview crawl (see Phase 2) is capped at 15 pages and
+is not stored against a tenant permanently — a separate, throwaway path from
+the tenant-scoped crawl above.
 
 ### Crawl rules
 
@@ -335,9 +340,9 @@ cycles: monthly (base), quarterly (10% off 3 months), yearly (20% off 12
 months). Prices and caps live in `lib/billing/plans.ts` (the single source of
 truth); env vars `PLAN_PRICE_PKR_<PLAN>_<CYCLE>` override the compiled defaults.
 
-The WhatsApp add-on has its own conversation cap, tracked separately from the
+The WhatsApp channel has its own conversation cap, tracked separately from the
 website plan's (`WHATSAPP_CONVERSATION_CAP` in `lib/billing/plans.ts`), keyed
-off `Conversation.channel`. See section 9 for its pricing and gating.
+off `Conversation.channel`. See section 9 for its pricing and status ladder.
 
 ---
 
@@ -414,7 +419,16 @@ payment gateway. Do not build one.
 The screenshot is a supporting document, not proof. Verification is always
 against the actual statement using `invoiceRef`.
 
-### Status ladder
+### Turning a channel on
+
+Website and WhatsApp are both self-serve toggles (`lib/tenant/channels.ts`),
+not something Cybrum grants. The first time a tenant ever turns a given
+channel on, it starts a 3-day trial (`status`/`whatsappStatus = "trialing"`,
+`periodEnd`/`whatsappPeriodEnd = now + 3 days`). Turning it off just flips the
+`Enabled` flag — status/period stay frozen and resume where they left off if
+turned back on, so toggling can't be used to farm repeat trials.
+
+### Status ladder (Website)
 
 Never hard-kill a live widget. Degrade in steps.
 
@@ -428,11 +442,10 @@ Never hard-kill a live widget. Degrade in steps.
 A suspended tenant returns HTTP 200 with `{ disabled: true, message }`. Never a
 404 or 500, which would surface as an error on the customer's website.
 
-### WhatsApp add-on
+### WhatsApp channel
 
-Optional, opt-in, admin-gated — never self-serve. `Tenant.whatsappEnabled` is
-flipped by an admin only; a tenant who wants it clicks "Request WhatsApp
-access" and waits (`whatsappRequestedAt`, surfaced on `/admin`).
+Self-serve, same as Website — a tenant turns `Tenant.whatsappEnabled` on
+themselves from the dashboard, no admin approval step.
 
 Pricing is two-rate, resolved in `lib/billing/plans.ts#whatsappAddonPrice`:
 - **Bundle rate** when paid alongside an active/being-purchased website plan.
@@ -440,7 +453,8 @@ Pricing is two-rate, resolved in `lib/billing/plans.ts#whatsappAddonPrice`:
 
 Both are sold through the same combined checkout as the website plan
 (`lib/billing/actions.ts#submitPayment`) — one payment, one screenshot, one
-`invoiceRef`, `Payment.addon = "whatsapp"` marks the add-on portion.
+`invoiceRef`, `Payment.addon = "whatsapp"` marks the WhatsApp portion. Either
+channel can also be paid for entirely on its own.
 
 WhatsApp has its own, simpler status ladder (`Tenant.whatsappStatus`, driven
 by `whatsappPeriodEnd`), independent of the website plan's so one channel
@@ -451,8 +465,10 @@ lapsing never disables the other: `past_due` immediately, `suspended` at day
 
 ## 10. SECURITY
 
-`publicKey` is public by design. Anyone can read it in the page source. Defence
-is layered:
+`publicKey` is public by design. Anyone can read it in the page source. There
+is no ownership-proof step for the Website channel — `allowedDomains` is set
+directly from whatever URL the tenant enters when they turn it on (see
+`lib/tenant/channels.ts`). Defence is layered instead:
 
 1. **Origin allowlist.** Check the `Origin` header hostname against
    `tenant.allowedDomains`. Reject otherwise.
@@ -533,14 +549,15 @@ cs-chatbot/
 │   ├── db/vector.ts                # all raw pgvector SQL
 │   ├── crawl/                      # fetch, robots, sitemap, extract, chunk
 │   ├── billing/status.ts
-│   ├── billing/plans.ts            # plan + WhatsApp add-on prices and caps
+│   ├── billing/plans.ts            # plan + WhatsApp channel prices and caps
+│   ├── tenant/channels.ts          # enable/disable Website + WhatsApp, first-trial logic
 │   ├── whatsapp/pg-auth-state.ts   # Baileys auth state persisted in Postgres
 │   ├── email/provider.ts           # THE ONLY place the Resend API is called
 │   ├── email/templates.ts          # branded HTML builders per lifecycle event
 │   ├── email/notify.ts             # high-level, best-effort send-per-event functions
 │   └── security/                   # origin check, rate limit, url validation
 ├── worker.js                       # standalone job runner
-├── whatsapp-connector.mts          # standalone WhatsApp connector (opt-in add-on)
+├── whatsapp-connector.mts          # standalone WhatsApp connector (independent channel)
 └── widget/
     ├── src/index.ts
     └── build.mjs                   # esbuild
@@ -565,8 +582,9 @@ where a visitor pastes a URL, sees a 15-page crawl with live progress, and chats
 with a working bot **before any signup**. This flow is the product's single
 biggest conversion lever. Build it carefully.
 
-**Phase 3 — Auth + dashboard.** Signup, domain verification, full crawl, and the
-dashboard tabs. Install tab includes a live "widget detected on your site" check.
+**Phase 3 — Auth + dashboard.** Signup, the Website/WhatsApp channel toggles,
+full crawl, and the dashboard tabs. Install tab includes a live "widget
+detected on your site" check.
 
 **Phase 4 — Billing.** Invoice generation, payment submission with screenshot
 upload, admin approval, status ladder, usage caps.
@@ -596,7 +614,7 @@ monitoring via UptimeRobot free tier.
 - Do not add Docker, Redis, BullMQ, Pinecone, Qdrant, or Kubernetes.
 - Do not add Stripe or any card processor in Phase 1 to 4.
 - Do not build Instagram or Slack channels. WhatsApp is the one approved
-  additional channel (opt-in, admin-gated add-on — see section 9).
+  additional channel — opt-in, self-serve, equal to Website (see section 9).
 - Do not build voice. Text only.
 - Do not use a flagship LLM model. Mini or nano class only. A flagship model
   costs more per customer than the customer pays.

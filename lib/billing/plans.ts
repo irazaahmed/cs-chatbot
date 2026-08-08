@@ -86,7 +86,9 @@ const PLAN_DEFS: Record<PlanId, PlanDef> = {
 
 // WhatsApp has two rates: "standalone" for a tenant with no active website
 // plan, "bundle" (cheaper) when it's paid alongside an active/being-purchased
-// website plan. Both are sold through the one combined checkout in
+// website plan — an upsell incentive for buying both channels, not a
+// permission gate (either channel can be turned on and paid for on its own).
+// Both are sold through the one combined checkout in
 // lib/billing/actions.ts#submitPayment — bundle when the plan portion is
 // included in the same payment or the tenant already has an active plan,
 // standalone otherwise.

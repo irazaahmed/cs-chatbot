@@ -12,7 +12,7 @@ function statusForDaysOverdue(daysOverdue: number): string {
   return "past_due";
 }
 
-// The WhatsApp add-on has no "canceled" state (see Tenant.whatsappStatus in
+// The WhatsApp channel has no "canceled" state (see Tenant.whatsappStatus in
 // schema.prisma) — it's a smaller, simpler ladder than the website plan's.
 function whatsappStatusForDaysOverdue(daysOverdue: number): string {
   if (daysOverdue >= 7) return "suspended";
@@ -66,7 +66,7 @@ export async function applyStatusLadder(): Promise<number> {
     changed++;
   }
 
-  // Parallel pass for the WhatsApp add-on — entirely independent of the
+  // Parallel pass for the WhatsApp channel — entirely independent of the
   // website plan's ladder above, keyed off whatsappStatus/whatsappPeriodEnd.
   const overdueWhatsApp = await prisma.tenant.findMany({
     where: {

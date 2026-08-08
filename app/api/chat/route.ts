@@ -83,6 +83,10 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "Origin not allowed" }, 403);
   }
 
+  if (!tenant.websiteEnabled) {
+    return disabledResponse("Chat is temporarily unavailable.");
+  }
+
   const statusGate = checkTenantStatus(tenant.status);
   if (!statusGate.allowed) {
     return disabledResponse(statusGate.message ?? "Chat is temporarily unavailable.");

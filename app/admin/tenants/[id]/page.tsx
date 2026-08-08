@@ -8,13 +8,14 @@ import { PLAN_IDS, isPlanId, planPageCap, planConversationCap, formatPages } fro
 import { deleteTenantCompletely } from "@/lib/tenant/delete";
 import { DeleteTenantForm } from "@/components/admin/DeleteTenantForm";
 
-const STATUS_IDS = ["trialing", "active", "past_due", "suspended", "canceled"] as const;
+const STATUS_IDS = ["inactive", "trialing", "active", "past_due", "suspended", "canceled"] as const;
 type StatusId = (typeof STATUS_IDS)[number];
 function isStatusId(v: string): v is StatusId {
   return (STATUS_IDS as readonly string[]).includes(v);
 }
 
 const STATUS_PILLS: Record<string, string> = {
+  inactive: "border-border bg-surface/60 text-muted",
   trialing: "border-border bg-surface/60 text-muted",
   active: "border-emerald-400/30 bg-emerald-400/10 text-success-text",
   past_due: "border-amber-400/30 bg-amber-400/10 text-warning-text",
@@ -75,38 +76,32 @@ async function grantTrial(formData: FormData) {
   redirect(`/admin/tenants/${id}?saved=1`);
 }
 
-// Manual allowlist for the WhatsApp add-on, entirely separate from billing:
-// a tenant can't reach the connect flow or pay for WhatsApp until an admin
-// flips this on (see whatsappEnabled in schema.prisma).
-async function toggleWhatsAppAccess(formData: FormData) {
+// Website and WhatsApp are both self-serve toggles the tenant controls
+// themselves (see lib/tenant/channels.ts). These are support overrides on
+// top of that — for comps, abuse, or acting on a support request — not a
+// gate the tenant needs cleared before they can use either channel.
+async function toggleWhatsAppChannel(formData: FormData) {
   "use server";
   await requireAdmin();
   const id = String(formData.get("id"));
   const enable = String(formData.get("enable")) === "true";
   if (!id) return;
 
-  // Enabling always clears a pending request, that's what handling it means.
-  await prisma.tenant.update({
-    where: { id },
-    data: { whatsappEnabled: enable, whatsappRequestedAt: enable ? null : undefined },
-  });
+  await prisma.tenant.update({ where: { id }, data: { whatsappEnabled: enable } });
 
   revalidatePath(`/admin/tenants/${id}`);
   revalidatePath("/admin");
   redirect(`/admin/tenants/${id}?saved=1`);
 }
 
-// Quick on/off for the website widget itself, separate from the more
-// detailed "Manage subscription" status ladder below (past_due/trialing/etc)
-// for when all you want is a fast suspend or restore.
-async function toggleWebsiteAccess(formData: FormData) {
+async function toggleWebsiteChannel(formData: FormData) {
   "use server";
   await requireAdmin();
   const id = String(formData.get("id"));
   const enable = String(formData.get("enable")) === "true";
   if (!id) return;
 
-  await prisma.tenant.update({ where: { id }, data: { status: enable ? "active" : "suspended" } });
+  await prisma.tenant.update({ where: { id }, data: { websiteEnabled: enable } });
 
   revalidatePath(`/admin/tenants/${id}`);
   revalidatePath("/admin");
@@ -226,11 +221,15 @@ export default async function TenantDetailPage({
         </div>
 
         <div className="glass rounded-2xl p-6">
-          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted">Verification</h2>
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-muted">Channels</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex justify-between gap-4">
-              <dt className="text-muted">Verified</dt>
-              <dd className="text-foreground">{tenant.verified ? `yes (${tenant.verifyMethod})` : "no"}</dd>
+              <dt className="text-muted">Website</dt>
+              <dd className="text-foreground">{tenant.websiteEnabled ? "on" : "off"}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">WhatsApp</dt>
+              <dd className="text-foreground">{tenant.whatsappEnabled ? "on" : "off"}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted">Allowed domains</dt>
@@ -313,49 +312,41 @@ export default async function TenantDetailPage({
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
         <div className="glass rounded-2xl p-6">
-          <h2 className="font-heading font-semibold">Website access</h2>
+          <h2 className="font-heading font-semibold">Website channel</h2>
           <p className="mt-1 text-sm text-muted">
-            Quick suspend or restore for the website widget. For anything more specific (past due,
-            trial, canceled), use Manage subscription below instead.
+            Self-serve for the tenant (see the Website tab in their dashboard) — this is a support
+            override on top of that. Quick suspend/restore for billing status is separate, use
+            Manage subscription below for that.
           </p>
           <div className="mt-4 flex items-center gap-3">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
-                tenant.status !== "suspended" && tenant.status !== "canceled"
+                tenant.websiteEnabled
                   ? "border-emerald-400/30 bg-emerald-400/10 text-success-text"
                   : "border-border bg-surface/60 text-muted"
               }`}
             >
-              {tenant.status !== "suspended" && tenant.status !== "canceled" ? "Enabled" : "Disabled"}
+              {tenant.websiteEnabled ? "On" : "Off"}
             </span>
-            <form action={toggleWebsiteAccess}>
+            <form action={toggleWebsiteChannel}>
               <input type="hidden" name="id" value={tenant.id} />
-              <input
-                type="hidden"
-                name="enable"
-                value={(tenant.status === "suspended" || tenant.status === "canceled").toString()}
-              />
+              <input type="hidden" name="enable" value={(!tenant.websiteEnabled).toString()} />
               <button
                 type="submit"
                 className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
               >
-                {tenant.status === "suspended" || tenant.status === "canceled" ? "Enable website" : "Disable website"}
+                {tenant.websiteEnabled ? "Turn off Website" : "Turn on Website"}
               </button>
             </form>
           </div>
         </div>
 
         <div className="glass rounded-2xl p-6">
-          <h2 className="font-heading font-semibold">WhatsApp access</h2>
+          <h2 className="font-heading font-semibold">WhatsApp channel</h2>
           <p className="mt-1 text-sm text-muted">
-            Manual allowlist, separate from billing. Until this is on, the tenant can&apos;t reach the
-            connect flow or pay for the WhatsApp add-on, the dashboard just shows it&apos;s not enabled yet.
+            Self-serve for the tenant (see the WhatsApp tab in their dashboard) — this is a support
+            override on top of that.
           </p>
-          {tenant.whatsappRequestedAt && !tenant.whatsappEnabled && (
-            <p className="mt-2 text-xs font-medium text-warning-text">
-              Requested access on {tenant.whatsappRequestedAt.toLocaleDateString()}
-            </p>
-          )}
           <div className="mt-4 flex items-center gap-3">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
@@ -364,16 +355,16 @@ export default async function TenantDetailPage({
                   : "border-border bg-surface/60 text-muted"
               }`}
             >
-              {tenant.whatsappEnabled ? "Enabled" : "Not enabled"}
+              {tenant.whatsappEnabled ? "On" : "Off"}
             </span>
-            <form action={toggleWhatsAppAccess}>
+            <form action={toggleWhatsAppChannel}>
               <input type="hidden" name="id" value={tenant.id} />
               <input type="hidden" name="enable" value={(!tenant.whatsappEnabled).toString()} />
               <button
                 type="submit"
                 className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
               >
-                {tenant.whatsappEnabled ? "Disable WhatsApp" : "Enable WhatsApp"}
+                {tenant.whatsappEnabled ? "Turn off WhatsApp" : "Turn on WhatsApp"}
               </button>
             </form>
           </div>

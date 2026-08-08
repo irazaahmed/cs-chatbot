@@ -2,7 +2,7 @@
 // into the tenant-scoped Document table, so /api/chat can be curl-tested
 // without auth/dashboard (those are Phase 3). Not the production ingestion
 // path — that's the Job-queue + worker.js flow built in a later phase.
-import { randomUUID, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/db/client";
 import { crawlSite } from "@/lib/crawl/crawler";
 import { chunkContent } from "@/lib/crawl/chunk";
@@ -38,9 +38,7 @@ async function main() {
       publicKey: generatePublicKey(),
       websiteUrl,
       allowedDomains: [allowedDomain],
-      verified: true,
-      verifyToken: randomUUID(),
-      verifyMethod: "meta",
+      websiteEnabled: true,
       status: "active",
       planId,
       brandConfig: {

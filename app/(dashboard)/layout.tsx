@@ -136,16 +136,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </div>
 
       <main className="min-w-0 flex-1 p-6 pt-[7.5rem] sm:p-8 lg:flex lg:h-screen lg:flex-col lg:overflow-y-auto lg:pt-8">
-        {!tenant.verified && (
-          <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-warning-text">
-            Your domain isn&apos;t verified yet. Visit the{" "}
-            <Link href="/install" className="font-medium underline underline-offset-2">
-              Website
-            </Link>{" "}
-            tab to finish setup. Nothing gets crawled until then.
-          </div>
-        )}
-        {tenant.status === "trialing" && tenant.periodEnd && (
+        {tenant.websiteEnabled && tenant.status === "trialing" && tenant.periodEnd && (
           <div className="mb-6 rounded-2xl border border-border bg-surface/60 px-5 py-3.5 text-sm text-muted">
             {(() => {
               const daysLeft = trialDaysLeft(tenant.periodEnd, now);
@@ -162,18 +153,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
             })()}
           </div>
         )}
-        {tenant.status === "past_due" && (
+        {tenant.websiteEnabled && tenant.status === "past_due" && (
           <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-warning-text">
-            Your payment is past due. Your chatbot still works, but visit{" "}
+            Your website payment is past due. Your chatbot still works, but visit{" "}
             <Link href="/billing" className="font-medium underline underline-offset-2">
               Billing
             </Link>{" "}
             to keep it that way.
           </div>
         )}
-        {(tenant.status === "suspended" || tenant.status === "canceled") && (
+        {tenant.websiteEnabled && (tenant.status === "suspended" || tenant.status === "canceled") && (
           <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3.5 text-sm text-danger-text">
-            Your chatbot is currently {tenant.status === "canceled" ? "canceled" : "suspended"} and
+            Your website chatbot is currently {tenant.status === "canceled" ? "canceled" : "suspended"} and
             not responding to visitors. Visit{" "}
             <Link href="/billing" className="font-medium underline underline-offset-2">
               Billing
@@ -181,18 +172,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
             to restore it.
           </div>
         )}
-        {tenant.whatsappStatus === "past_due" && (
+        {tenant.whatsappEnabled && tenant.whatsappStatus === "past_due" && (
           <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-warning-text">
-            Your WhatsApp add-on payment is past due. WhatsApp still works, but visit{" "}
+            Your WhatsApp payment is past due. WhatsApp still works, but visit{" "}
             <Link href="/billing" className="font-medium underline underline-offset-2">
               Billing
             </Link>{" "}
             to keep it that way.
           </div>
         )}
-        {tenant.whatsappStatus === "suspended" && (
+        {tenant.whatsappEnabled && tenant.whatsappStatus === "suspended" && (
           <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3.5 text-sm text-danger-text">
-            Your WhatsApp add-on is currently suspended and not responding to messages. Visit{" "}
+            Your WhatsApp channel is currently suspended and not responding to messages. Visit{" "}
             <Link href="/billing" className="font-medium underline underline-offset-2">
               Billing
             </Link>{" "}
