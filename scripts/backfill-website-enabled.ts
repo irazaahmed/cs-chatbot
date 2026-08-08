@@ -39,11 +39,23 @@ async function main() {
     process.exit(0);
   }
 
+  // Deliberately NOT "verified = true" — the old upload-mode signup path
+  // (app/onboarding/page.tsx) marked verified=true unconditionally for
+  // BOTH website-target and whatsapp-target uploads, since there was no
+  // crawl to justify a verification step either way. A whatsapp-target
+  // upload tenant is verified=true with an empty allowedDomains (no real
+  // website channel at all) — backfilling websiteEnabled=true for those
+  // would put them in a broken-looking "on" state with a script tag that
+  // doesn't actually work. allowedDomains being non-empty is the real
+  // signal: it only gets populated by a genuine website verification or
+  // website-target signup, so it reliably means "this tenant already has a
+  // working website channel."
   const result = await prisma.$executeRawUnsafe(
     `UPDATE "Tenant"
      SET "websiteEnabled" = true
      WHERE "websiteEnabled" = false
-       AND ("verified" = true OR status IN ('trialing', 'active', 'past_due', 'suspended'))`
+       AND "allowedDomains" IS NOT NULL
+       AND cardinality("allowedDomains") > 0`
   );
 
   console.log(`Backfilled websiteEnabled = true for ${result} tenant(s).`);
