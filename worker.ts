@@ -23,10 +23,17 @@ const STATUS_LADDER_INTERVAL_TICKS = 60; // ~5 minutes at 5s/tick — billing st
 const RETENTION_INTERVAL_TICKS = 720; // ~1 hour at 5s/tick — retention isn't time-sensitive
 let tickCount = 0;
 
+// Excludes "whatsapp_pair" — that type belongs to whatsapp-connector.mts's
+// own poller. Without this filter, this worker's unscoped `status: "pending"`
+// query races the connector for the same row and, on winning, mishandles the
+// job as a crawl (processJob's fallback branch), silently starving the
+// connector of the job it needed to publish a QR/pairing code.
+const WORKER_JOB_TYPES = ["crawl", "recrawl", "preview_crawl", "pdf_ingest", "docx_ingest"];
+
 async function claimNextJob(): Promise<Job | null> {
   return prisma.$transaction(async (tx) => {
     const job = await tx.job.findFirst({
-      where: { status: "pending" },
+      where: { status: "pending", type: { in: WORKER_JOB_TYPES } },
       orderBy: { createdAt: "asc" },
     });
     if (!job) return null;
