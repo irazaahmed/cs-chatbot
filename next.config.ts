@@ -25,7 +25,19 @@ const nextConfig: NextConfig = {
     // in lib/knowledge/file-storage.ts) — worst case ~50MB raw. This just needs
     // enough headroom (plus multipart overhead) for those real per-file/per-request
     // ceilings to ever be reached instead of a hard 413 before validation runs.
-    serverActions: { bodySizeLimit: "55mb" },
+    serverActions: {
+      bodySizeLimit: "55mb",
+      // Coolify/Traefik serves this app on three hosts (Configuration >
+      // Domains): the canonical apex, www (DNS-only, exists only to 308 to
+      // the apex per middleware.ts), and the widget CDN host. Without this
+      // list, Next.js's own Server Action origin check only trusts whichever
+      // host it auto-detects and 403s any POST whose Origin doesn't match —
+      // intermittently, depending on which Cloudflare edge/forwarded-host
+      // the request lands on. That 403 surfaces to the browser as "This page
+      // couldn't load" since the client expects an RSC action response, not
+      // a plain error page.
+      allowedOrigins: ["chatbot.cybrumsolutions.dev", "www.chatbot.cybrumsolutions.dev"],
+    },
   },
 };
 
