@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/db/client";
 import { TRIAL_DAYS } from "@/lib/billing/plans";
 import { enableWebsiteChannel } from "@/lib/tenant/channels";
@@ -49,6 +49,15 @@ async function createTenant(formData: FormData) {
   "use server";
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+
+  // A deleted-then-recreated account (lib/tenant/delete.ts#deleteTenantCompletely)
+  // can leave a stale JWT session pointing at a User row that no longer
+  // exists, if the sign-out/sign-back-in cookie handoff didn't fully land.
+  // Tenant.ownerId has a foreign-key constraint to User.id, so writing
+  // against a dangling id would throw mid-request instead of failing
+  // cleanly. Force a fresh sign-in rather than let that happen.
+  const owner = await prisma.user.findUnique({ where: { id: session.user.id }, select: { id: true } });
+  if (!owner) await signOut({ redirectTo: "/login" });
 
   // One tenant per account. The page-load check below redirects away before
   // this form ever renders for a returning user, but that doesn't stop a
