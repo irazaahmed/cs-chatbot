@@ -20,7 +20,8 @@
 //    building, OpenAI, lead/appointment capture, just non-streaming and
 //    keyed by the sender's WhatsApp id instead of a browser sessionId.
 
-import type { Job, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import type { Job } from "@prisma/client";
 import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
@@ -265,9 +266,15 @@ async function openSocketForTenant(
       const terminal = statusCode === DisconnectReason.loggedOut || statusCode === DisconnectReason.connectionReplaced;
 
       if (terminal) {
+        // WhatsApp has permanently invalidated this session (logged out, or
+        // replaced by a newer login elsewhere) — the stored creds/keys in
+        // authState are dead. Without clearing them, usePgAuthState would
+        // hand the next connect attempt (QR or pairing code alike) this same
+        // invalidated session, so it would 401 again immediately regardless
+        // of which method the tenant retries with.
         await prisma.whatsAppAccount.update({
           where: { tenantId },
-          data: { status: "disconnected", qrCode: null, pairingCode: null },
+          data: { status: "disconnected", qrCode: null, pairingCode: null, authState: Prisma.DbNull },
         });
         console.log(`[whatsapp-connector] tenant ${tenantId} disconnected (terminal, code ${statusCode})`);
       } else {
