@@ -10,8 +10,7 @@
 //    lib/whatsapp/pg-auth-state.ts, no mounted volume needed).
 // 2. Poll the existing Job table for "whatsapp_pair" jobs (same mechanism
 //    /install already uses for "crawl" jobs) to start pairing a new tenant
-//    and publish either a QR code or, if the job asked for phone-number
-//    pairing, an 8-character code for the dashboard to show.
+//    and publish the QR code for the dashboard to show.
 // 3. Watch for a WhatsAppAccount flipped to "disconnected" from the
 //    dashboard (the /whatsapp page's Disconnect action) and tear down that
 //    tenant's socket.
@@ -48,18 +47,6 @@ const sockets = new Map<string, WASocket>();
 // for the "connecting" UI state is: we were showing a QR, and now got a
 // connection.update with no fresh qr in it (see connection.update handler).
 const qrShownTenants = new Set<string>();
-// Tenants pairing by phone number instead of QR (see requestPairingCode
-// below) — Baileys still emits a `qr` event on this path, so this set tells
-// the connection.update handler to ignore it instead of overwriting the
-// pairing code we're already showing.
-const pairingByCodeTenants = new Set<string>();
-
-/** Strips everything but digits so a number typed as "+92 300 1234567" or
- *  "0092-300-1234567" becomes the "923001234567" shape requestPairingCode
- *  expects (country code, no leading 0, no separators). */
-function normalizeForPairing(raw: string): string {
-  return raw.replace(/\D/g, "");
-}
 
 interface StoredMessage {
   role: "user" | "assistant";
@@ -174,10 +161,7 @@ async function handleInboundMessage(tenantId: string, sock: WASocket, fromJid: s
   });
 }
 
-async function openSocketForTenant(
-  tenantId: string,
-  pairing?: { method: "code"; phoneNumber: string }
-): Promise<void> {
+async function openSocketForTenant(tenantId: string): Promise<void> {
   if (sockets.has(tenantId)) return;
 
   // Named to match Baileys' own useMultiFileAuthState convention, not a React hook.
@@ -196,51 +180,27 @@ async function openSocketForTenant(
 
   sock.ev.on("creds.update", saveCreds);
 
-  // Phone-number pairing: request an 8-character code instead of waiting for
-  // Baileys to hand us a QR. Only valid before the socket has ever
-  // registered, matching Baileys' own guard for this call.
-  if (pairing?.method === "code" && !sock.authState.creds.registered) {
-    pairingByCodeTenants.add(tenantId);
-    try {
-      const code = await sock.requestPairingCode(normalizeForPairing(pairing.phoneNumber));
-      await prisma.whatsAppAccount.update({
-        where: { tenantId },
-        data: { status: "pairing", pairingCode: code, qrCode: null },
-      });
-    } catch (err) {
-      pairingByCodeTenants.delete(tenantId);
-      sockets.delete(tenantId);
-      console.error(`[whatsapp-connector] pairing code request failed for tenant ${tenantId}:`, err instanceof Error ? err.message : err);
-      await prisma.whatsAppAccount.update({
-        where: { tenantId },
-        data: { status: "disconnected", pairingCode: null, qrCode: null },
-      });
-      return;
-    }
-  }
-
   sock.ev.on("connection.update", async (update) => {
     const { connection, qr, lastDisconnect } = update;
 
-    if (qr && !pairingByCodeTenants.has(tenantId)) {
+    if (qr) {
       qrShownTenants.add(tenantId);
       const qrDataUrl = await QRCode.toDataURL(qr);
       await prisma.whatsAppAccount.update({
         where: { tenantId },
         data: { status: "pairing", qrCode: qrDataUrl },
       });
-    } else if (connection === "connecting" && (qrShownTenants.has(tenantId) || pairingByCodeTenants.has(tenantId))) {
-      // Phone scanned the QR, or entered the pairing code. Baileys starts the
-      // handshake but stays "connecting" for several seconds before "open".
+    } else if (connection === "connecting" && qrShownTenants.has(tenantId)) {
+      // Phone scanned the QR. Baileys stops emitting `qr` and starts the
+      // handshake, but stays "connecting" for several seconds before "open".
       await prisma.whatsAppAccount.update({
         where: { tenantId },
-        data: { status: "connecting", qrCode: null, pairingCode: null },
+        data: { status: "connecting", qrCode: null },
       });
     }
 
     if (connection === "open") {
       qrShownTenants.delete(tenantId);
-      pairingByCodeTenants.delete(tenantId);
       // whatsappStatus/whatsappPeriodEnd (trial or paid) is set when the
       // tenant turns the channel on (lib/tenant/channels.ts), not here —
       // pairing a phone number is a separate step from activating billing.
@@ -249,7 +209,6 @@ async function openSocketForTenant(
         data: {
           status: "connected",
           qrCode: null,
-          pairingCode: null,
           phoneNumber: normalizePhoneNumber(state.creds.me?.id),
           connectedAt: new Date(),
           lastSeenAt: new Date(),
@@ -261,7 +220,6 @@ async function openSocketForTenant(
     if (connection === "close") {
       sockets.delete(tenantId);
       qrShownTenants.delete(tenantId);
-      pairingByCodeTenants.delete(tenantId);
       const statusCode = (lastDisconnect?.error as Boom | undefined)?.output?.statusCode;
       const terminal = statusCode === DisconnectReason.loggedOut || statusCode === DisconnectReason.connectionReplaced;
 
@@ -269,12 +227,11 @@ async function openSocketForTenant(
         // WhatsApp has permanently invalidated this session (logged out, or
         // replaced by a newer login elsewhere) — the stored creds/keys in
         // authState are dead. Without clearing them, usePgAuthState would
-        // hand the next connect attempt (QR or pairing code alike) this same
-        // invalidated session, so it would 401 again immediately regardless
-        // of which method the tenant retries with.
+        // hand the next connect attempt this same invalidated session,
+        // so it would 401 again immediately.
         await prisma.whatsAppAccount.update({
           where: { tenantId },
-          data: { status: "disconnected", qrCode: null, pairingCode: null, authState: Prisma.DbNull },
+          data: { status: "disconnected", qrCode: null, authState: Prisma.DbNull },
         });
         console.log(`[whatsapp-connector] tenant ${tenantId} disconnected (terminal, code ${statusCode})`);
       } else {
@@ -343,16 +300,10 @@ async function processPairingJobs(): Promise<void> {
     await prisma.whatsAppAccount.upsert({
       where: { tenantId: job.tenantId },
       create: { tenantId: job.tenantId, status: "pairing" },
-      update: { status: "pairing", qrCode: null, pairingCode: null },
+      update: { status: "pairing", qrCode: null },
     });
 
-    const payload = job.payload as { method?: string; phoneNumber?: string } | null;
-    const pairing =
-      payload?.method === "code" && payload.phoneNumber
-        ? ({ method: "code", phoneNumber: payload.phoneNumber } as const)
-        : undefined;
-
-    await openSocketForTenant(job.tenantId, pairing);
+    await openSocketForTenant(job.tenantId);
     await prisma.job.update({ where: { id: job.id }, data: { status: "done", finishedAt: new Date() } });
   } catch (err) {
     console.error(`[whatsapp-connector] pairing job ${job.id} failed:`, err instanceof Error ? err.message : err);

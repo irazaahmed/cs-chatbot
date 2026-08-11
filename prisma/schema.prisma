@@ -68,9 +68,9 @@ model WhatsAppAccount {
   status      String    @default("disconnected") // disconnected | pairing | connected
   authState   Json?
   qrCode      String?
-  // Set instead of qrCode when the tenant pairs by phone number rather than
-  // scanning — lets someone with only one phone link it without a second
-  // screen (enter this code under WhatsApp's "Link with phone number instead").
+  // Unused (the phone-number pairing feature was removed) but left in place
+  // rather than dropped: `prisma db push` runs in production's start command
+  // without --accept-data-loss, so a column drop would fail the whole boot.
   pairingCode String?
   connectedAt DateTime?
   lastSeenAt  DateTime?
