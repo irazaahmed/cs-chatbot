@@ -21,6 +21,11 @@ export const metadata: Metadata = {
     siteName: "CS Chatbot",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Contact — CS Chatbot",
+    description: "Talk to the Cybrum Solutions team about CS Chatbot, on your website or on WhatsApp.",
+  },
 };
 
 function WhatsAppIcon() {

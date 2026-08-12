@@ -465,7 +465,7 @@ export default function LandingPage() {
                 className="group glass rounded-2xl p-5 open:pb-5"
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-foreground">
-                  {f.question}
+                  <h4 className="font-medium">{f.question}</h4>
                   <svg
                     width="16"
                     height="16"

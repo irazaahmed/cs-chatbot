@@ -27,6 +27,12 @@ export const metadata: Metadata = {
     siteName: "CS Chatbot",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "About — CS Chatbot",
+    description:
+      "An AI chatbot trained on your own content, for your website and your WhatsApp Business number. A Cybrum Solutions product.",
+  },
 };
 
 const differences = [

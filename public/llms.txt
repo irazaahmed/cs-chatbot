@@ -1,0 +1,29 @@
+# CS Chatbot
+
+> CS Chatbot (by Cybrum Solutions) is an AI chatbot for a business's website
+> and WhatsApp Business number. It is trained only on the business's own
+> content — crawled pages or uploaded PDF/Word documents — and answers
+> strictly from that content, citing the source page under every answer. It
+> supports English, Urdu, and Roman Urdu. Website and WhatsApp are two
+> independent, self-serve channels, each with its own free trial; a visitor
+> can try a live preview by pasting a URL, with no signup and no card.
+
+## Pages
+
+- [Home](https://chatbot.cybrumsolutions.dev/): Paste a website URL, get a free instant chatbot preview trained on that site's content, no signup required.
+- [Pricing](https://chatbot.cybrumsolutions.dev/pricing): Monthly PKR pricing, billed monthly/quarterly/yearly. Website and WhatsApp are priced and billed independently, and can be bundled.
+- [How to use](https://chatbot.cybrumsolutions.dev/how-to-use): The five-step setup flow — paste a URL, preview it, sign in, turn on Website and/or WhatsApp, install one script tag.
+- [About](https://chatbot.cybrumsolutions.dev/about): What the product is, how it differs from script-based or hallucination-prone chatbots, and who it's for.
+- [Contact](https://chatbot.cybrumsolutions.dev/contact): How to reach the Cybrum Solutions team, by WhatsApp or email.
+
+## Frequently asked questions
+
+- **Is it free to create a chatbot for my website?** Yes. Pasting a URL and chatting with the preview requires no signup and no card. Creating an account and running a full crawl is free too; payment is only needed if a business outgrows the free plan's page or message limits.
+- **How do I create a chatbot for my website?** Paste the website's URL, chat with a bot trained on it immediately, then sign in, turn on the Website channel, and add one script tag to the site. No domain ownership proof is required.
+- **Do I need to know how to code?** No. Setup is copy, paste, done — installing the widget is one script tag, the same way analytics scripts are added.
+- **Will the chatbot make up answers about my business?** No. It only answers from content actually crawled from the business's website, with a source link under every answer, and says so when it doesn't know something instead of guessing.
+- **Does it support Urdu or Roman Urdu?** Yes, in addition to English.
+- **Does it work on WhatsApp too?** Yes. The same AI, trained on the same content, answers on the business's own WhatsApp Business number as an equal channel to the website — not an add-on.
+- **What if a business doesn't have a website?** They can upload a PDF or Word document instead at signup, and still get an installable widget.
+
+Cybrum Solutions: https://www.cybrumsolutions.dev

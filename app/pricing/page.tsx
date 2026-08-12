@@ -26,6 +26,12 @@ export const metadata: Metadata = {
     siteName: "CS Chatbot",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pricing — CS Chatbot for Website and WhatsApp",
+    description:
+      "Simple monthly pricing in PKR. Still cheaper than one support hire. Website and WhatsApp priced separately. Save 10% quarterly or 20% yearly.",
+  },
 };
 
 export default function PricingPage() {

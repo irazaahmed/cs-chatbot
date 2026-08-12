@@ -3,6 +3,7 @@ import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { Preloader } from "@/components/ui/Preloader";
+import { JsonLd } from "@/components/JsonLd";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -17,6 +18,23 @@ const inter = Inter({
 });
 
 const BASE_URL = "https://chatbot.cybrumsolutions.dev";
+const CYBRUM_URL = "https://www.cybrumsolutions.dev";
+
+// Site-wide brand entity, present on every page (including pages other
+// schema blocks reference as `provider`/`brand` without an @id) so AI
+// answer engines and Google's Knowledge Graph have one canonical
+// "Cybrum Solutions" identity to resolve, not a scattered nested object
+// per page. Only facts that are actually true go here — no invented
+// sameAs profiles.
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": `${CYBRUM_URL}/#organization`,
+  name: "Cybrum Solutions",
+  url: CYBRUM_URL,
+  logo: `${BASE_URL}/logo-dark-theme.png`,
+  email: "info@cybrumsolutions.dev",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -79,6 +97,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
+        <JsonLd data={organizationJsonLd} />
         <Preloader />
         {children}
         <ScrollToTop />

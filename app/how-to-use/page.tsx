@@ -25,6 +25,11 @@ export const metadata: Metadata = {
     siteName: "CS Chatbot",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "How to use — CS Chatbot",
+    description: "From your URL to a live chatbot in five steps — no coding required. Website and WhatsApp, your choice.",
+  },
 };
 
 const steps = [
