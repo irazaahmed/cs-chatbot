@@ -24,6 +24,7 @@ export interface CrawlStats {
   headlessAttempted: number;
   headlessResolved: number;
   headlessFailed: number;
+  headlessBlocked: number;
 }
 
 export interface CrawlOptions {
@@ -61,6 +62,7 @@ export async function crawlSite(startUrl: string, options: CrawlOptions = {}): P
     headlessAttempted: 0,
     headlessResolved: 0,
     headlessFailed: 0,
+    headlessBlocked: 0,
   };
   let active = 0;
   let queueIndex = 0;
@@ -102,11 +104,13 @@ export async function crawlSite(startUrl: string, options: CrawlOptions = {}): P
       if (!extracted || extracted.content.length < HEADLESS_FALLBACK_MIN_CHARS) {
         stats.headlessAttempted++;
         const rendered = await renderPage(url);
-        const renderedExtracted = rendered ? extractContent(rendered) : null;
+        const renderedExtracted = rendered.ok ? extractContent(rendered.html) : null;
         if (renderedExtracted && renderedExtracted.content.length > (extracted?.content.length ?? 0)) {
           extracted = renderedExtracted;
-          html = rendered as string;
+          html = rendered.ok ? rendered.html : html;
           stats.headlessResolved++;
+        } else if (!rendered.ok && rendered.reason === "blocked") {
+          stats.headlessBlocked++;
         } else {
           stats.headlessFailed++;
         }
@@ -136,8 +140,28 @@ export async function crawlSite(startUrl: string, options: CrawlOptions = {}): P
   console.log(
     `[crawl] ${startUrl}: ${results.length}/${stats.pagesVisited} pages resolved ` +
       `(${stats.staticResolved} static, ${stats.headlessAttempted} headless attempted: ` +
-      `${stats.headlessResolved} resolved, ${stats.headlessFailed} failed)`
+      `${stats.headlessResolved} resolved, ${stats.headlessBlocked} blocked, ${stats.headlessFailed} failed)`
   );
 
   return { pages: results.slice(0, maxPages), stats };
+}
+
+/**
+ * Picks the right visitor-facing message when a crawl comes back with zero
+ * pages. Shared by worker.ts and app/api/preview/route.ts so they can't
+ * drift the way lib/db/vector.ts and lib/preview/store.ts's similarity
+ * floors independently did. "Blocked" (bot-protection returned a non-2xx
+ * response — Cloudflare et al.) is a fundamentally different, unfixable-by-
+ * rendering problem than a genuine rendering failure, and conflating them
+ * produced a misleading "heavy JavaScript rendering" message for sites that
+ * were never a rendering problem in the first place.
+ */
+export function crawlFailureMessage(stats: CrawlStats): string {
+  if (stats.headlessBlocked > 0) {
+    return "This site's security settings are blocking automated access. Please contact support for manual setup.";
+  }
+  if (stats.headlessAttempted > 0) {
+    return "This site uses heavy JavaScript rendering and couldn't be crawled automatically. Please contact support for manual setup.";
+  }
+  return "Couldn't find any readable pages on that site.";
 }

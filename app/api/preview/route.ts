@@ -2,7 +2,7 @@ import { z } from "zod";
 import { assertSafeUrl } from "@/lib/security/url";
 import { getClientIp } from "@/lib/security/ip";
 import { checkPreviewRateLimit } from "@/lib/preview/rate-limit";
-import { crawlSite } from "@/lib/crawl/crawler";
+import { crawlSite, crawlFailureMessage } from "@/lib/crawl/crawler";
 import { chunkContent } from "@/lib/crawl/chunk";
 import { embedTexts } from "@/lib/ai/embed";
 import { createPreview, type PreviewChunk } from "@/lib/preview/store";
@@ -55,10 +55,7 @@ export async function POST(request: Request): Promise<Response> {
         });
 
         if (pages.length === 0) {
-          const message =
-            stats.headlessAttempted > 0
-              ? "This site uses heavy JavaScript rendering and couldn't be crawled automatically. Please contact support for manual setup."
-              : "Couldn't find any readable pages on that site.";
+          const message = crawlFailureMessage(stats);
           controller.enqueue(encoder.encode(sseEvent({ type: "error", message })));
           controller.close();
           return;

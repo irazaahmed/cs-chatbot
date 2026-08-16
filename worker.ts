@@ -8,7 +8,7 @@
 // a second toolchain just for this one file).
 import type { Job } from "@prisma/client";
 import { prisma } from "./lib/db/client";
-import { crawlSite } from "./lib/crawl/crawler";
+import { crawlSite, crawlFailureMessage } from "./lib/crawl/crawler";
 import { chunkContent } from "./lib/crawl/chunk";
 import { embedTexts } from "./lib/ai/embed";
 import { replaceDocuments, replaceUploadedDocument, type DocumentChunk } from "./lib/db/vector";
@@ -67,11 +67,7 @@ async function processCrawlJob(job: Job): Promise<void> {
     // Fail loudly instead of falling through to replaceDocuments(tenant.id,
     // []) below, which would silently wipe an existing knowledge base on a
     // recrawl that happened to find nothing this time.
-    throw new Error(
-      stats.headlessAttempted > 0
-        ? "This site uses heavy JavaScript rendering and couldn't be crawled automatically. Please contact support for manual setup."
-        : "Couldn't find any readable pages on that site."
-    );
+    throw new Error(crawlFailureMessage(stats));
   }
 
   const chunks: { sourceUrl: string; title: string | null; content: string; tokenCount: number }[] = [];

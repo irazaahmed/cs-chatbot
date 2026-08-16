@@ -130,23 +130,32 @@ class Semaphore {
 
 const renderSlots = new Semaphore(RENDER_CONCURRENCY);
 
+export type RenderOutcome =
+  | { ok: true; html: string }
+  | { ok: false; reason: "blocked" | "failed" };
+
 /**
  * Renders `url` in headless Chromium and returns the post-hydration HTML, or
- * null on any failure (missing browser, navigation timeout, crash). This is
- * the fallback path lib/crawl/crawler.ts reaches for when a static fetch
- * yields too little readable text (CSR sites whose initial HTML is an empty
- * shell). Reuses one shared Browser process — relaunched only if it
- * disconnects — with a fresh, isolated context per render so pages can't
- * see each other's cookies/storage.
+ * a failure reason. This is the fallback path lib/crawl/crawler.ts reaches
+ * for when a static fetch yields too little readable text (CSR sites whose
+ * initial HTML is an empty shell). Reuses one shared Browser process —
+ * relaunched only if it disconnects — with a fresh, isolated context per
+ * render so pages can't see each other's cookies/storage.
+ *
+ * "blocked" vs "failed" matters for the message a visitor eventually sees:
+ * a bot-protection block (Cloudflare et al.) is a fundamentally different,
+ * unfixable-by-rendering problem than a render that timed out or crashed,
+ * and conflating them produced a genuinely misleading "heavy JavaScript
+ * rendering" message for sites that were never a rendering problem at all.
  */
-export async function renderPage(rawUrl: string): Promise<string | null> {
+export async function renderPage(rawUrl: string): Promise<RenderOutcome> {
   const release = await renderSlots.acquire();
   try {
     // re-validate: the static fetch's SSRF check may have run minutes ago
     // for an earlier page in the same crawl, and DNS can change underneath us
     const url = await assertSafeUrl(rawUrl);
     const browser = await getBrowser();
-    if (!browser) return null;
+    if (!browser) return { ok: false, reason: "failed" };
 
     const context = await browser.newContext({ javaScriptEnabled: true });
     try {
@@ -160,18 +169,18 @@ export async function renderPage(rawUrl: string): Promise<string | null> {
         // Cloudflare "you are blocked" page was silently accepted as real
         // site content. A non-2xx final response is a much more reliable
         // signal than word count that this isn't the actual page.
-        console.warn(`[crawl] headless render got HTTP ${response.status()} for ${rawUrl}, treating as failed`);
-        return null;
+        console.warn(`[crawl] headless render got HTTP ${response.status()} for ${rawUrl}, treating as blocked`);
+        return { ok: false, reason: "blocked" };
       }
       const remaining = Math.max(0, deadline - Date.now());
       await page.waitForTimeout(Math.min(HYDRATION_GRACE_MS, remaining));
-      return await page.content();
+      return { ok: true, html: await page.content() };
     } finally {
       await context.close().catch(() => {});
     }
   } catch (err) {
     console.warn(`[crawl] headless render failed for ${rawUrl}:`, err instanceof Error ? err.message : err);
-    return null;
+    return { ok: false, reason: "failed" };
   } finally {
     release();
   }
