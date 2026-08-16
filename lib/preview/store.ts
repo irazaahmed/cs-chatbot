@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { SIMILARITY_FLOOR } from "@/lib/ai/similarity";
 
 // The landing-page preview crawl (CLAUDE.md section 6 exception) isn't tied
 // to a real tenant, so it can't live in the Document table — that column has
@@ -72,8 +73,6 @@ export interface PreviewMatch {
   content: string;
   similarity: number;
 }
-
-const SIMILARITY_FLOOR = 0.3;
 
 function cosineSimilarity(a: number[], b: number[]): number {
   let dot = 0;

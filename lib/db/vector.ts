@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { unlink } from "node:fs/promises";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./client";
+import { SIMILARITY_FLOOR } from "@/lib/ai/similarity";
 
 // All raw pgvector SQL lives here and nowhere else (CLAUDE.md section 4).
 // Every query is explicitly scoped by tenantId — Prisma's query extension
@@ -108,8 +109,6 @@ export interface SimilarityMatch {
   content: string;
   similarity: number;
 }
-
-const SIMILARITY_FLOOR = 0.3;
 
 export async function similaritySearch(
   tenantId: string,
