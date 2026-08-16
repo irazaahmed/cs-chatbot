@@ -53,7 +53,7 @@ async function processCrawlJob(job: Job): Promise<void> {
   const startUrl = payload?.url ?? tenant.websiteUrl;
   const maxPages = planPageCap(tenant.planId);
 
-  const pages = await crawlSite(startUrl, {
+  const { pages, stats } = await crawlSite(startUrl, {
     maxPages,
     onProgress: async (done, total, url) => {
       await prisma.job.update({
@@ -62,6 +62,17 @@ async function processCrawlJob(job: Job): Promise<void> {
       });
     },
   });
+
+  if (pages.length === 0) {
+    // Fail loudly instead of falling through to replaceDocuments(tenant.id,
+    // []) below, which would silently wipe an existing knowledge base on a
+    // recrawl that happened to find nothing this time.
+    throw new Error(
+      stats.headlessAttempted > 0
+        ? "This site uses heavy JavaScript rendering and couldn't be crawled automatically. Please contact support for manual setup."
+        : "Couldn't find any readable pages on that site."
+    );
+  }
 
   const chunks: { sourceUrl: string; title: string | null; content: string; tokenCount: number }[] = [];
   for (const page of pages) {

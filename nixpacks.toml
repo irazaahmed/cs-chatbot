@@ -1,0 +1,10 @@
+# Adds the `chromium` apt package on top of Nixpacks' auto-detected Node
+# setup (this key is additive, it doesn't replace the detected nixPkgs —
+# see the Node-version incident in project memory for why that distinction
+# matters). Used by lib/crawl/browser.ts as a headless-render fallback for
+# JS-heavy (CSR) sites the static crawler can't extract text from. If this
+# ever resolves to Ubuntu's snap-only "chromium" stub instead of a real
+# binary, the fallback just stays disabled (checked via existsSync in
+# lib/crawl/browser.ts) rather than breaking the build or the crawl.
+[phases.setup]
+aptPkgs = ["chromium"]

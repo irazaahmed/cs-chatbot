@@ -55,7 +55,7 @@ async function main() {
   console.log(`Created tenant ${tenant.id} (publicKey=${tenant.publicKey})`);
   console.log(`Crawling ${websiteUrl} (max ${maxPages} pages)...`);
 
-  const pages = await crawlSite(websiteUrl, {
+  const { pages } = await crawlSite(websiteUrl, {
     maxPages,
     onProgress: (done, total, url) => {
       process.stdout.write(`\r  [${done}/${total}] ${url.slice(0, 80).padEnd(80)}`);

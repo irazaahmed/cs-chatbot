@@ -47,7 +47,7 @@ export async function POST(request: Request): Promise<Response> {
     async start(controller) {
       const encoder = new TextEncoder();
       try {
-        const pages = await crawlSite(startUrl, {
+        const { pages, stats } = await crawlSite(startUrl, {
           maxPages: PREVIEW_PAGE_CAP,
           onProgress: (done, total, url) => {
             controller.enqueue(encoder.encode(sseEvent({ type: "progress", done, total, url })));
@@ -55,11 +55,11 @@ export async function POST(request: Request): Promise<Response> {
         });
 
         if (pages.length === 0) {
-          controller.enqueue(
-            encoder.encode(
-              sseEvent({ type: "error", message: "Couldn't find any readable pages on that site." })
-            )
-          );
+          const message =
+            stats.headlessAttempted > 0
+              ? "This site uses heavy JavaScript rendering and couldn't be crawled automatically. Please contact support for manual setup."
+              : "Couldn't find any readable pages on that site.";
+          controller.enqueue(encoder.encode(sseEvent({ type: "error", message })));
           controller.close();
           return;
         }
