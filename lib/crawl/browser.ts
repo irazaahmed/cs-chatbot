@@ -152,7 +152,17 @@ export async function renderPage(rawUrl: string): Promise<string | null> {
     try {
       const page = await context.newPage();
       const deadline = Date.now() + RENDER_TIMEOUT_MS;
-      await page.goto(url.toString(), { waitUntil: "domcontentloaded", timeout: RENDER_TIMEOUT_MS });
+      const response = await page.goto(url.toString(), { waitUntil: "domcontentloaded", timeout: RENDER_TIMEOUT_MS });
+      if (response && !response.ok()) {
+        // A bot-block/WAF challenge page (Cloudflare et al. typically 403 or
+        // 503) can easily have enough words to pass extractContent's
+        // threshold — confirmed in production (2026-08-16), where a
+        // Cloudflare "you are blocked" page was silently accepted as real
+        // site content. A non-2xx final response is a much more reliable
+        // signal than word count that this isn't the actual page.
+        console.warn(`[crawl] headless render got HTTP ${response.status()} for ${rawUrl}, treating as failed`);
+        return null;
+      }
       const remaining = Math.max(0, deadline - Date.now());
       await page.waitForTimeout(Math.min(HYDRATION_GRACE_MS, remaining));
       return await page.content();
