@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { join, delimiter } from "node:path";
 import { chromium, type Browser } from "playwright-core";
 import { assertSafeUrl } from "@/lib/security/url";
 
@@ -8,12 +9,10 @@ const HYDRATION_GRACE_MS = 1_500; // fixed post-domcontentloaded wait for CSR hy
 
 const USER_AGENT = "CybrumBot/1.0 (+https://cybrumsolutions.dev/bot)";
 
-// Checked in order; first path that exists on disk wins. Debian/Ubuntu's
-// `chromium` apt package (see nixpacks.toml) lands at one of the first two.
-// The Windows paths are dev-machine convenience only — if none of these
-// exist (e.g. local Windows dev with no Chrome installed), the fallback is
-// simply disabled and the crawler behaves exactly as it did before this
-// feature, which is the intended degrade-safe default.
+// Checked in order; first path that exists on disk wins. The Windows paths
+// are dev-machine convenience only — if nothing is found (e.g. local
+// Windows dev with no Chrome installed), the fallback is simply disabled
+// and the crawler behaves exactly as it did before this feature.
 const CANDIDATE_PATHS = [
   process.env.PLAYWRIGHT_CHROMIUM_PATH,
   "/usr/bin/chromium",
@@ -24,11 +23,34 @@ const CANDIDATE_PATHS = [
   "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
 ].filter((p): p is string => Boolean(p));
 
+// Nix packages (see nixpacks.toml — deliberately used over an apt package:
+// Ubuntu's `chromium`/`chromium-browser` apt packages are snap-only
+// transitional stubs with no real binary, confirmed broken in this repo's
+// own build logs) land in the Nix store and get symlinked onto PATH at a
+// location Nixpacks controls, not a fixed path. Scan PATH by hand instead
+// of shelling out to `which` (keeps this dependency-free and portable to
+// Windows dev, where `which` doesn't exist).
+const PATH_BINARY_NAMES = ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable"];
+
+function findOnPath(): string | null {
+  const dirs = (process.env.PATH ?? "").split(delimiter).filter(Boolean);
+  const exeSuffixes = process.platform === "win32" ? [".exe", ""] : [""];
+  for (const dir of dirs) {
+    for (const name of PATH_BINARY_NAMES) {
+      for (const suffix of exeSuffixes) {
+        const candidate = join(dir, name + suffix);
+        if (existsSync(candidate)) return candidate;
+      }
+    }
+  }
+  return null;
+}
+
 let cachedExecutablePath: string | null | undefined;
 
 function resolveChromiumPath(): string | null {
   if (cachedExecutablePath !== undefined) return cachedExecutablePath;
-  cachedExecutablePath = CANDIDATE_PATHS.find((p) => existsSync(p)) ?? null;
+  cachedExecutablePath = CANDIDATE_PATHS.find((p) => existsSync(p)) ?? findOnPath();
   if (!cachedExecutablePath) {
     console.warn("[crawl] no Chromium executable found — headless render fallback is disabled");
   }

@@ -1,10 +1,17 @@
-# Adds the `chromium` apt package on top of Nixpacks' auto-detected Node
-# setup (this key is additive, it doesn't replace the detected nixPkgs —
-# see the Node-version incident in project memory for why that distinction
-# matters). Used by lib/crawl/browser.ts as a headless-render fallback for
-# JS-heavy (CSR) sites the static crawler can't extract text from. If this
-# ever resolves to Ubuntu's snap-only "chromium" stub instead of a real
-# binary, the fallback just stays disabled (checked via existsSync in
-# lib/crawl/browser.ts) rather than breaking the build or the crawl.
+# Adds chromium via Nix (not apt) for lib/crawl/browser.ts's headless-render
+# fallback. This started as `aptPkgs = ["chromium"]`, but that resolved to
+# Ubuntu's snap-only transitional "chromium-browser" package on this VPS's
+# Nixpacks base image — no real binary, and its postinst hung the build
+# entirely (confirmed in production deploy logs, 2026-08-16). Nix's chromium
+# is a self-contained package with no snapd dependency, so it sidesteps the
+# problem outright.
+#
+# nixPkgs here is explicit rather than left to auto-detection, so it also
+# has to carry the Node package Nixpacks would otherwise auto-select —
+# nodejs_22 is what's actually running successfully in production right now
+# (confirmed via deploy logs), not nodejs_24 as the "engines" field in
+# package.json might suggest; npm doesn't hard-enforce engines without
+# --engine-strict. If package.json's required Node version ever changes,
+# update the nodejs_NN entry below to match — it will NOT re-auto-detect.
 [phases.setup]
-aptPkgs = ["chromium"]
+nixPkgs = ["nodejs_22", "chromium"]
