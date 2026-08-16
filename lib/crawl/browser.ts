@@ -7,6 +7,15 @@ const RENDER_TIMEOUT_MS = Number(process.env.HEADLESS_RENDER_TIMEOUT_MS ?? 12_00
 const RENDER_CONCURRENCY = Number(process.env.HEADLESS_RENDER_CONCURRENCY ?? 2);
 const HYDRATION_GRACE_MS = 1_500; // fixed post-domcontentloaded wait for CSR hydration to run
 
+// Cloudflare et al.'s bot scoring is adaptive, not deterministic — confirmed
+// in production (2026-08-16) that the same site blocked one request and let
+// an identical one through minutes later. Only "blocked" is worth retrying;
+// a timeout/crash ("failed") is far more likely to just repeat, and burning
+// another RENDER_TIMEOUT_MS on it isn't worth the latency on a resource-
+// constrained VPS. Total attempts, i.e. BLOCKED_RETRY_ATTEMPTS=2 means one retry.
+const BLOCKED_RETRY_ATTEMPTS = Number(process.env.HEADLESS_BLOCKED_RETRY_ATTEMPTS ?? 2);
+const BLOCKED_RETRY_DELAY_MS = Number(process.env.HEADLESS_BLOCKED_RETRY_DELAY_MS ?? 1_500);
+
 // Deliberately NOT the self-identifying "CybrumBot/1.0" UA that fetch.ts
 // uses for the static crawl — confirmed in production (2026-08-16) that at
 // least one Cloudflare-protected site serves a heavier challenge to a
@@ -147,8 +156,27 @@ export type RenderOutcome =
  * unfixable-by-rendering problem than a render that timed out or crashed,
  * and conflating them produced a genuinely misleading "heavy JavaScript
  * rendering" message for sites that were never a rendering problem at all.
+ *
+ * Retries on "blocked" only (see BLOCKED_RETRY_ATTEMPTS) — the concurrency
+ * slot is released during the retry delay so a blocked page waiting to
+ * retry doesn't hold up other pages' renders.
  */
 export async function renderPage(rawUrl: string): Promise<RenderOutcome> {
+  let outcome: RenderOutcome = { ok: false, reason: "failed" };
+  for (let attempt = 1; attempt <= BLOCKED_RETRY_ATTEMPTS; attempt++) {
+    outcome = await attemptRender(rawUrl);
+    if (outcome.ok || outcome.reason !== "blocked") return outcome;
+    if (attempt < BLOCKED_RETRY_ATTEMPTS) {
+      console.warn(
+        `[crawl] ${rawUrl} blocked on attempt ${attempt}/${BLOCKED_RETRY_ATTEMPTS}, retrying in ${BLOCKED_RETRY_DELAY_MS}ms`
+      );
+      await new Promise((resolve) => setTimeout(resolve, BLOCKED_RETRY_DELAY_MS));
+    }
+  }
+  return outcome;
+}
+
+async function attemptRender(rawUrl: string): Promise<RenderOutcome> {
   const release = await renderSlots.acquire();
   try {
     // re-validate: the static fetch's SSRF check may have run minutes ago
