@@ -7,7 +7,15 @@ const RENDER_TIMEOUT_MS = Number(process.env.HEADLESS_RENDER_TIMEOUT_MS ?? 12_00
 const RENDER_CONCURRENCY = Number(process.env.HEADLESS_RENDER_CONCURRENCY ?? 2);
 const HYDRATION_GRACE_MS = 1_500; // fixed post-domcontentloaded wait for CSR hydration to run
 
-const USER_AGENT = "CybrumBot/1.0 (+https://cybrumsolutions.dev/bot)";
+// Deliberately NOT the self-identifying "CybrumBot/1.0" UA that fetch.ts
+// uses for the static crawl — confirmed in production (2026-08-16) that at
+// least one Cloudflare-protected site serves a heavier challenge to a
+// bot-declaring UA that reliably crashes headless Chromium under
+// --disable-gpu, whereas a normal browser UA renders the same page cleanly.
+// A real browser is what a human visitor's browser would present as, which
+// is the entire point of this fallback — the sites being crawled here are
+// always the tenant's own site (onboarding) or a visitor's own site
+// (landing-page preview), never a third party.
 
 // Checked in order; first path that exists on disk wins. The Windows paths
 // are dev-machine convenience only — if nothing is found (e.g. local
@@ -140,7 +148,7 @@ export async function renderPage(rawUrl: string): Promise<string | null> {
     const browser = await getBrowser();
     if (!browser) return null;
 
-    const context = await browser.newContext({ userAgent: USER_AGENT, javaScriptEnabled: true });
+    const context = await browser.newContext({ javaScriptEnabled: true });
     try {
       const page = await context.newPage();
       const deadline = Date.now() + RENDER_TIMEOUT_MS;
