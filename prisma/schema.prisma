@@ -129,6 +129,11 @@ model Conversation {
   channel      String   @default("web") // web | whatsapp
   createdAt    DateTime @default(now())
 
+  // Set once the WhatsApp connector has notified the tenant's humanContact
+  // number for this thread, so a visitor repeating "talk to a human" doesn't
+  // re-notify the owner on every message.
+  humanNotifiedAt DateTime?
+
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, createdAt])

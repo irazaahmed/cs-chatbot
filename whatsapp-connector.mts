@@ -34,6 +34,7 @@ import { usePgAuthState } from "./lib/whatsapp/pg-auth-state";
 import { retrieveContext, retrieveContactInfo, buildMessages, hasUsableContext } from "./lib/ai/rag";
 import { chatComplete } from "./lib/ai/provider";
 import { captureStructuredSignal } from "./lib/ai/capture";
+import { looksLikeHumanHandoffRequest } from "./lib/ai/extract";
 import { checkMonthlyUsage } from "./lib/billing/status";
 import { parseBrandConfig } from "./lib/tenant/brand";
 import { WHATSAPP_CONVERSATION_CAP } from "./lib/billing/plans";
@@ -89,6 +90,18 @@ function extractText(msg: WAMessage): string | null {
 function normalizePhoneNumber(waId: string | undefined): string | null {
   if (!waId) return null;
   return waId.split(":")[0].split("@")[0];
+}
+
+/** Turns the owner's "Talk to a human" field (Customize tab) into a WhatsApp
+ * JID to notify, but only when it's actually a phone number — the same
+ * field also accepts a URL or email for the website widget's button, which
+ * this can't message. */
+function humanContactJid(raw: string): string | null {
+  const v = raw.trim();
+  if (!v || /^(https?:|mailto:)/i.test(v)) return null;
+  const digits = v.replace(/\D/g, "");
+  if (digits.length < 7) return null;
+  return `${digits}@s.whatsapp.net`;
 }
 
 async function handleInboundMessage(tenantId: string, sock: WASocket, fromJid: string, text: string): Promise<void> {
@@ -159,6 +172,44 @@ async function handleInboundMessage(tenantId: string, sock: WASocket, fromJid: s
     conversationId: conversationRecord.id,
     channel: "whatsapp",
   });
+
+  await notifyHumanHandoff(tenant, sock, fromJid, text, conversationRecord.id, existingConversation?.humanNotifiedAt ?? null);
+}
+
+/** Proactively pings the owner's "Talk to a human" WhatsApp number when a
+ * customer explicitly asks for one, since (unlike the website widget) a
+ * WhatsApp visitor has no button to click. Best-effort and never throws into
+ * the message-handling path; at most once per conversation thread so a
+ * customer repeating the request doesn't spam the owner. */
+async function notifyHumanHandoff(
+  tenant: { id: string; brandConfig: unknown },
+  sock: WASocket,
+  fromJid: string,
+  text: string,
+  conversationId: string,
+  alreadyNotifiedAt: Date | null
+): Promise<void> {
+  if (alreadyNotifiedAt) return;
+  if (!looksLikeHumanHandoffRequest(text)) return;
+
+  const jid = humanContactJid(parseBrandConfig(tenant.brandConfig).humanContact);
+  if (!jid) return;
+
+  try {
+    const customerNumber = normalizePhoneNumber(fromJid) ?? fromJid;
+    await sock.sendMessage(jid, {
+      text:
+        `A customer wants to talk to you on WhatsApp.\n\n` +
+        `From: +${customerNumber}\n` +
+        `Message: "${text}"`,
+    });
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { humanNotifiedAt: new Date() },
+    });
+  } catch (err) {
+    console.error(`[whatsapp-connector] human handoff notify failed for tenant ${tenant.id}:`, err instanceof Error ? err.message : err);
+  }
 }
 
 async function openSocketForTenant(tenantId: string): Promise<void> {
@@ -245,6 +296,7 @@ async function openSocketForTenant(tenantId: string): Promise<void> {
     for (const m of messages) {
       if (m.key.fromMe) continue;
       if (m.key.remoteJid?.endsWith("@g.us")) continue; // ignore groups, DM only
+      if (m.key.remoteJid?.endsWith("@broadcast")) continue; // ignore WhatsApp Status updates & broadcast lists, not real customers
       const fromJid = m.key.remoteJid;
       if (!fromJid) continue;
       const text = extractText(m);

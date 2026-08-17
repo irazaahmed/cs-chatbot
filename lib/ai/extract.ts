@@ -16,6 +16,18 @@ export function looksLikeContactOrBookingSignal(message: string): boolean {
   return CONTACT_SIGNAL_PATTERN.test(message);
 }
 
+const HUMAN_HANDOFF_PATTERN =
+  /\b(talk to (a |an )?(human|person|agent|someone|representative)|speak (to|with) (a |an )?(human|person|agent)|real (human|person)|human se (baat|bat)|agent se (baat|bat)|kisi (insan|banday|bande) se (baat|bat)|insan se (baat|bat))\b/i;
+
+/** Cheap regex check for an explicit "connect me to a human" request, used by
+ * the WhatsApp connector to proactively ping the tenant's humanContact
+ * number. Deliberately narrow (explicit ask only) so it doesn't fire on
+ * every "can I talk to someone about pricing" style question already
+ * handled by the normal lead flow. */
+export function looksLikeHumanHandoffRequest(message: string): boolean {
+  return HUMAN_HANDOFF_PATTERN.test(message);
+}
+
 export interface ExtractedSignal {
   type: "lead" | "appointment" | "none";
   name: string | null;
@@ -30,10 +42,15 @@ const EXTRACT_SYSTEM_PROMPT =
   "You extract structured signals from a customer-support chat transcript. Reply with ONLY a JSON " +
   'object, no prose, no markdown fences, matching exactly: {"type": "lead" | "appointment" | "none", ' +
   '"name": string | null, "contact": string | null, "requestedTime": string | null, "notes": string | null}. ' +
-  'Use "appointment" if the visitor is asking to book/schedule a call, meeting, or visit and you can ' +
-  'see at least a name or contact plus some indication of when. Use "lead" if the visitor shared a ' +
-  "way to reach them (email or phone number) — a name is a bonus, not required — without asking to " +
-  'schedule anything. Use "none" if neither applies yet. requestedTime is the visitor\'s own words ' +
+  'Use "appointment" ONLY if the visitor is explicitly asking to book/schedule a specific call, ' +
+  "meeting, or visit, AND you can see at least a name or contact plus a genuine date/time reference " +
+  '(e.g. "tomorrow 3pm", "kal shaam", a weekday, a specific date/time). Vague urgency words alone, ' +
+  'such as "today", "asap", "urgent", "jaldi", "abhi", "aaj hi", do NOT count as a date/time ' +
+  'reference by themselves. Use "lead" if the visitor shared a way to reach them (email or phone ' +
+  "number) — a name is a bonus, not required — for a general inquiry, quote, or work request, even " +
+  "if they express urgency, as long as they did not ask to schedule a specific meeting time. When in " +
+  'doubt between "lead" and "appointment", prefer "lead". Use "none" if neither applies yet. ' +
+  "requestedTime is the visitor's own words " +
   "for when they want to meet (e.g. " +
   '"tomorrow 3pm", "kal shaam ko") — never invent or normalize a date/time. "notes" is a short ' +
   "(one line, max ~15 words) summary of WHAT the visitor is interested in or asking about — the " +
