@@ -42,6 +42,10 @@ model Tenant {
   whatsappPeriodEnd DateTime?
   whatsappEnabled   Boolean   @default(false)
 
+  instagramStatus    String    @default("inactive") // inactive | trialing | active | past_due | suspended
+  instagramPeriodEnd DateTime?
+  instagramEnabled   Boolean   @default(false)
+
   brandConfig  Json
   systemPrompt String @db.Text
   language     String @default("en")
@@ -54,6 +58,7 @@ model Tenant {
   payments         Payment[]
   rateLimitBuckets RateLimitBucket[]
   whatsappAccount  WhatsAppAccount?
+  instagramAccount InstagramAccount?
 
   @@index([publicKey])
 }
@@ -76,6 +81,27 @@ model WhatsAppAccount {
   lastSeenAt  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// One Instagram professional account per tenant, connected via Instagram
+// Business Login OAuth (not the older Facebook Page + Graph API flow — Meta's
+// current console defaults to this, no Page required). Unlike WhatsApp there
+// is no pairing/connecting handshake: OAuth is one synchronous redirect round
+// trip, so status only ever needs two values.
+model InstagramAccount {
+  id             String    @id @default(cuid())
+  tenantId       String    @unique
+  igUserId       String?   @unique // external key the webhook resolves tenant by, same role publicKey plays for /api/chat
+  igUsername     String?
+  accessToken    String? // long-lived token (60-day expiry), stored plain — matches WhatsAppAccount.authState precedent
+  tokenExpiresAt DateTime?
+  status         String    @default("disconnected") // disconnected | connected
+  connectedAt    DateTime?
+  lastSeenAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
@@ -126,7 +152,7 @@ model Conversation {
   answered     Boolean  @default(true)
   inputTokens  Int      @default(0)
   outputTokens Int      @default(0)
-  channel      String   @default("web") // web | whatsapp
+  channel      String   @default("web") // web | whatsapp | instagram
   createdAt    DateTime @default(now())
   // @default(now()) is required alongside @updatedAt here: without it,
   // `prisma db push` cannot backfill this NOT NULL column on the existing
@@ -160,7 +186,7 @@ model Lead {
   phone          String?
   interest       String? // what service/topic the visitor asked about
   conversationId String?
-  channel        String   @default("web") // web | whatsapp
+  channel        String   @default("web") // web | whatsapp | instagram
   createdAt      DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -186,7 +212,7 @@ model Appointment {
   notes          String?
   conversationId String?
   status         String   @default("requested") // requested | confirmed | canceled
-  channel        String   @default("web") // web | whatsapp
+  channel        String   @default("web") // web | whatsapp | instagram
   createdAt      DateTime @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)

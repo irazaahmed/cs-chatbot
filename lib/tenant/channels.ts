@@ -71,3 +71,29 @@ export async function enableWhatsappChannel(tenantId: string): Promise<void> {
 export async function disableWhatsappChannel(tenantId: string): Promise<void> {
   await prisma.tenant.update({ where: { id: tenantId }, data: { whatsappEnabled: false } });
 }
+
+/** Same first-activation-only trial rule as enableWhatsappChannel, mirrored
+ * against instagramStatus/instagramPeriodEnd. No crawl job, training is
+ * shared via Document like WhatsApp. */
+export async function enableInstagramChannel(tenantId: string): Promise<void> {
+  const tenant = await prisma.tenant.findUniqueOrThrow({
+    where: { id: tenantId },
+    select: { instagramPeriodEnd: true },
+  });
+
+  const isFirstActivation = tenant.instagramPeriodEnd === null;
+
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: {
+      instagramEnabled: true,
+      ...(isFirstActivation
+        ? { instagramStatus: "trialing", instagramPeriodEnd: new Date(Date.now() + TRIAL_MS) }
+        : {}),
+    },
+  });
+}
+
+export async function disableInstagramChannel(tenantId: string): Promise<void> {
+  await prisma.tenant.update({ where: { id: tenantId }, data: { instagramEnabled: false } });
+}

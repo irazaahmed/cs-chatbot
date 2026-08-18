@@ -1,7 +1,8 @@
 # CLAUDE.md — cs-chatbot
 
 Multi-tenant AI chatbot SaaS by Cybrum Solutions, for a business's Website and
-WhatsApp — two equal, independent channels.
+WhatsApp — two equal, independent channels. Instagram was approved
+2026-08-18 as a third channel, not yet built — see section 15.
 
 A business signs up, trains the bot from a website crawl and/or uploaded
 documents, then turns on the Website channel (a `<script>` tag), the WhatsApp
@@ -613,8 +614,11 @@ monitoring via UptimeRobot free tier.
 
 - Do not add Docker, Redis, BullMQ, Pinecone, Qdrant, or Kubernetes.
 - Do not add Stripe or any card processor in Phase 1 to 4.
-- Do not build Instagram or Slack channels. WhatsApp is the one approved
-  additional channel — opt-in, self-serve, equal to Website (see section 9).
+- Do not build Slack. Website, WhatsApp, and (as of 2026-08-18, approved but
+  not yet built) Instagram are the supported channels — each opt-in,
+  self-serve, equal footing (see section 9). Instagram's data model, billing,
+  and status-ladder sections are not written yet; add them as part of
+  building it, following the same pattern WhatsApp used, not ad hoc.
 - Do not build voice. Text only.
 - Do not use a flagship LLM model. Mini or nano class only. A flagship model
   costs more per customer than the customer pays.

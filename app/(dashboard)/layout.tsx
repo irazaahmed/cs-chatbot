@@ -9,6 +9,7 @@ const TABS = [
   { href: "/knowledge", label: "Knowledge" },
   { href: "/customize", label: "Customize" },
   { href: "/whatsapp", label: "WhatsApp" },
+  { href: "/instagram", label: "Instagram" },
   { href: "/install", label: "Website" },
   { href: "/conversations", label: "Conversations" },
   { href: "/unanswered", label: "Unanswered" },
@@ -184,6 +185,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {tenant.whatsappEnabled && tenant.whatsappStatus === "suspended" && (
           <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3.5 text-sm text-danger-text">
             Your WhatsApp channel is currently suspended and not responding to messages. Visit{" "}
+            <Link href="/billing" className="font-medium underline underline-offset-2">
+              Billing
+            </Link>{" "}
+            to restore it.
+          </div>
+        )}
+        {tenant.instagramEnabled && tenant.instagramStatus === "past_due" && (
+          <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-5 py-3.5 text-sm text-warning-text">
+            Your Instagram payment is past due. Instagram still works, but visit{" "}
+            <Link href="/billing" className="font-medium underline underline-offset-2">
+              Billing
+            </Link>{" "}
+            to keep it that way.
+          </div>
+        )}
+        {tenant.instagramEnabled && tenant.instagramStatus === "suspended" && (
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3.5 text-sm text-danger-text">
+            Your Instagram channel is currently suspended and not responding to messages. Visit{" "}
             <Link href="/billing" className="font-medium underline underline-offset-2">
               Billing
             </Link>{" "}
