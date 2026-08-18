@@ -19,8 +19,12 @@ export async function purgeOldConversations(
   retentionDays = CONVERSATION_RETENTION_DAYS
 ): Promise<number> {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+  // Keyed off updatedAt, not createdAt: a long-running thread (the connector
+  // reuses one row per open session) must not get purged mid-conversation
+  // just because it started over 30 days ago — only once it's actually gone
+  // quiet for that long.
   const { count } = await prisma.conversation.deleteMany({
-    where: { createdAt: { lt: cutoff } },
+    where: { updatedAt: { lt: cutoff } },
   });
   return count;
 }

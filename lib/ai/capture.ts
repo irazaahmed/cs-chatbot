@@ -43,6 +43,7 @@ export async function captureStructuredSignal(params: {
           channel,
         },
       });
+      await closeConversation(conversationId);
     } else if (signal.type === "appointment") {
       // Appointments are independent of the lead-capture toggle — a separate
       // feature with its own dashboard tab.
@@ -61,8 +62,22 @@ export async function captureStructuredSignal(params: {
           channel,
         },
       });
+      await closeConversation(conversationId);
     }
   } catch (err) {
     console.error("structured signal capture failed:", err instanceof Error ? err.message : err);
   }
+}
+
+/** Marks the thread as done the moment a Lead/Appointment is captured from
+ * it. The WhatsApp connector reads this to start a fresh session for that
+ * customer's next message instead of dragging a closed deal's context into
+ * an unrelated later conversation (see whatsapp-connector.mts). No-op for
+ * the playground, which has no conversationId. */
+async function closeConversation(conversationId: string | null | undefined): Promise<void> {
+  if (!conversationId) return;
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { closedAt: new Date() },
+  });
 }
