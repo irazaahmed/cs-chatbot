@@ -11,7 +11,12 @@ export const runtime = "nodejs";
 // "resolve identity from an external key" pattern CLAUDE.md already allows
 // for publicKey in /api/chat.
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  // Not request.nextUrl.origin: behind Coolify's Traefik proxy that resolves
+  // to the container's internal http://localhost:3000, not the public host,
+  // producing broken localhost redirects. INSTAGRAM_REDIRECT_URI is already
+  // the one place the real public origin is configured.
+  const origin = new URL(process.env.INSTAGRAM_REDIRECT_URI ?? "").origin;
 
   const error = searchParams.get("error");
   if (error) {

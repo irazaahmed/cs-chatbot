@@ -57,7 +57,7 @@ export async function exchangeCodeForToken(code: string): Promise<ShortLivedToke
   });
 
   const res = await fetch(TOKEN_URL, { method: "POST", body });
-  if (!res.ok) throw new Error(`Instagram token exchange failed: ${res.status}`);
+  if (!res.ok) throw new Error(`Instagram token exchange failed: ${res.status} ${await res.text()}`);
   return res.json();
 }
 
@@ -77,7 +77,7 @@ export async function exchangeForLongLivedToken(shortLivedToken: string): Promis
   });
 
   const res = await fetch(`${GRAPH_URL}/access_token?${params.toString()}`);
-  if (!res.ok) throw new Error(`Instagram long-lived token exchange failed: ${res.status}`);
+  if (!res.ok) throw new Error(`Instagram long-lived token exchange failed: ${res.status} ${await res.text()}`);
   return res.json();
 }
 
