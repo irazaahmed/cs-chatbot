@@ -31,6 +31,11 @@ export function buildAuthorizeUrl(state: string): string {
     response_type: "code",
     scope: SCOPES,
     state,
+    // Without this, Instagram silently reuses whatever account is already
+    // logged into in the browser instead of prompting — a real problem for
+    // a tenant who's personally logged into a different Instagram account
+    // than the one they run their business through.
+    force_reauth: "true",
   });
   return `${AUTHORIZE_URL}?${params.toString()}`;
 }
