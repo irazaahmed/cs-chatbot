@@ -18,8 +18,9 @@ export async function captureStructuredSignal(params: {
   conversationId?: string | null;
   /** Which surface this signal came from — stored on the Lead/Appointment row
    *  so the dashboard can show where a contact reached out from. Defaults to
-   *  "web" since that's every caller except the WhatsApp connector. */
-  channel?: "web" | "whatsapp";
+   *  "web" since that's every caller except the WhatsApp connector and the
+   *  Instagram webhook. */
+  channel?: "web" | "whatsapp" | "instagram";
 }): Promise<void> {
   const { tenantId, leadCaptureEnabled, history, latestMessage, conversationId, channel = "web" } = params;
 

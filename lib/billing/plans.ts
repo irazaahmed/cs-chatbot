@@ -110,6 +110,12 @@ const WHATSAPP_BUNDLE_PRICES: Record<BillingCycle, number> = {
  * a real business never notices it while abuse still has a ceiling. */
 export const WHATSAPP_CONVERSATION_CAP = 5000;
 
+/** Same role as WHATSAPP_CONVERSATION_CAP, for the Instagram webhook (see
+ * app/api/instagram/webhook/route.ts). Instagram pricing/addon plumbing is
+ * Phase Instagram-3, not built yet — this cap exists now only so the shared
+ * checkMonthlyUsage gate has a ceiling to enforce from day one. */
+export const INSTAGRAM_CONVERSATION_CAP = 5000;
+
 /** hasWebsitePlan should be true when this payment also includes a website
  * plan, or the tenant already has one active. */
 export function whatsappAddonPrice(cycle: BillingCycle, hasWebsitePlan: boolean): number {

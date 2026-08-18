@@ -38,14 +38,10 @@ import { looksLikeHumanHandoffRequest } from "./lib/ai/extract";
 import { checkMonthlyUsage } from "./lib/billing/status";
 import { parseBrandConfig } from "./lib/tenant/brand";
 import { WHATSAPP_CONVERSATION_CAP } from "./lib/billing/plans";
+import { resolveChannelSession } from "./lib/ai/session";
 
 const POLL_INTERVAL_MS = 5000;
 const SUSPENDED_WHATSAPP_STATUSES = new Set(["suspended"]);
-// A thread that's gone quiet this long is treated as ended, same as a
-// captured Lead/Appointment closing it explicitly (lib/ai/capture.ts) — the
-// customer's next message starts a fresh session/history rather than
-// resuming a stale one.
-const SESSION_IDLE_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
 const sockets = new Map<string, WASocket>();
 // Tenants that have had at least one QR shown during the current connection
@@ -115,22 +111,7 @@ async function handleInboundMessage(tenantId: string, sock: WASocket, fromJid: s
 
   if (!tenant.whatsappEnabled || SUSPENDED_WHATSAPP_STATUSES.has(tenant.whatsappStatus)) return;
 
-  // Stable per-customer prefix. A closed or idle session gets a fresh
-  // sessionId suffixed with the epoch it started (see below), so old rows
-  // (bare "whatsapp:{tenantId}:{fromJid}", no suffix) still match via prefix.
-  const baseSessionId = `whatsapp:${tenantId}:${fromJid}`;
-
-  const latestConversation = await prisma.conversation.findFirst({
-    where: { tenantId: tenant.id, sessionId: { startsWith: baseSessionId } },
-    orderBy: { createdAt: "desc" },
-  });
-  const sessionExpired =
-    latestConversation !== null &&
-    (latestConversation.closedAt !== null ||
-      Date.now() - latestConversation.updatedAt.getTime() > SESSION_IDLE_TIMEOUT_MS);
-
-  const existingConversation = sessionExpired ? null : latestConversation;
-  const sessionId = existingConversation ? existingConversation.sessionId : `${baseSessionId}:${Date.now()}`;
+  const { existingConversation, sessionId } = await resolveChannelSession(tenant.id, "whatsapp", fromJid);
 
   const usageGate = await checkMonthlyUsage(tenant.id, WHATSAPP_CONVERSATION_CAP, sessionId, "whatsapp");
   if (!usageGate.allowed) return;
