@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { verifyState } from "@/lib/instagram/oauth-state";
-import { exchangeCodeForToken, exchangeForLongLivedToken, fetchInstagramProfile } from "@/lib/instagram/oauth";
+import { exchangeCodeForToken, exchangeForLongLivedToken, fetchInstagramProfile, subscribeToWebhooks } from "@/lib/instagram/oauth";
 
 export const runtime = "nodejs";
 
@@ -61,6 +61,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         lastSeenAt: new Date(),
       },
     });
+
+    // Best-effort: the account is already connected and usable even if this
+    // fails, it just means webhook delivery (inbound DMs) won't work until a
+    // retry succeeds — never block the connect flow on it.
+    try {
+      await subscribeToWebhooks(profile.user_id, longLived.access_token);
+    } catch (err) {
+      console.error("[instagram-oauth] webhook subscription failed:", err instanceof Error ? err.message : err);
+    }
 
     return NextResponse.redirect(new URL("/instagram?connected=1", origin));
   } catch (err) {

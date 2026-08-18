@@ -92,3 +92,15 @@ export async function fetchInstagramProfile(accessToken: string): Promise<Instag
   if (!res.ok) throw new Error(`Instagram profile fetch failed: ${res.status}`);
   return res.json();
 }
+
+/** The App Dashboard's webhook config (callback URL, subscribed fields) only
+ * sets up where events for the App as a whole go — each individual Instagram
+ * account must separately opt itself into delivery via this endpoint using
+ * its own access token, or the webhook never fires for that account even
+ * though everything else is configured correctly. Must be called once right
+ * after connecting (see app/api/instagram/oauth/callback/route.ts). */
+export async function subscribeToWebhooks(igUserId: string, accessToken: string): Promise<void> {
+  const params = new URLSearchParams({ subscribed_fields: "messages", access_token: accessToken });
+  const res = await fetch(`${GRAPH_URL}/${igUserId}/subscribed_apps?${params.toString()}`, { method: "POST" });
+  if (!res.ok) throw new Error(`Instagram webhook subscription failed: ${res.status} ${await res.text()}`);
+}
