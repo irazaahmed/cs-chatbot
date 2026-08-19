@@ -3,6 +3,7 @@ import { ChannelBadge } from "./channel-badge";
 import { Table } from "@/components/dashboard/Table";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { Badge } from "@/components/dashboard/Badge";
+import { MessageSquareIcon } from "@/components/dashboard/icons";
 
 interface DisplayMessage {
   role: string;
@@ -44,7 +45,10 @@ export async function ConversationTable({
 
   if (conversations.length === 0) {
     return (
-      <EmptyState action={{ href: "/install", label: "Install your widget" }}>
+      <EmptyState
+        action={{ href: "/install", label: "Install your widget" }}
+        icon={<MessageSquareIcon className="h-[1.15rem] w-[1.15rem]" />}
+      >
         No conversations yet.
       </EmptyState>
     );

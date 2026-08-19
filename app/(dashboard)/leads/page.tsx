@@ -5,6 +5,7 @@ import { Table } from "@/components/dashboard/Table";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { parseBrandConfig } from "@/lib/tenant/brand";
 import { ChannelFilterForm } from "@/components/dashboard/ChannelFilterForm";
+import { UserPlusIcon } from "@/components/dashboard/icons";
 
 interface StoredMessage {
   role: "user" | "assistant";
@@ -75,6 +76,7 @@ export default async function LeadsPage({
       <div className="mt-6">
         {leads.length === 0 ? (
           <EmptyState
+            icon={<UserPlusIcon className="h-[1.15rem] w-[1.15rem]" />}
             action={
               parseBrandConfig(tenant.brandConfig).leadCapture
                 ? undefined
