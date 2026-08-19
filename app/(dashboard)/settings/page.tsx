@@ -3,6 +3,7 @@ import { getCurrentTenant } from "@/lib/tenant/current";
 import { deleteTenantCompletely } from "@/lib/tenant/delete";
 import { signOut } from "@/auth";
 import { DeleteTenantForm } from "@/components/admin/DeleteTenantForm";
+import { Card } from "@/components/dashboard/Card";
 
 export default async function SettingsPage() {
   const { tenant } = await getCurrentTenant();
@@ -32,7 +33,7 @@ export default async function SettingsPage() {
       <h1 className="font-heading text-2xl font-semibold tracking-tight">Settings</h1>
       <p className="mt-1 text-sm text-muted">Manage your account.</p>
 
-      <div className="glass mt-6 rounded-2xl border border-red-500/20 p-6">
+      <Card className="mt-6 border border-red-500/20">
         <p className="text-sm font-medium text-foreground">Delete account</p>
         <p className="mt-1 text-sm text-muted">
           Permanently deletes your account and everything tied to it: crawled data, uploaded files,
@@ -45,7 +46,7 @@ export default async function SettingsPage() {
           action={deleteAccount}
           actionLabel="Permanently delete my account"
         />
-      </div>
+      </Card>
     </div>
   );
 }

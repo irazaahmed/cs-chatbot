@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Input } from "@/components/dashboard/Input";
+import { Label } from "@/components/dashboard/Label";
+import { Button } from "@/components/dashboard/Button";
 
 /**
  * Type-to-confirm guard for an irreversible action. The delete button stays
@@ -29,23 +32,20 @@ export function DeleteTenantForm({
       className="mt-4"
     >
       <input type="hidden" name="id" value={tenantId} />
-      <label htmlFor="confirmName" className="block text-xs font-medium text-muted">
+      <Label htmlFor="confirmName" size="sm" muted>
         Type <span className="font-semibold text-foreground">{tenantName}</span> to confirm
-      </label>
-      <input
+      </Label>
+      <Input
         id="confirmName"
         value={confirmText}
         onChange={(e) => setConfirmText(e.target.value)}
-        className="mt-1.5 w-full max-w-sm rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-sm text-foreground outline-none transition-shadow focus:shadow-[0_0_0_2px_rgb(239,68,68)]"
+        variant="danger"
+        className="max-w-sm text-sm"
         autoComplete="off"
       />
-      <button
-        type="submit"
-        disabled={!matches || submitting}
-        className="mt-3 rounded-full border border-red-400/40 px-5 py-2 text-sm font-medium text-danger-text transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-      >
+      <Button variant="danger" disabled={!matches || submitting} className="mt-3">
         {submitting ? "Deleting…" : actionLabel}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -48,7 +48,7 @@ export default async function LoginPage({
         <form
           action={async () => {
             "use server";
-            await signIn("google", { redirectTo: "/playground" });
+            await signIn("google", { redirectTo: "/home" });
           }}
           className="mt-7"
         >

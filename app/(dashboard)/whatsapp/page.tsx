@@ -3,11 +3,11 @@ import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { enableWhatsappChannel, disableWhatsappChannel } from "@/lib/tenant/channels";
 import { PairingPoll } from "@/components/whatsapp/PairingPoll";
-
-const primaryButtonClass =
-  "btn-sheen rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)]";
-const secondaryButtonClass =
-  "rounded-full border border-border bg-surface/60 px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-danger-text/60 hover:text-danger-text";
+import { Card } from "@/components/dashboard/Card";
+import { Surface } from "@/components/dashboard/Surface";
+import { Badge } from "@/components/dashboard/Badge";
+import { Button } from "@/components/dashboard/Button";
+import { ThinkingDots } from "@/components/ui/ThinkingDots";
 
 export default async function WhatsAppPage({
   searchParams,
@@ -63,22 +63,19 @@ export default async function WhatsAppPage({
     return (
       <div className="max-w-2xl">
         <h1 className="font-heading text-2xl font-semibold tracking-tight">WhatsApp</h1>
-        <div className="glass mt-6 rounded-2xl p-6">
-          <p className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-4 py-2 text-sm font-medium text-muted">
-            <span className="h-2 w-2 rounded-full bg-muted" />
+        <Card className="mt-6">
+          <Badge tone="neutral" size="lg" dot>
             Off
-          </p>
+          </Badge>
           <p className="mt-4 text-sm text-foreground">
             Turn on the WhatsApp channel to connect your own WhatsApp Business number. The same AI
             that answers on your website will answer here too, from the same knowledge base.
           </p>
           <p className="mt-1 text-sm text-muted">Your first activation starts a 3-day trial.</p>
           <form action={turnOnWhatsapp} className="mt-4">
-            <button type="submit" className={primaryButtonClass}>
-              Turn on WhatsApp
-            </button>
+            <Button variant="primary">Turn on WhatsApp</Button>
           </form>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -87,45 +84,38 @@ export default async function WhatsAppPage({
     <div className="max-w-2xl">
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-heading text-2xl font-semibold tracking-tight">Connect Your WhatsApp</h1>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-success-text">
-          <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-emerald-400" />
+        <Badge tone="success" size="md" dot pulse>
           On
-        </span>
+        </Badge>
       </div>
       <p className="mt-1 text-sm text-muted">
         Connect your own WhatsApp Business number. The same AI that answers on your website will answer here too,
         24/7, from the same knowledge base, with the same lead and appointment capture.
       </p>
-      <p className="mt-3 rounded-2xl border border-border bg-surface/60 px-4 py-3 text-xs text-muted">
+      <Surface className="mt-3 px-4 py-3 text-xs">
         This WhatsApp bot runs on Cybrum Solutions&apos; own infrastructure. It is not Meta&apos;s official WhatsApp
         Business API.
-      </p>
+      </Surface>
 
       {!isPairing && (!account || account.status === "disconnected") && (
-        <div className="glass mt-6 rounded-2xl p-6">
+        <Card className="mt-6">
           <h2 className="font-heading font-semibold">Scan a QR code</h2>
           <p className="mt-1 text-sm text-muted">
             Open WhatsApp on your phone and scan a code, the same way you&apos;d link WhatsApp Web.
             You&apos;ll need a second screen (a computer, or any other device) to show the code on.
           </p>
           <form action={connectWithQr} className="mt-4">
-            <button type="submit" className={primaryButtonClass}>
-              Connect with QR code
-            </button>
+            <Button variant="primary">Connect with QR code</Button>
           </form>
-        </div>
+        </Card>
       )}
 
       {isPairing && (
-        <div className="glass mt-6 rounded-2xl p-6 text-center">
+        <Card className="mt-6 text-center">
           <PairingPoll />
           {account?.status === "connecting" ? (
             <p className="flex items-center justify-center gap-2 py-10 text-sm text-muted">
-              <span className="flex items-center gap-1">
-                <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright" />
-                <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.15s]" />
-                <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.3s]" />
-              </span>
+              <ThinkingDots dotClassName="bg-accent-bright" />
               Connecting…
             </p>
           ) : account?.qrCode ? (
@@ -145,15 +135,14 @@ export default async function WhatsAppPage({
           ) : (
             <p className="py-10 text-sm text-muted">Generating your code…</p>
           )}
-        </div>
+        </Card>
       )}
 
       {account?.status === "connected" && (
-        <div className="glass mt-6 rounded-2xl p-6">
-          <p className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-medium text-success-text">
-            <span className="h-2 w-2 animate-pulse-soft rounded-full bg-emerald-400" />
+        <Card className="mt-6">
+          <Badge tone="success" size="lg" dot pulse>
             Connected
-          </p>
+          </Badge>
           <p className="mt-4 text-sm text-foreground">
             Number: <span className="text-muted">{account.phoneNumber ?? "Unknown"}</span>
           </p>
@@ -163,11 +152,9 @@ export default async function WhatsAppPage({
             </p>
           )}
           <form action={disconnect} className="mt-4">
-            <button type="submit" className={secondaryButtonClass}>
-              Disconnect
-            </button>
+            <Button variant="outline-danger">Disconnect</Button>
           </form>
-        </div>
+        </Card>
       )}
 
       <form action={turnOffWhatsapp} className="mt-6">

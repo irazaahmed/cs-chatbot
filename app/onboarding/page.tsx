@@ -64,7 +64,7 @@ async function createTenant(formData: FormData) {
   // resubmitted/double-clicked form from racing a second tenant into
   // existence, so check again here, at the point that actually writes.
   const existing = await prisma.tenant.findFirst({ where: { ownerId: session.user.id } });
-  if (existing) redirect("/playground");
+  if (existing) redirect("/home");
 
   const name = String(formData.get("name") ?? "").trim();
   if (!name) redirect("/onboarding?error=1");
@@ -204,7 +204,7 @@ export default async function OnboardingPage({
   if (!session?.user?.id) redirect("/login");
 
   const existing = await prisma.tenant.findFirst({ where: { ownerId: session.user.id } });
-  if (existing) redirect("/playground");
+  if (existing) redirect("/home");
 
   const cookieStore = await cookies();
   const defaults = readPreviewDefaults(cookieStore.get(PREVIEW_URL_COOKIE)?.value);

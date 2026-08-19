@@ -7,10 +7,10 @@ import { signIn } from "@/auth";
 import { prisma } from "@/lib/db/client";
 
 // Shared by /login and the landing-page preview CTA — both just need to
-// start the Google OAuth round trip and land on /playground, which already
-// redirects to /onboarding for accounts with no tenant yet.
+// start the Google OAuth round trip and land on /home (the dashboard home),
+// which already redirects to /onboarding for accounts with no tenant yet.
 export async function signInWithGoogle(): Promise<void> {
-  await signIn("google", { redirectTo: "/playground" });
+  await signIn("google", { redirectTo: "/home" });
 }
 
 /**
@@ -34,7 +34,7 @@ export async function signUp(formData: FormData): Promise<void> {
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.create({ data: { name, email, passwordHash } });
 
-  await signIn("credentials", { email, password, redirectTo: "/playground" });
+  await signIn("credentials", { email, password, redirectTo: "/home" });
 }
 
 /** Signs an existing user in. Wrong email/password redirects back with an error. */
@@ -43,7 +43,7 @@ export async function login(formData: FormData): Promise<void> {
   const password = String(formData.get("password") ?? "");
 
   try {
-    await signIn("credentials", { email, password, redirectTo: "/playground" });
+    await signIn("credentials", { email, password, redirectTo: "/home" });
   } catch (error) {
     if (error instanceof AuthError) {
       redirect("/login?error=1");

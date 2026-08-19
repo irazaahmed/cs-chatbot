@@ -1,6 +1,10 @@
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { ChannelBadge } from "../_components/channel-badge";
+import { Table } from "@/components/dashboard/Table";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { parseBrandConfig } from "@/lib/tenant/brand";
+import { ChannelFilterForm } from "@/components/dashboard/ChannelFilterForm";
 
 interface StoredMessage {
   role: "user" | "assistant";
@@ -27,11 +31,16 @@ function firstVisitorQuestion(raw: unknown): string | null {
   return null;
 }
 
-export default async function LeadsPage() {
+export default async function LeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ channel?: string }>;
+}) {
   const { tenant } = await getCurrentTenant();
+  const { channel } = await searchParams;
 
   const leads = await prisma.lead.findMany({
-    where: { tenantId: tenant.id },
+    where: { tenantId: tenant.id, ...(channel ? { channel } : {}) },
     orderBy: { createdAt: "desc" },
     take: 200,
   });
@@ -53,61 +62,64 @@ export default async function LeadsPage() {
 
   return (
     <div>
-      <h1 className="font-heading text-2xl font-semibold tracking-tight">Leads</h1>
-      <p className="mt-1 text-sm text-muted">
-        Contact details visitors share with your chatbot.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">Leads</h1>
+          <p className="mt-1 text-sm text-muted">
+            Contact details visitors share with your chatbot.
+          </p>
+        </div>
+        <ChannelFilterForm channel={channel} basePath="/leads" />
+      </div>
 
       <div className="mt-6">
         {leads.length === 0 ? (
-          <p className="rounded-2xl border border-border bg-card/60 p-6 text-sm text-muted backdrop-blur-sm">
+          <EmptyState
+            action={
+              parseBrandConfig(tenant.brandConfig).leadCapture
+                ? undefined
+                : { href: "/customize", label: "Turn on lead capture" }
+            }
+          >
             No leads yet.
-          </p>
+          </EmptyState>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-surface/80 text-left text-muted">
-                  <tr>
-                    <th className="px-5 py-3 font-medium">Name</th>
-                    <th className="px-5 py-3 font-medium">Channel</th>
-                    <th className="px-5 py-3 font-medium">Email</th>
-                    <th className="px-5 py-3 font-medium">Phone</th>
-                    <th className="px-5 py-3 font-medium">Interested in</th>
-                    <th className="px-5 py-3 font-medium">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leads.map((lead) => {
-                    // Prefer the LLM-extracted summary saved on the lead; fall
-                    // back to the conversation's first question for older rows
-                    // captured before we stored the interest directly.
-                    const interest =
-                      lead.interest ||
-                      (lead.conversationId ? interestById.get(lead.conversationId) : null);
-                    return (
-                      <tr key={lead.id} className="border-t border-border transition-colors hover:bg-accent/5">
-                        <td className="px-5 py-3 text-foreground">{lead.name || "—"}</td>
-                        <td className="px-5 py-3">
-                          <ChannelBadge channel={lead.channel} />
-                        </td>
-                        <td className="px-5 py-3 text-muted">{lead.email || "—"}</td>
-                        <td className="px-5 py-3 text-muted">{lead.phone || "—"}</td>
-                        <td className="max-w-xs px-5 py-3 text-muted">
-                          <span className="line-clamp-2" title={interest || undefined}>
-                            {interest || "—"}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-muted">
-                          {lead.createdAt.toLocaleDateString()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <Table>
+            <Table.Head>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Channel</Table.Th>
+              <Table.Th>Email</Table.Th>
+              <Table.Th>Phone</Table.Th>
+              <Table.Th>Interested in</Table.Th>
+              <Table.Th>Date</Table.Th>
+            </Table.Head>
+            <Table.Body>
+              {leads.map((lead) => {
+                // Prefer the LLM-extracted summary saved on the lead; fall
+                // back to the conversation's first question for older rows
+                // captured before we stored the interest directly.
+                const interest =
+                  lead.interest ||
+                  (lead.conversationId ? interestById.get(lead.conversationId) : null);
+                return (
+                  <Table.Row key={lead.id}>
+                    <Table.Td muted={false}>{lead.name || "—"}</Table.Td>
+                    <Table.Td>
+                      <ChannelBadge channel={lead.channel} />
+                    </Table.Td>
+                    <Table.Td>{lead.email || "—"}</Table.Td>
+                    <Table.Td>{lead.phone || "—"}</Table.Td>
+                    <Table.Td className="max-w-xs">
+                      <span className="line-clamp-2" title={interest || undefined}>
+                        {interest || "—"}
+                      </span>
+                    </Table.Td>
+                    <Table.Td>{lead.createdAt.toLocaleDateString()}</Table.Td>
+                  </Table.Row>
+                );
+              })}
+            </Table.Body>
+          </Table>
         )}
       </div>
     </div>

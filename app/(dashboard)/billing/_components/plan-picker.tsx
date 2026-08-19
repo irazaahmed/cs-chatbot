@@ -5,9 +5,12 @@ import type { PlanOption, BillingCycle } from "@/lib/billing/plans";
 import { BILLING_CYCLES, CYCLE_META, formatPages } from "@/lib/billing/plans";
 import type { PaymentInstructions } from "@/lib/billing/instructions";
 import { submitPayment } from "@/lib/billing/actions";
-
-const inputClass =
-  "mt-1.5 w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]";
+import { Card } from "@/components/dashboard/Card";
+import { Input } from "@/components/dashboard/Input";
+import { Select } from "@/components/dashboard/Select";
+import { Label } from "@/components/dashboard/Label";
+import { Checkbox } from "@/components/dashboard/Checkbox";
+import { Button } from "@/components/dashboard/Button";
 
 type Mode = "plan" | "whatsapp_only";
 
@@ -56,7 +59,7 @@ export function PlanPicker({
   }
 
   return (
-    <div className="glass mt-6 rounded-3xl p-7">
+    <Card radius="3xl" padding="lg" className="mt-6">
       {bothEnabled && (
         <div className="mb-5 inline-flex rounded-full border border-border bg-surface/60 p-1 text-sm font-medium">
           <button
@@ -142,12 +145,7 @@ export function PlanPicker({
 
           {whatsappEnabled && (
             <label className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-surface/60 px-4 py-3 text-sm">
-              <input
-                type="checkbox"
-                checked={includeWhatsapp}
-                onChange={(e) => setIncludeWhatsapp(e.target.checked)}
-                className="h-4 w-4 rounded border-border accent-accent"
-              />
+              <Checkbox checked={includeWhatsapp} onChange={(e) => setIncludeWhatsapp(e.target.checked)} />
               <span className="flex-1">
                 <span className="font-medium text-foreground">Add WhatsApp</span>{" "}
                 <span className="text-muted">
@@ -211,32 +209,28 @@ export function PlanPicker({
         <input type="hidden" name="includeWhatsapp" value={includeWhatsapp ? "on" : "off"} />
 
         <div>
-          <label htmlFor="method" className="block text-sm font-medium">Paid via</label>
-          <select
-            id="method"
-            name="method"
-            className="mt-1.5 rounded-xl border border-border bg-surface/60 px-4 py-2.5 text-foreground outline-none"
-          >
+          <Label htmlFor="method">Paid via</Label>
+          <Select id="method" name="method">
             <option value="jazzcash">JazzCash</option>
             <option value="easypaisa">EasyPaisa</option>
             <option value="bank">Bank transfer</option>
-          </select>
+          </Select>
         </div>
 
         <div>
-          <label htmlFor="senderName" className="block text-sm font-medium">Sender name</label>
-          <input id="senderName" name="senderName" required className={inputClass} />
+          <Label htmlFor="senderName">Sender name</Label>
+          <Input id="senderName" name="senderName" required />
         </div>
 
         <div>
-          <label htmlFor="amountPKR" className="block text-sm font-medium">Amount to pay (PKR)</label>
-          <input
+          <Label htmlFor="amountPKR">Amount to pay (PKR)</Label>
+          <Input
             id="amountPKR"
             type="text"
             value={`Rs ${amountPKR.toLocaleString()}`}
             readOnly
             disabled
-            className={`${inputClass} cursor-not-allowed opacity-80`}
+            className="cursor-not-allowed opacity-80"
           />
           <p className="mt-1 text-xs text-muted">
             {mode === "whatsapp_only"
@@ -246,7 +240,7 @@ export function PlanPicker({
         </div>
 
         <div>
-          <label htmlFor="screenshot" className="block text-sm font-medium">Payment screenshot</label>
+          <Label htmlFor="screenshot">Payment screenshot</Label>
           <input
             id="screenshot"
             name="screenshot"
@@ -257,13 +251,8 @@ export function PlanPicker({
           />
         </div>
 
-        <button
-          type="submit"
-          className="btn-sheen rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)]"
-        >
-          Submit payment
-        </button>
+        <Button variant="primary">Submit payment</Button>
       </form>
-    </div>
+    </Card>
   );
 }

@@ -105,7 +105,7 @@ export default async function AdminPage() {
           </p>
         </div>
         <Link
-          href="/playground"
+          href="/home"
           className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm text-foreground transition-colors hover:border-accent"
         >
           Back to dashboard

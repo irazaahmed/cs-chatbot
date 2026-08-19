@@ -5,6 +5,13 @@ import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { planPageCap } from "@/lib/billing/plans";
 import { detectUploadKind, readKnowledgeFile } from "@/lib/knowledge/file-storage";
+import { Card } from "@/components/dashboard/Card";
+import { Table } from "@/components/dashboard/Table";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { Badge } from "@/components/dashboard/Badge";
+import { Button } from "@/components/dashboard/Button";
+import { StatusBanner } from "@/components/dashboard/StatusBanner";
+import { ThinkingDots } from "@/components/ui/ThinkingDots";
 
 interface JobProgress {
   done: number;
@@ -141,39 +148,23 @@ export default async function KnowledgePage({
               required
               className="max-w-[180px] text-xs text-muted file:mr-2 file:rounded-full file:border-0 file:bg-accent/15 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-accent-bright hover:file:bg-accent/25"
             />
-            <button
-              type="submit"
-              className="rounded-full border border-border bg-surface/60 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
-            >
-              Upload PDF or DOCX
-            </button>
+            <Button variant="outline">Upload PDF or DOCX</Button>
           </form>
           <form action={triggerRecrawl}>
-            <button
-              type="submit"
-              className="btn-sheen rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_30px_-6px_var(--color-accent)]"
-            >
-              Recrawl site
-            </button>
+            <Button variant="primary">Recrawl site</Button>
           </form>
         </div>
       </div>
 
       {error && (
-        <p className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm text-danger-text">
-          {UPLOAD_ERRORS[error] ?? "Something went wrong. Please try again."}
-        </p>
+        <div className="mt-4">
+          <StatusBanner tone="danger">{UPLOAD_ERRORS[error] ?? "Something went wrong. Please try again."}</StatusBanner>
+        </div>
       )}
 
       {latestJob && (
         <p className="mt-3 flex items-center gap-2 text-xs text-muted">
-          {latestJob.status === "running" && (
-            <span className="flex items-center gap-1">
-              <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright" />
-              <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.15s]" />
-              <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.3s]" />
-            </span>
-          )}
+          {latestJob.status === "running" && <ThinkingDots dotClassName="bg-accent-bright" />}
           Last crawl: {latestJob.status}
           {latestJob.status === "running" && progress ? ` (${progress.done}/${progress.total})` : ""}
         </p>
@@ -181,35 +172,27 @@ export default async function KnowledgePage({
 
       {latestUploadJob && (latestUploadJob.status === "pending" || latestUploadJob.status === "running") && (
         <p className="mt-2 flex items-center gap-2 text-xs text-muted">
-          <span className="flex items-center gap-1">
-            <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright" />
-            <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.15s]" />
-            <span className="pv-dot h-1.5 w-1.5 rounded-full bg-accent-bright [animation-delay:0.3s]" />
-          </span>
+          <ThinkingDots dotClassName="bg-accent-bright" />
           Processing uploaded document…
         </p>
       )}
 
-      <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
-        {pages.size === 0 ? (
-          <p className="p-6 text-sm text-muted">
-            No pages indexed yet. Upload a PDF or DOCX above, or trigger a crawl.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface/80 text-left text-muted">
-                <tr>
-                  <th className="px-5 py-3 font-medium">Page</th>
-                  <th className="px-5 py-3 font-medium">Chunks</th>
-                  <th className="px-5 py-3 font-medium">Tokens</th>
-                  <th className="px-5 py-3 font-medium" />
-                </tr>
-              </thead>
-              <tbody>
+      <div className="mt-6">
+        <Card padding="none">
+          {pages.size === 0 ? (
+            <EmptyState bordered={false}>No pages indexed yet. Upload a PDF or DOCX above, or trigger a crawl.</EmptyState>
+          ) : (
+            <Table bare>
+              <Table.Head>
+                <Table.Th>Page</Table.Th>
+                <Table.Th>Chunks</Table.Th>
+                <Table.Th>Tokens</Table.Th>
+                <Table.Th />
+              </Table.Head>
+              <Table.Body>
                 {Array.from(pages.entries()).map(([url, info]) => (
-                  <tr key={url} className="border-t border-border transition-colors hover:bg-accent/5">
-                    <td className="px-5 py-3">
+                  <Table.Row key={url}>
+                    <Table.Td muted={false}>
                       <div className="flex items-center gap-2">
                         {info.kind === "web" ? (
                           <a
@@ -224,15 +207,15 @@ export default async function KnowledgePage({
                           <span className="text-foreground">{info.title || url}</span>
                         )}
                         {info.kind !== "web" && (
-                          <span className="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-bright">
+                          <Badge tone="accent" size="xs" className="uppercase tracking-wide">
                             {info.kind}
-                          </span>
+                          </Badge>
                         )}
                       </div>
-                    </td>
-                    <td className="px-5 py-3 tabular-nums text-muted">{info.chunkCount}</td>
-                    <td className="px-5 py-3 tabular-nums text-muted">{info.tokenCount}</td>
-                    <td className="px-5 py-3 text-right">
+                    </Table.Td>
+                    <Table.Td numeric>{info.chunkCount}</Table.Td>
+                    <Table.Td numeric>{info.tokenCount}</Table.Td>
+                    <Table.Td className="text-right">
                       <form action={deleteKnowledgeItem}>
                         <input type="hidden" name="sourceUrl" value={url} />
                         <input type="hidden" name="kind" value={info.kind} />
@@ -243,13 +226,13 @@ export default async function KnowledgePage({
                           Delete
                         </button>
                       </form>
-                    </td>
-                  </tr>
+                    </Table.Td>
+                  </Table.Row>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </Table.Body>
+            </Table>
+          )}
+        </Card>
       </div>
     </div>
   );

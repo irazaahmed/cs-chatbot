@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/db/client";
 import { ChannelBadge } from "./channel-badge";
+import { Table } from "@/components/dashboard/Table";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { Badge } from "@/components/dashboard/Badge";
 
 interface DisplayMessage {
   role: string;
@@ -20,69 +23,69 @@ function messageCount(raw: unknown): number {
   return Array.isArray(raw) ? raw.length : 0;
 }
 
-export async function ConversationTable({ tenantId, answeredOnly }: { tenantId: string; answeredOnly?: boolean }) {
+export async function ConversationTable({
+  tenantId,
+  answeredOnly,
+  channel,
+}: {
+  tenantId: string;
+  answeredOnly?: boolean;
+  channel?: string;
+}) {
   const conversations = await prisma.conversation.findMany({
-    where: { tenantId, ...(answeredOnly === false ? { answered: false } : {}) },
+    where: {
+      tenantId,
+      ...(answeredOnly === false ? { answered: false } : {}),
+      ...(channel ? { channel } : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: 100,
   });
 
   if (conversations.length === 0) {
     return (
-      <p className="rounded-2xl border border-border bg-card/60 p-6 text-sm text-muted backdrop-blur-sm">
+      <EmptyState action={{ href: "/install", label: "Install your widget" }}>
         No conversations yet.
-      </p>
+      </EmptyState>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card/60 backdrop-blur-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-surface/80 text-left text-muted">
-            <tr>
-              <th className="px-5 py-3 font-medium">First message</th>
-              <th className="px-5 py-3 font-medium">Channel</th>
-              <th className="px-5 py-3 font-medium">Messages</th>
-              <th className="px-5 py-3 font-medium">Answered</th>
-              <th className="px-5 py-3 font-medium">Tokens</th>
-              <th className="px-5 py-3 font-medium">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {conversations.map((c) => (
-              <tr key={c.id} className="border-t border-border transition-colors hover:bg-accent/5">
-                <td className="max-w-xs truncate px-5 py-3 text-foreground">
-                  {firstUserMessage(c.messages) || "(empty)"}
-                </td>
-                <td className="px-5 py-3">
-                  <ChannelBadge channel={c.channel} />
-                </td>
-                <td className="px-5 py-3 tabular-nums text-muted">{messageCount(c.messages)}</td>
-                <td className="px-5 py-3">
-                  {c.answered ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-medium text-success-text">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                      Yes
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-400/30 bg-red-400/10 px-2.5 py-0.5 text-xs font-medium text-danger-text">
-                      <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                      No
-                    </span>
-                  )}
-                </td>
-                <td className="px-5 py-3 tabular-nums text-muted">
-                  {c.inputTokens + c.outputTokens}
-                </td>
-                <td className="px-5 py-3 text-muted">
-                  {c.createdAt.toLocaleDateString()}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <Table>
+      <Table.Head>
+        <Table.Th>First message</Table.Th>
+        <Table.Th>Channel</Table.Th>
+        <Table.Th>Messages</Table.Th>
+        <Table.Th>Answered</Table.Th>
+        <Table.Th>Tokens</Table.Th>
+        <Table.Th>Date</Table.Th>
+      </Table.Head>
+      <Table.Body>
+        {conversations.map((c) => (
+          <Table.Row key={c.id}>
+            <Table.Td muted={false} className="max-w-xs truncate">
+              {firstUserMessage(c.messages) || "(empty)"}
+            </Table.Td>
+            <Table.Td>
+              <ChannelBadge channel={c.channel} />
+            </Table.Td>
+            <Table.Td numeric>{messageCount(c.messages)}</Table.Td>
+            <Table.Td>
+              {c.answered ? (
+                <Badge tone="success" dot>
+                  Yes
+                </Badge>
+              ) : (
+                <Badge tone="danger" dot>
+                  No
+                </Badge>
+              )}
+            </Table.Td>
+            <Table.Td numeric>{c.inputTokens + c.outputTokens}</Table.Td>
+            <Table.Td>{c.createdAt.toLocaleDateString()}</Table.Td>
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </Table>
   );
 }

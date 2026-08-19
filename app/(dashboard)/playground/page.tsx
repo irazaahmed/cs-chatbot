@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { readSSE } from "@/lib/client/sse";
 import { ThinkingDots } from "@/components/ui/ThinkingDots";
+import { Card } from "@/components/dashboard/Card";
+import { Button } from "@/components/dashboard/Button";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -101,7 +103,7 @@ export default function PlaygroundPage() {
         Test your chatbot exactly as a visitor would see it.
       </p>
 
-      <div className="glass mt-6 flex h-[560px] min-h-0 flex-col overflow-hidden rounded-3xl lg:h-auto lg:flex-1">
+      <Card radius="3xl" padding="none" className="mt-6 flex h-[560px] min-h-0 flex-col lg:h-auto lg:flex-1">
         <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto p-5">
           {messages.length === 0 && (
             <p className="text-sm text-muted">
@@ -140,16 +142,11 @@ export default function PlaygroundPage() {
             disabled={sending}
             className="max-h-[220px] min-h-11 min-w-0 flex-1 resize-none overflow-y-auto whitespace-pre-wrap break-words rounded-2xl border border-border bg-surface/60 px-4 py-2.5 text-foreground placeholder:text-muted outline-none transition-shadow focus:shadow-[0_0_0_2px_var(--color-accent)]"
           />
-          <button
-            type="button"
-            onClick={submitMessage}
-            disabled={sending}
-            className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-accent px-4 font-medium text-white transition-all duration-300 hover:bg-accent-bright disabled:opacity-50 sm:px-5"
-          >
+          <Button variant="primary" type="button" onClick={submitMessage} disabled={sending} className="shrink-0">
             Send
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
