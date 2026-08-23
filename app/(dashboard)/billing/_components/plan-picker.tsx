@@ -12,7 +12,7 @@ import { Label } from "@/components/dashboard/Label";
 import { Checkbox } from "@/components/dashboard/Checkbox";
 import { Button } from "@/components/dashboard/Button";
 
-type Mode = "plan" | "whatsapp_only";
+type Mode = "plan" | "whatsapp_only" | "instagram_only";
 
 export function PlanPicker({
   plans,
@@ -24,6 +24,10 @@ export function PlanPicker({
   whatsappBundlePrices,
   whatsappStandaloneModePrices,
   whatsappDefaultChecked,
+  instagramEnabled,
+  instagramBundlePrices,
+  instagramStandaloneModePrices,
+  instagramDefaultChecked,
 }: {
   plans: PlanOption[];
   defaultPlanId: string;
@@ -36,56 +40,101 @@ export function PlanPicker({
   /** Rate for whatsapp_only mode, pre-resolved server-side from the tenant's current status. */
   whatsappStandaloneModePrices: Record<BillingCycle, number>;
   whatsappDefaultChecked: boolean;
+  instagramEnabled: boolean;
+  /** Same role as whatsappBundlePrices, for the "Add Instagram" checkbox. */
+  instagramBundlePrices: Record<BillingCycle, number>;
+  /** Same role as whatsappStandaloneModePrices, for instagram_only mode. */
+  instagramStandaloneModePrices: Record<BillingCycle, number>;
+  instagramDefaultChecked: boolean;
 }) {
   const initial = plans.find((p) => p.id === defaultPlanId) ?? plans[0];
-  // Both channels toggled on: let the tenant switch between paying for the
-  // website plan (with WhatsApp optionally bundled in) or WhatsApp alone.
+  // More than one channel toggled on: let the tenant switch between paying
+  // for the website plan (with WhatsApp or Instagram optionally bundled in,
+  // not both — one add-on per payment for now) or a single channel alone.
   // Only one channel on: skip the switcher, there's only one thing to buy.
-  const bothEnabled = websiteEnabled && whatsappEnabled;
-  const [mode, setMode] = useState<Mode>(websiteEnabled ? "plan" : "whatsapp_only");
+  const enabledCount = Number(websiteEnabled) + Number(whatsappEnabled) + Number(instagramEnabled);
+  const showModeSwitcher = enabledCount > 1;
+  const [mode, setMode] = useState<Mode>(
+    websiteEnabled ? "plan" : whatsappEnabled ? "whatsapp_only" : "instagram_only"
+  );
   const [planId, setPlanId] = useState(initial.id);
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [includeWhatsapp, setIncludeWhatsapp] = useState(whatsappEnabled && whatsappDefaultChecked);
+  const [includeInstagram, setIncludeInstagram] = useState(
+    !whatsappDefaultChecked && instagramEnabled && instagramDefaultChecked
+  );
 
   const plan = plans.find((p) => p.id === planId) ?? initial;
   const amountPKR =
     mode === "whatsapp_only"
       ? whatsappStandaloneModePrices[cycle]
-      : plan.prices[cycle] + (includeWhatsapp ? whatsappBundlePrices[cycle] : 0);
+      : mode === "instagram_only"
+        ? instagramStandaloneModePrices[cycle]
+        : plan.prices[cycle] +
+          (includeWhatsapp ? whatsappBundlePrices[cycle] : includeInstagram ? instagramBundlePrices[cycle] : 0);
 
   function selectPlan(nextPlan: PlanOption, nextCycle: BillingCycle) {
     setPlanId(nextPlan.id);
     setCycle(nextCycle);
   }
 
+  // Only one add-on per payment for now — checking one clears the other.
+  function toggleWhatsapp(checked: boolean) {
+    setIncludeWhatsapp(checked);
+    if (checked) setIncludeInstagram(false);
+  }
+  function toggleInstagram(checked: boolean) {
+    setIncludeInstagram(checked);
+    if (checked) setIncludeWhatsapp(false);
+  }
+
   return (
     <Card radius="3xl" padding="lg" className="mt-6">
-      {bothEnabled && (
+      {showModeSwitcher && (
         <div className="mb-5 inline-flex rounded-full border border-border bg-surface/60 p-1 text-sm font-medium">
-          <button
-            type="button"
-            onClick={() => setMode("plan")}
-            className={`rounded-full px-4 py-1.5 transition-colors ${
-              mode === "plan" ? "bg-accent text-white" : "text-muted hover:text-foreground"
-            }`}
-          >
-            Website plan
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("whatsapp_only")}
-            className={`rounded-full px-4 py-1.5 transition-colors ${
-              mode === "whatsapp_only" ? "bg-accent text-white" : "text-muted hover:text-foreground"
-            }`}
-          >
-            WhatsApp only
-          </button>
+          {websiteEnabled && (
+            <button
+              type="button"
+              onClick={() => setMode("plan")}
+              className={`rounded-full px-4 py-1.5 transition-colors ${
+                mode === "plan" ? "bg-accent text-white" : "text-muted hover:text-foreground"
+              }`}
+            >
+              Website plan
+            </button>
+          )}
+          {whatsappEnabled && (
+            <button
+              type="button"
+              onClick={() => setMode("whatsapp_only")}
+              className={`rounded-full px-4 py-1.5 transition-colors ${
+                mode === "whatsapp_only" ? "bg-accent text-white" : "text-muted hover:text-foreground"
+              }`}
+            >
+              WhatsApp only
+            </button>
+          )}
+          {instagramEnabled && (
+            <button
+              type="button"
+              onClick={() => setMode("instagram_only")}
+              className={`rounded-full px-4 py-1.5 transition-colors ${
+                mode === "instagram_only" ? "bg-accent text-white" : "text-muted hover:text-foreground"
+              }`}
+            >
+              Instagram only
+            </button>
+          )}
         </div>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-heading text-lg font-semibold tracking-tight">
-          {mode === "whatsapp_only" ? "WhatsApp, no website plan" : "Choose a plan"}
+          {mode === "whatsapp_only"
+            ? "WhatsApp, no website plan"
+            : mode === "instagram_only"
+              ? "Instagram, no website plan"
+              : "Choose a plan"}
         </h2>
         <div className="inline-flex rounded-full border border-border bg-surface/60 p-1 text-xs font-medium">
           {BILLING_CYCLES.map((c) => (
@@ -112,6 +161,17 @@ export function PlanPicker({
           <p className="mt-2 text-sm leading-relaxed text-muted">
             WhatsApp only, no website widget or website plan. Up to 5,000 conversations a month on
             your own WhatsApp Business number.
+          </p>
+        </div>
+      ) : mode === "instagram_only" ? (
+        <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/[0.07] p-5">
+          <p className="font-heading text-lg font-semibold tabular-nums text-accent-bright">
+            Rs {instagramStandaloneModePrices[cycle].toLocaleString()}
+            <span className="text-sm font-normal text-muted"> /{CYCLE_META[cycle].label.toLowerCase()}</span>
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            Instagram only, no website widget or website plan. Up to 5,000 conversations a month on
+            your own Instagram professional account.
           </p>
         </div>
       ) : (
@@ -145,7 +205,7 @@ export function PlanPicker({
 
           {whatsappEnabled && (
             <label className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-surface/60 px-4 py-3 text-sm">
-              <Checkbox checked={includeWhatsapp} onChange={(e) => setIncludeWhatsapp(e.target.checked)} />
+              <Checkbox checked={includeWhatsapp} onChange={(e) => toggleWhatsapp(e.target.checked)} />
               <span className="flex-1">
                 <span className="font-medium text-foreground">Add WhatsApp</span>{" "}
                 <span className="text-muted">
@@ -154,12 +214,32 @@ export function PlanPicker({
               </span>
             </label>
           )}
+
+          {instagramEnabled && (
+            <label className="mt-3 flex items-center gap-3 rounded-2xl border border-border bg-surface/60 px-4 py-3 text-sm">
+              <Checkbox checked={includeInstagram} onChange={(e) => toggleInstagram(e.target.checked)} />
+              <span className="flex-1">
+                <span className="font-medium text-foreground">Add Instagram</span>{" "}
+                <span className="text-muted">
+                  Rs {instagramBundlePrices[cycle].toLocaleString()}/{CYCLE_META[cycle].label.toLowerCase()}
+                </span>
+              </span>
+            </label>
+          )}
+
+          {whatsappEnabled && instagramEnabled && (
+            <p className="mt-2 text-xs text-muted">Only one add-on channel per payment for now.</p>
+          )}
         </>
       )}
 
       <h2 className="mt-6 font-heading text-lg font-semibold tracking-tight">
         Pay Rs {amountPKR.toLocaleString()} for{" "}
-        {mode === "whatsapp_only" ? "WhatsApp" : `the ${plan.label} plan${includeWhatsapp ? " + WhatsApp" : ""}`}
+        {mode === "whatsapp_only"
+          ? "WhatsApp"
+          : mode === "instagram_only"
+            ? "Instagram"
+            : `the ${plan.label} plan${includeWhatsapp ? " + WhatsApp" : includeInstagram ? " + Instagram" : ""}`}
         <span className="text-sm font-normal text-muted"> ({CYCLE_META[cycle].label.toLowerCase()})</span>
       </h2>
       <p className="mt-1.5 text-sm text-muted">
@@ -207,6 +287,7 @@ export function PlanPicker({
         <input type="hidden" name="planId" value={planId} />
         <input type="hidden" name="billingCycle" value={cycle} />
         <input type="hidden" name="includeWhatsapp" value={includeWhatsapp ? "on" : "off"} />
+        <input type="hidden" name="includeInstagram" value={includeInstagram ? "on" : "off"} />
 
         <div>
           <Label htmlFor="method">Paid via</Label>
@@ -235,7 +316,9 @@ export function PlanPicker({
           <p className="mt-1 text-xs text-muted">
             {mode === "whatsapp_only"
               ? "Set by the WhatsApp-only rate, not editable."
-              : `Set by the ${plan.label} ${CYCLE_META[cycle].label.toLowerCase()} plan${includeWhatsapp ? " plus WhatsApp" : ""}, not editable.`}
+              : mode === "instagram_only"
+                ? "Set by the Instagram-only rate, not editable."
+                : `Set by the ${plan.label} ${CYCLE_META[cycle].label.toLowerCase()} plan${includeWhatsapp ? " plus WhatsApp" : includeInstagram ? " plus Instagram" : ""}, not editable.`}
           </p>
         </div>
 

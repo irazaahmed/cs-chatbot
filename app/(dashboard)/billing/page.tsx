@@ -3,7 +3,7 @@ import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { generateInvoiceRef } from "@/lib/billing/invoice";
 import { getPaymentInstructions } from "@/lib/billing/instructions";
-import { getPlanOptions, whatsappAddonPrice, BILLING_CYCLES, type BillingCycle } from "@/lib/billing/plans";
+import { getPlanOptions, whatsappAddonPrice, instagramAddonPrice, BILLING_CYCLES, type BillingCycle } from "@/lib/billing/plans";
 import { PlanPicker } from "./_components/plan-picker";
 import { Card } from "@/components/dashboard/Card";
 import { Badge } from "@/components/dashboard/Badge";
@@ -29,6 +29,7 @@ export default async function BillingPage({
 
   const statusInfo = channelStatusTone(tenant.status);
   const whatsappStatusInfo = channelStatusTone(tenant.whatsappStatus);
+  const instagramStatusInfo = channelStatusTone(tenant.instagramStatus);
 
   // Bundle rate for the checkbox in plan mode (always true: buying a plan
   // right now), vs the standalone-mode rate, resolved from whether the
@@ -36,11 +37,16 @@ export default async function BillingPage({
   const hasActivePlan = tenant.status === "active";
   const whatsappBundlePrices = {} as Record<BillingCycle, number>;
   const whatsappStandaloneModePrices = {} as Record<BillingCycle, number>;
+  const instagramBundlePrices = {} as Record<BillingCycle, number>;
+  const instagramStandaloneModePrices = {} as Record<BillingCycle, number>;
   for (const cycle of BILLING_CYCLES) {
     whatsappBundlePrices[cycle] = whatsappAddonPrice(cycle, true);
     whatsappStandaloneModePrices[cycle] = whatsappAddonPrice(cycle, hasActivePlan);
+    instagramBundlePrices[cycle] = instagramAddonPrice(cycle, true);
+    instagramStandaloneModePrices[cycle] = instagramAddonPrice(cycle, hasActivePlan);
   }
   const whatsappDefaultChecked = tenant.whatsappStatus === "active" || tenant.whatsappStatus === "trialing";
+  const instagramDefaultChecked = tenant.instagramStatus === "active" || tenant.instagramStatus === "trialing";
 
   return (
     <div className="max-w-2xl">
@@ -79,6 +85,22 @@ export default async function BillingPage({
             )}
           </>
         )}
+        {tenant.instagramEnabled && (
+          <>
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-sm">
+              <span className="text-muted">Instagram status</span>
+              <Badge tone={instagramStatusInfo.tone}>{instagramStatusInfo.label}</Badge>
+            </div>
+            {tenant.instagramPeriodEnd && (
+              <div className="mt-3 flex items-center justify-between text-sm">
+                <span className="text-muted">Instagram period ends</span>
+                <span className="font-medium tabular-nums">
+                  {tenant.instagramPeriodEnd.toLocaleDateString()}
+                </span>
+              </div>
+            )}
+          </>
+        )}
       </Card>
 
       {pendingPayment ? (
@@ -88,15 +110,19 @@ export default async function BillingPage({
             approval. Your access is already extended while we review it, no action needed.
           </StatusBanner>
         </div>
-      ) : !tenant.websiteEnabled && !tenant.whatsappEnabled ? (
+      ) : !tenant.websiteEnabled && !tenant.whatsappEnabled && !tenant.instagramEnabled ? (
         <Card className="mt-6 text-sm text-muted">
           Turn on the{" "}
           <Link href="/install" className="font-medium text-foreground underline underline-offset-2">
             Website
-          </Link>{" "}
-          or{" "}
+          </Link>
+          ,{" "}
           <Link href="/whatsapp" className="font-medium text-foreground underline underline-offset-2">
             WhatsApp
+          </Link>
+          , or{" "}
+          <Link href="/instagram" className="font-medium text-foreground underline underline-offset-2">
+            Instagram
           </Link>{" "}
           channel first — billing is based on whichever channel(s) you have on.
         </Card>
@@ -110,7 +136,7 @@ export default async function BillingPage({
                   : error === "3"
                     ? "That invoice reference was already used. Refresh the page and try again."
                     : error === "4"
-                      ? "Turn on a channel (Website or WhatsApp) before paying for it."
+                      ? "Turn on a channel (Website, WhatsApp, or Instagram) before paying for it."
                       : "Please fill in all fields and attach a screenshot."}
               </StatusBanner>
             </div>
@@ -126,6 +152,10 @@ export default async function BillingPage({
             whatsappBundlePrices={whatsappBundlePrices}
             whatsappStandaloneModePrices={whatsappStandaloneModePrices}
             whatsappDefaultChecked={whatsappDefaultChecked}
+            instagramEnabled={tenant.instagramEnabled}
+            instagramBundlePrices={instagramBundlePrices}
+            instagramStandaloneModePrices={instagramStandaloneModePrices}
+            instagramDefaultChecked={instagramDefaultChecked}
           />
         </>
       )}

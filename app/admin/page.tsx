@@ -32,9 +32,13 @@ async function approvePayment(formData: FormData) {
   const tenantUpdateData =
     payment.addon === "bundle"
       ? { ...websiteUpdate, whatsappStatus: "active", whatsappPeriodEnd: periodEnd }
-      : payment.addon === "whatsapp"
-        ? { whatsappStatus: "active", whatsappPeriodEnd: periodEnd }
-        : websiteUpdate;
+      : payment.addon === "bundle_instagram"
+        ? { ...websiteUpdate, instagramStatus: "active", instagramPeriodEnd: periodEnd }
+        : payment.addon === "whatsapp"
+          ? { whatsappStatus: "active", whatsappPeriodEnd: periodEnd }
+          : payment.addon === "instagram"
+            ? { instagramStatus: "active", instagramPeriodEnd: periodEnd }
+            : websiteUpdate;
 
   await prisma.$transaction([
     prisma.payment.update({ where: { id }, data: { status: "verified", reviewedAt: now } }),
@@ -42,7 +46,12 @@ async function approvePayment(formData: FormData) {
   ]);
 
   if (payment.tenant.owner.email) {
-    const label = payment.addon === "whatsapp" ? "WhatsApp" : `${planLabel(payment.planId)} plan`;
+    const label =
+      payment.addon === "whatsapp"
+        ? "WhatsApp"
+        : payment.addon === "instagram"
+          ? "Instagram"
+          : `${planLabel(payment.planId)} plan`;
     await sendPaymentApprovedEmail(payment.tenant.owner.email, payment.tenant.name, label, periodEnd);
   }
 
@@ -149,9 +158,13 @@ export default async function AdminPage() {
                     <dd className="mt-0.5 font-medium capitalize">
                       {payment.addon === "bundle"
                         ? `${payment.planId} + WhatsApp`
-                        : payment.addon === "whatsapp"
-                          ? "WhatsApp"
-                          : payment.planId}
+                        : payment.addon === "bundle_instagram"
+                          ? `${payment.planId} + Instagram`
+                          : payment.addon === "whatsapp"
+                            ? "WhatsApp"
+                            : payment.addon === "instagram"
+                              ? "Instagram"
+                              : payment.planId}
                       <span className="ml-1.5 text-xs font-normal text-muted">
                         ({CYCLE_META[isBillingCycle(payment.billingCycle) ? payment.billingCycle : "monthly"].label})
                       </span>

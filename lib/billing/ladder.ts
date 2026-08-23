@@ -12,9 +12,11 @@ function statusForDaysOverdue(daysOverdue: number): string {
   return "past_due";
 }
 
-// The WhatsApp channel has no "canceled" state (see Tenant.whatsappStatus in
-// schema.prisma) — it's a smaller, simpler ladder than the website plan's.
-function whatsappStatusForDaysOverdue(daysOverdue: number): string {
+// Neither the WhatsApp nor the Instagram channel has a "canceled" state (see
+// Tenant.whatsappStatus / Tenant.instagramStatus in schema.prisma) — both
+// are a smaller, simpler ladder than the website plan's, and share this
+// exact same two-step shape.
+function channelStatusForDaysOverdue(daysOverdue: number): string {
   if (daysOverdue >= 7) return "suspended";
   return "past_due";
 }
@@ -79,7 +81,7 @@ export async function applyStatusLadder(): Promise<number> {
   for (const tenant of overdueWhatsApp) {
     if (!tenant.whatsappPeriodEnd) continue;
     const daysOverdue = Math.floor((now.getTime() - tenant.whatsappPeriodEnd.getTime()) / DAY_MS);
-    const nextStatus = whatsappStatusForDaysOverdue(daysOverdue);
+    const nextStatus = channelStatusForDaysOverdue(daysOverdue);
     if (nextStatus !== tenant.whatsappStatus) {
       await prisma.tenant.update({ where: { id: tenant.id }, data: { whatsappStatus: nextStatus } });
       changed++;
@@ -91,6 +93,32 @@ export async function applyStatusLadder(): Promise<number> {
     data: { whatsappStatus: "suspended" },
   });
   changed += expiredWhatsAppTrials.count;
+
+  // Parallel pass for the Instagram channel — same shape as WhatsApp's
+  // above, entirely independent, keyed off instagramStatus/instagramPeriodEnd.
+  const overdueInstagram = await prisma.tenant.findMany({
+    where: {
+      instagramStatus: { in: ["active", "past_due", "suspended"] },
+      instagramPeriodEnd: { lt: now },
+    },
+    select: { id: true, instagramStatus: true, instagramPeriodEnd: true },
+  });
+
+  for (const tenant of overdueInstagram) {
+    if (!tenant.instagramPeriodEnd) continue;
+    const daysOverdue = Math.floor((now.getTime() - tenant.instagramPeriodEnd.getTime()) / DAY_MS);
+    const nextStatus = channelStatusForDaysOverdue(daysOverdue);
+    if (nextStatus !== tenant.instagramStatus) {
+      await prisma.tenant.update({ where: { id: tenant.id }, data: { instagramStatus: nextStatus } });
+      changed++;
+    }
+  }
+
+  const expiredInstagramTrials = await prisma.tenant.updateMany({
+    where: { instagramStatus: "trialing", instagramPeriodEnd: { lt: now } },
+    data: { instagramStatus: "suspended" },
+  });
+  changed += expiredInstagramTrials.count;
 
   return changed;
 }

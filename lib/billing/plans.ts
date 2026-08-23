@@ -111,16 +111,45 @@ const WHATSAPP_BUNDLE_PRICES: Record<BillingCycle, number> = {
 export const WHATSAPP_CONVERSATION_CAP = 5000;
 
 /** Same role as WHATSAPP_CONVERSATION_CAP, for the Instagram webhook (see
- * app/api/instagram/webhook/route.ts). Instagram pricing/addon plumbing is
- * Phase Instagram-3, not built yet — this cap exists now only so the shared
- * checkMonthlyUsage gate has a ceiling to enforce from day one. */
+ * app/api/instagram/webhook/route.ts). */
 export const INSTAGRAM_CONVERSATION_CAP = 5000;
+
+// Instagram uses the same standalone/bundle two-rate model as WhatsApp (see
+// the comment above WHATSAPP_STANDALONE_PRICES) — same prices by default,
+// independently overridable via env so the two can diverge later without a
+// code change. Sold through the same combined checkout in
+// lib/billing/actions.ts#submitPayment. Only one of WhatsApp/Instagram can
+// be added per payment for now (see CLAUDE.md section 9).
+const INSTAGRAM_STANDALONE_PRICES: Record<BillingCycle, number> = {
+  monthly: 4999,
+  quarterly: 13497,
+  yearly: 47990,
+};
+
+const INSTAGRAM_BUNDLE_PRICES: Record<BillingCycle, number> = {
+  monthly: 4499,
+  quarterly: 12147,
+  yearly: 43190,
+};
 
 /** hasWebsitePlan should be true when this payment also includes a website
  * plan, or the tenant already has one active. */
 export function whatsappAddonPrice(cycle: BillingCycle, hasWebsitePlan: boolean): number {
   const table = hasWebsitePlan ? WHATSAPP_BUNDLE_PRICES : WHATSAPP_STANDALONE_PRICES;
   const keyPrefix = hasWebsitePlan ? "WHATSAPP_BUNDLE" : "WHATSAPP_STANDALONE";
+  const key = `PLAN_PRICE_PKR_${keyPrefix}_${cycle.toUpperCase()}`;
+  const fromEnv = process.env[key];
+  if (fromEnv) {
+    const parsed = Number(fromEnv);
+    if (Number.isFinite(parsed) && parsed > 0) return Math.round(parsed);
+  }
+  return table[cycle];
+}
+
+/** Same role as whatsappAddonPrice, for the Instagram channel. */
+export function instagramAddonPrice(cycle: BillingCycle, hasWebsitePlan: boolean): number {
+  const table = hasWebsitePlan ? INSTAGRAM_BUNDLE_PRICES : INSTAGRAM_STANDALONE_PRICES;
+  const keyPrefix = hasWebsitePlan ? "INSTAGRAM_BUNDLE" : "INSTAGRAM_STANDALONE";
   const key = `PLAN_PRICE_PKR_${keyPrefix}_${cycle.toUpperCase()}`;
   const fromEnv = process.env[key];
   if (fromEnv) {

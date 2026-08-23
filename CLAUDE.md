@@ -1,14 +1,16 @@
 # CLAUDE.md — cs-chatbot
 
-Multi-tenant AI chatbot SaaS by Cybrum Solutions, for a business's Website and
-WhatsApp — two equal, independent channels. Instagram was approved
-2026-08-18 as a third channel, not yet built — see section 15.
+Multi-tenant AI chatbot SaaS by Cybrum Solutions, for a business's Website,
+WhatsApp, and Instagram — three equal, independent channels. Instagram was
+approved 2026-08-18 and built following the same pattern WhatsApp used (see
+sections 4, 9, and 15).
 
 A business signs up, trains the bot from a website crawl and/or uploaded
 documents, then turns on the Website channel (a `<script>` tag), the WhatsApp
-channel (their own WhatsApp Business number), or both. Each channel is a
+channel (their own WhatsApp Business number), the Instagram channel (their
+own Instagram professional account), or any combination. Each channel is a
 self-serve on/off toggle with its own trial and its own billing; no domain
-ownership proof is required for either.
+ownership proof is required for any of them.
 
 Read this file fully before writing any code. Follow it exactly.
 
@@ -107,12 +109,22 @@ WhatsApp connector (node whatsapp-connector.mts, separate terminal / process, op
        ├─ poll jobs table for pairing requests, publish QR to the dashboard
        └─ inbound message → same retrieval/prompt/LLM pipeline as /api/chat,
           non-streaming, keyed by the sender's WhatsApp id
+
+Instagram (POST /api/instagram/webhook, ordinary Next.js route, opt-in per tenant)
+  └─ tenant connects via OAuth from the dashboard (no persistent
+     socket/process needed — a REST + webhook API, unlike WhatsApp)
+       ├─ Meta signature-verifies each webhook delivery
+       ├─ resolve tenant by the Instagram professional account id
+       └─ inbound message → same retrieval/prompt/LLM pipeline as /api/chat,
+          non-streaming, keyed by the sender's Instagram-scoped id
 ```
 
 **Four separately runnable pieces:** the Next.js app, the worker, the WhatsApp
 connector, and the widget bundle. The worker and the WhatsApp connector must be
 standalone processes, never Next.js routes — crawls run for minutes and the
 WhatsApp socket must stay open, neither of which a stateless route can do.
+Instagram does not need a fifth piece: unlike WhatsApp's persistent socket, it's
+a stateless webhook, so it lives in the Next.js app like /api/chat does.
 
 ---
 
@@ -150,6 +162,10 @@ model Tenant {
   whatsappPeriodEnd DateTime?
   whatsappEnabled   Boolean   @default(false)
 
+  instagramStatus    String    @default("inactive") // inactive | trialing | active | past_due | suspended
+  instagramPeriodEnd DateTime?
+  instagramEnabled   Boolean   @default(false)
+
   brandConfig    Json                      // color, botName, avatar, greeting, position
   systemPrompt   String   @db.Text
   language       String   @default("en")   // en | ur | roman_ur
@@ -159,7 +175,8 @@ model Tenant {
   conversations  Conversation[]
   leads          Lead[]
   payments       Payment[]
-  whatsappAccount WhatsAppAccount?
+  whatsappAccount  WhatsAppAccount?
+  instagramAccount InstagramAccount?
 
   @@index([publicKey])
 }
@@ -178,6 +195,25 @@ model WhatsAppAccount {
   lastSeenAt  DateTime?
 
   tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// One Instagram professional account per tenant, connected via OAuth (all
+// tenants consent through Cybrum's one shared Meta App — see
+// lib/instagram/oauth.ts — not their own app), unlike WhatsApp's persistent
+// Baileys socket. accessToken is a long-lived (60-day) token refreshed on
+// use; there is no auth-state blob or QR pairing step to model.
+model InstagramAccount {
+  id             String    @id @default(cuid())
+  tenantId       String    @unique
+  igUserId       String?   @unique
+  igUsername     String?
+  accessToken    String?
+  tokenExpiresAt DateTime?
+  status         String    @default("disconnected") // disconnected | connected
+  connectedAt    DateTime?
+  lastSeenAt     DateTime?
+
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model Document {
@@ -218,7 +254,7 @@ model Conversation {
   answered  Boolean  @default(true)   // false = bot could not answer
   inputTokens  Int   @default(0)
   outputTokens Int   @default(0)
-  channel   String   @default("web") // web | whatsapp — counted against separate caps
+  channel   String   @default("web") // web | whatsapp | instagram — counted against separate caps
   createdAt DateTime @default(now())
 
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -246,7 +282,8 @@ model Payment {
   invoiceRef  String    @unique   // CYB-2026-0042, customer puts this in transaction remarks
   planId      String    @default("starter") // applied to Tenant.planId on approval
   billingCycle String   @default("monthly") // monthly | quarterly | yearly
-  addon       String?             // null = plan payment; "whatsapp" = WhatsApp channel payment
+  addon       String?             // null = plan only; "whatsapp"/"instagram" = that channel alone;
+                                   // "bundle"/"bundle_instagram" = plan + that channel (one add-on per payment)
   amountPKR   Int
   method      String              // jazzcash | easypaisa | raast | bank
   senderName  String
@@ -341,9 +378,11 @@ cycles: monthly (base), quarterly (10% off 3 months), yearly (20% off 12
 months). Prices and caps live in `lib/billing/plans.ts` (the single source of
 truth); env vars `PLAN_PRICE_PKR_<PLAN>_<CYCLE>` override the compiled defaults.
 
-The WhatsApp channel has its own conversation cap, tracked separately from the
-website plan's (`WHATSAPP_CONVERSATION_CAP` in `lib/billing/plans.ts`), keyed
-off `Conversation.channel`. See section 9 for its pricing and status ladder.
+The WhatsApp and Instagram channels each have their own conversation cap,
+tracked separately from the website plan's and from each other
+(`WHATSAPP_CONVERSATION_CAP` / `INSTAGRAM_CONVERSATION_CAP` in
+`lib/billing/plans.ts`), keyed off `Conversation.channel`. See section 9 for
+pricing and status ladders.
 
 ---
 
@@ -454,13 +493,37 @@ Pricing is two-rate, resolved in `lib/billing/plans.ts#whatsappAddonPrice`:
 
 Both are sold through the same combined checkout as the website plan
 (`lib/billing/actions.ts#submitPayment`) — one payment, one screenshot, one
-`invoiceRef`, `Payment.addon = "whatsapp"` marks the WhatsApp portion. Either
-channel can also be paid for entirely on its own.
+`invoiceRef`. `Payment.addon = "whatsapp"` marks a WhatsApp-only payment,
+`"bundle"` marks a website plan + WhatsApp payment. The channel can also be
+paid for entirely on its own.
 
 WhatsApp has its own, simpler status ladder (`Tenant.whatsappStatus`, driven
 by `whatsappPeriodEnd`), independent of the website plan's so one channel
 lapsing never disables the other: `past_due` immediately, `suspended` at day
 7. No forced-branding step and no `canceled` state.
+
+### Instagram channel
+
+Self-serve, same pattern as WhatsApp — a tenant turns `Tenant.instagramEnabled`
+on themselves from the dashboard, no admin approval step.
+
+Pricing is the same two-rate model, resolved in
+`lib/billing/plans.ts#instagramAddonPrice`:
+- **Bundle rate** when paid alongside an active/being-purchased website plan.
+- **Standalone rate** (higher) when the tenant has no website plan at all.
+
+Sold through the same combined checkout as the website plan
+(`lib/billing/actions.ts#submitPayment`). `Payment.addon = "instagram"` marks
+an Instagram-only payment, `"bundle_instagram"` marks a website plan +
+Instagram payment. The channel can also be paid for entirely on its own. For
+now a single payment can only add *one* of WhatsApp or Instagram alongside a
+website plan, never both at once — a tenant who wants both channels submits
+two payments.
+
+Instagram has its own, simpler status ladder (`Tenant.instagramStatus`,
+driven by `instagramPeriodEnd`), independent of the website plan's and of
+WhatsApp's: `past_due` immediately, `suspended` at day 7. No forced-branding
+step and no `canceled` state — identical shape to WhatsApp's ladder.
 
 ---
 
@@ -535,12 +598,20 @@ cs-chatbot/
 │   │   ├── leads/
 │   │   ├── install/
 │   │   ├── usage/
+│   │   ├── whatsapp/
+│   │   ├── instagram/
 │   │   └── billing/
 │   ├── admin/                      # owner only: payment approvals
 │   └── api/
 │       ├── chat/route.ts           # public, widget hits this, streaming
 │       ├── preview/route.ts        # public, landing page instant demo
 │       ├── config/route.ts         # public, widget brand config
+│       ├── instagram/
+│       │   ├── oauth/callback/route.ts    # exchanges code, upserts InstagramAccount
+│       │   ├── webhook/route.ts           # inbound DMs, GET handshake + POST events
+│       │   ├── deauthorize/route.ts       # Meta calls when a tenant revokes access
+│       │   ├── data-deletion/route.ts     # Meta's Data Deletion Request callback
+│       │   └── data-deletion/status/route.ts
 │       └── ...                     # authenticated dashboard routes
 ├── lib/
 │   ├── ai/provider.ts              # THE ONLY place LLM SDKs are imported
@@ -550,9 +621,13 @@ cs-chatbot/
 │   ├── db/vector.ts                # all raw pgvector SQL
 │   ├── crawl/                      # fetch, robots, sitemap, extract, chunk
 │   ├── billing/status.ts
-│   ├── billing/plans.ts            # plan + WhatsApp channel prices and caps
-│   ├── tenant/channels.ts          # enable/disable Website + WhatsApp, first-trial logic
+│   ├── billing/plans.ts            # plan + WhatsApp/Instagram channel prices and caps
+│   ├── tenant/channels.ts          # enable/disable Website + WhatsApp + Instagram, first-trial logic
 │   ├── whatsapp/pg-auth-state.ts   # Baileys auth state persisted in Postgres
+│   ├── instagram/oauth.ts          # authorize URL, token exchange, webhook subscription
+│   ├── instagram/oauth-state.ts    # signed CSRF state for the OAuth redirect
+│   ├── instagram/send.ts           # send a reply via the Instagram Send API
+│   ├── instagram/signed-request.ts # verify Meta's deauthorize/data-deletion signed_request
 │   ├── email/provider.ts           # THE ONLY place the Resend API is called
 │   ├── email/templates.ts          # branded HTML builders per lifecycle event
 │   ├── email/notify.ts             # high-level, best-effort send-per-event functions
@@ -614,11 +689,9 @@ monitoring via UptimeRobot free tier.
 
 - Do not add Docker, Redis, BullMQ, Pinecone, Qdrant, or Kubernetes.
 - Do not add Stripe or any card processor in Phase 1 to 4.
-- Do not build Slack. Website, WhatsApp, and (as of 2026-08-18, approved but
-  not yet built) Instagram are the supported channels — each opt-in,
-  self-serve, equal footing (see section 9). Instagram's data model, billing,
-  and status-ladder sections are not written yet; add them as part of
-  building it, following the same pattern WhatsApp used, not ad hoc.
+- Do not build Slack. Website, WhatsApp, and Instagram (approved 2026-08-18,
+  built following the WhatsApp pattern) are the supported channels — each
+  opt-in, self-serve, equal footing (see sections 4 and 9).
 - Do not build voice. Text only.
 - Do not use a flagship LLM model. Mini or nano class only. A flagship model
   costs more per customer than the customer pays.
