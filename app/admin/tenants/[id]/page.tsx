@@ -76,10 +76,11 @@ async function grantTrial(formData: FormData) {
   redirect(`/admin/tenants/${id}?saved=1`);
 }
 
-// Website and WhatsApp are both self-serve toggles the tenant controls
-// themselves (see lib/tenant/channels.ts). These are support overrides on
-// top of that — for comps, abuse, or acting on a support request — not a
-// gate the tenant needs cleared before they can use either channel.
+// Website, WhatsApp, and Instagram are all self-serve toggles the tenant
+// controls themselves (see lib/tenant/channels.ts). These are support
+// overrides on top of that — for comps, abuse, or acting on a support
+// request — not a gate the tenant needs cleared before they can use any
+// channel.
 async function toggleWhatsAppChannel(formData: FormData) {
   "use server";
   await requireAdmin();
@@ -88,6 +89,20 @@ async function toggleWhatsAppChannel(formData: FormData) {
   if (!id) return;
 
   await prisma.tenant.update({ where: { id }, data: { whatsappEnabled: enable } });
+
+  revalidatePath(`/admin/tenants/${id}`);
+  revalidatePath("/admin");
+  redirect(`/admin/tenants/${id}?saved=1`);
+}
+
+async function toggleInstagramChannel(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  const enable = String(formData.get("enable")) === "true";
+  if (!id) return;
+
+  await prisma.tenant.update({ where: { id }, data: { instagramEnabled: enable } });
 
   revalidatePath(`/admin/tenants/${id}`);
   revalidatePath("/admin");
@@ -232,6 +247,10 @@ export default async function TenantDetailPage({
               <dd className="text-foreground">{tenant.whatsappEnabled ? "on" : "off"}</dd>
             </div>
             <div className="flex justify-between gap-4">
+              <dt className="text-muted">Instagram</dt>
+              <dd className="text-foreground">{tenant.instagramEnabled ? "on" : "off"}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
               <dt className="text-muted">Allowed domains</dt>
               <dd className="text-right text-foreground">
                 {tenant.allowedDomains.length ? tenant.allowedDomains.join(", ") : "None"}
@@ -310,7 +329,7 @@ export default async function TenantDetailPage({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 sm:grid-cols-2">
+      <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <div className="glass rounded-2xl p-6">
           <h2 className="font-heading font-semibold">Website channel</h2>
           <p className="mt-1 text-sm text-muted">
@@ -365,6 +384,35 @@ export default async function TenantDetailPage({
                 className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
               >
                 {tenant.whatsappEnabled ? "Turn off WhatsApp" : "Turn on WhatsApp"}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-heading font-semibold">Instagram channel</h2>
+          <p className="mt-1 text-sm text-muted">
+            Self-serve for the tenant (see the Instagram tab in their dashboard) — this is a support
+            override on top of that.
+          </p>
+          <div className="mt-4 flex items-center gap-3">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+                tenant.instagramEnabled
+                  ? "border-emerald-400/30 bg-emerald-400/10 text-success-text"
+                  : "border-border bg-surface/60 text-muted"
+              }`}
+            >
+              {tenant.instagramEnabled ? "On" : "Off"}
+            </span>
+            <form action={toggleInstagramChannel}>
+              <input type="hidden" name="id" value={tenant.id} />
+              <input type="hidden" name="enable" value={(!tenant.instagramEnabled).toString()} />
+              <button
+                type="submit"
+                className="rounded-full border border-border bg-surface/60 px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent"
+              >
+                {tenant.instagramEnabled ? "Turn off Instagram" : "Turn on Instagram"}
               </button>
             </form>
           </div>
@@ -452,7 +500,8 @@ export default async function TenantDetailPage({
           <p className="text-sm font-medium text-foreground">Delete tenant</p>
           <p className="mt-1 text-sm text-muted">
             Permanently deletes this tenant and everything tied to it: crawled data, conversations,
-            leads, appointments, WhatsApp connection, and payment history. This cannot be undone.
+            leads, appointments, WhatsApp connection, Instagram connection, and payment history.
+            This cannot be undone.
           </p>
           <DeleteTenantForm tenantId={tenant.id} tenantName={tenant.name} action={deleteTenant} />
         </div>

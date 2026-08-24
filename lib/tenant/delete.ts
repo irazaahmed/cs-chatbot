@@ -12,8 +12,8 @@ const PAYMENT_PROOF_DIR = path.join(process.cwd(), "uploads", "payments");
  * Job has no FK relation to Tenant (schema.prisma), so nothing cascades it —
  * must be cleared explicitly, same as Payment (kept without onDelete: Cascade
  * elsewhere for an audit trail, but not here). Document, Conversation, Lead,
- * Appointment, WhatsAppAccount, and RateLimitBucket all cascade from the
- * Tenant.delete() itself.
+ * Appointment, WhatsAppAccount, InstagramAccount, and RateLimitBucket all
+ * cascade from the Tenant.delete() itself.
  */
 export async function deleteTenantCompletely(tenantId: string): Promise<void> {
   const [documents, payments] = await Promise.all([

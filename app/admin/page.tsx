@@ -279,6 +279,15 @@ export default async function AdminPage() {
                           >
                             WhatsApp
                           </span>
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                              t.instagramEnabled
+                                ? "border-emerald-400/30 bg-emerald-400/10 text-success-text"
+                                : "border-border bg-surface/60 text-muted"
+                            }`}
+                          >
+                            Instagram
+                          </span>
                         </div>
                       </td>
                       <td className="px-4 py-3 capitalize text-muted">{t.planId}</td>
