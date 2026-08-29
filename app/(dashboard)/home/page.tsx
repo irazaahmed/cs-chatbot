@@ -14,13 +14,11 @@ import {
   CalendarIcon,
   GlobeIcon,
   MessageCircleIcon,
-  CameraIcon,
 } from "@/components/dashboard/icons";
 
 const CHANNELS = [
   { key: "websiteEnabled", statusKey: "status", label: "Website", href: "/install", icon: <GlobeIcon className="h-4 w-4" />, tone: "accent" as const },
   { key: "whatsappEnabled", statusKey: "whatsappStatus", label: "WhatsApp", href: "/whatsapp", icon: <MessageCircleIcon className="h-4 w-4" />, tone: "success" as const },
-  { key: "instagramEnabled", statusKey: "instagramStatus", label: "Instagram", href: "/instagram", icon: <CameraIcon className="h-4 w-4" />, tone: "instagram" as const },
 ] as const;
 
 export default async function DashboardHomePage() {
@@ -65,7 +63,7 @@ export default async function DashboardHomePage() {
           value={pendingAppointments}
           href="/appointments"
           icon={<CalendarIcon className="h-[1.15rem] w-[1.15rem]" />}
-          tone="instagram"
+          tone="accent"
         />
       </div>
 

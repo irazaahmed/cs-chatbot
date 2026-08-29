@@ -6,7 +6,6 @@ const TONE = {
   success: "border-emerald-400/25 bg-gradient-to-br from-emerald-400/25 to-emerald-400/5 text-emerald-400",
   warning: "border-amber-400/25 bg-gradient-to-br from-amber-400/25 to-amber-400/5 text-amber-400",
   danger: "border-red-400/25 bg-gradient-to-br from-red-400/25 to-red-400/5 text-red-400",
-  instagram: "border-fuchsia-400/25 bg-gradient-to-br from-fuchsia-400/25 to-fuchsia-400/5 text-instagram-text",
 };
 
 const SIZE = {

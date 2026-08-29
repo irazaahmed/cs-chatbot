@@ -7,12 +7,6 @@ const TONE = {
   warning: { pill: "border-amber-400/30 bg-amber-400/10 text-warning-text", dot: "bg-amber-400" },
   danger: { pill: "border-red-400/30 bg-red-400/10 text-danger-text", dot: "bg-red-400" },
   accent: { pill: "border-accent/30 bg-accent/10 text-accent-bright", dot: "bg-accent-bright" },
-  // Raw Tailwind fuchsia, consistent with how the other tones' border/bg
-  // are raw Tailwind classes too — only the text color needs a dedicated
-  // token (see --color-instagram-text in app/globals.css) since it has to
-  // swap per [data-theme] for contrast, same reason danger/success/warning
-  // text already do.
-  instagram: { pill: "border-fuchsia-400/30 bg-fuchsia-400/10 text-instagram-text", dot: "bg-fuchsia-400" },
 };
 
 const SIZE = {

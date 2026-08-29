@@ -13,7 +13,6 @@ export function ChannelFilterForm({ channel, basePath }: { channel?: string; bas
           <option value="">All channels</option>
           <option value="web">Website</option>
           <option value="whatsapp">WhatsApp</option>
-          <option value="instagram">Instagram</option>
         </Select>
       </div>
       <Button variant="outline" type="submit">

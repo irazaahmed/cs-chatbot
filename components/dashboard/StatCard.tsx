@@ -16,7 +16,7 @@ export function StatCard({
   value: number | string;
   href?: string;
   icon: ReactNode;
-  tone?: "accent" | "success" | "warning" | "danger" | "instagram";
+  tone?: "accent" | "success" | "warning" | "danger";
 }) {
   const content = (
     <Card className="transition-colors hover:border-accent/60">

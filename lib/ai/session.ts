@@ -2,9 +2,7 @@ import type { Conversation } from "@prisma/client";
 import { prisma } from "@/lib/db/client";
 
 // Shared session-resolution logic for any channel keyed by an external
-// sender id (WhatsApp JID, Instagram-scoped user id, ...). Originally only
-// in whatsapp-connector.mts; extracted here once the Instagram webhook
-// became a second caller, rather than duplicating it.
+// sender id (WhatsApp JID, ...).
 //
 // A thread that's gone quiet this long is treated as ended, same as a
 // captured Lead/Appointment closing it explicitly (lib/ai/capture.ts) — the

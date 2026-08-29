@@ -1,4 +1,4 @@
-# CLAUDE.md — cs-chatbot
+# AGENTS.md — cs-chatbot
 
 Multi-tenant AI chatbot SaaS by Cybrum Solutions, for a business's Website
 and WhatsApp — two equal, independent channels.
@@ -521,7 +521,7 @@ over HTTPS. Do not deploy just to test.
 
 ```
 cs-chatbot/
-├── CLAUDE.md
+├── AGENTS.md
 ├── .env.example
 ├── .gitattributes
 ├── prisma/

@@ -6,20 +6,19 @@ import { revalidatePath } from "next/cache";
 import { getCurrentTenant } from "@/lib/tenant/current";
 import { prisma } from "@/lib/db/client";
 import { saveProofFile } from "@/lib/billing/proof-storage";
-import { isPlanId, isBillingCycle, cycleMonths, addMonths, planPrice, whatsappAddonPrice, instagramAddonPrice } from "@/lib/billing/plans";
+import { isPlanId, isBillingCycle, cycleMonths, addMonths, planPrice, whatsappAddonPrice } from "@/lib/billing/plans";
 import { sendPaymentSubmittedEmail, sendAdminPaymentSubmittedEmail } from "@/lib/email/notify";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** One combined payment covering either a website plan (with WhatsApp *or*
- * Instagram optionally bundled into the same checkout — not both at once),
- * or WhatsApp/Instagram on its own for a tenant who hasn't turned the
- * website channel on. mode="whatsapp_only"/"instagram_only" skips the plan
- * portion entirely: no planId is purchased, only that channel's periodEnd
- * moves. All sides are gated on the tenant having turned that channel on
- * themselves first (tenant.websiteEnabled / tenant.whatsappEnabled /
- * tenant.instagramEnabled — self-serve toggles, see lib/tenant/channels.ts),
- * re-checked server-side, never trusted from the client. */
+/** One combined payment covering either a website plan (with WhatsApp
+ * optionally bundled into the same checkout), or WhatsApp on its own for a
+ * tenant who hasn't turned the website channel on. mode="whatsapp_only"
+ * skips the plan portion entirely: no planId is purchased, only WhatsApp's
+ * periodEnd moves. Both sides are gated on the tenant having turned that
+ * channel on themselves first (tenant.websiteEnabled / tenant.whatsappEnabled
+ * — self-serve toggles, see lib/tenant/channels.ts), re-checked server-side,
+ * never trusted from the client. */
 export async function submitPayment(formData: FormData) {
   const { tenant } = await getCurrentTenant();
 
@@ -37,36 +36,23 @@ export async function submitPayment(formData: FormData) {
 
   const modeRaw = String(formData.get("mode") ?? "");
   const whatsappOnly = tenant.whatsappEnabled && modeRaw === "whatsapp_only";
-  const instagramOnly = !whatsappOnly && tenant.instagramEnabled && modeRaw === "instagram_only";
-  if (!whatsappOnly && !instagramOnly && !tenant.websiteEnabled) {
+  if (!whatsappOnly && !tenant.websiteEnabled) {
     redirect("/billing?error=4");
   }
   const planIdRaw = String(formData.get("planId") ?? "");
   const planId = isPlanId(planIdRaw) ? planIdRaw : "starter";
   const includeWhatsapp =
-    !whatsappOnly && !instagramOnly && tenant.whatsappEnabled && String(formData.get("includeWhatsapp") ?? "") === "on";
-  // Only one add-on per payment for now — WhatsApp wins if the client
-  // somehow sent both (the UI never offers both at once).
-  const includeInstagram =
-    !whatsappOnly &&
-    !instagramOnly &&
-    !includeWhatsapp &&
-    tenant.instagramEnabled &&
-    String(formData.get("includeInstagram") ?? "") === "on";
+    !whatsappOnly && tenant.whatsappEnabled && String(formData.get("includeWhatsapp") ?? "") === "on";
 
   // The amount is never taken from the client. It's the listed price for
-  // the chosen plan+cycle (plus WhatsApp or Instagram if selected and turned
-  // on), full stop. A visitor typing an arbitrary number into the amount
-  // field must never end up on the invoice. The bundle rate applies whenever
-  // a plan is part of this same payment, or the tenant already has one active.
-  const hasWebsitePlan = (!whatsappOnly && !instagramOnly) || tenant.status === "active";
+  // the chosen plan+cycle (plus WhatsApp if selected and turned on), full
+  // stop. A visitor typing an arbitrary number into the amount field must
+  // never end up on the invoice. The bundle rate applies whenever a plan is
+  // part of this same payment, or the tenant already has one active.
+  const hasWebsitePlan = !whatsappOnly || tenant.status === "active";
   const amountPKR = whatsappOnly
     ? whatsappAddonPrice(billingCycle, hasWebsitePlan)
-    : instagramOnly
-      ? instagramAddonPrice(billingCycle, hasWebsitePlan)
-      : planPrice(planId, billingCycle) +
-        (includeWhatsapp ? whatsappAddonPrice(billingCycle, true) : 0) +
-        (includeInstagram ? instagramAddonPrice(billingCycle, true) : 0);
+    : planPrice(planId, billingCycle) + (includeWhatsapp ? whatsappAddonPrice(billingCycle, true) : 0);
 
   if (!senderName || !invoiceRefValue || !file || file.size === 0) {
     redirect("/billing?error=1");
@@ -89,15 +75,7 @@ export async function submitPayment(formData: FormData) {
         invoiceRef: invoiceRefValue,
         planId,
         billingCycle,
-        addon: whatsappOnly
-          ? "whatsapp"
-          : instagramOnly
-            ? "instagram"
-            : includeWhatsapp
-              ? "bundle"
-              : includeInstagram
-                ? "bundle_instagram"
-                : null,
+        addon: whatsappOnly ? "whatsapp" : includeWhatsapp ? "bundle" : null,
         amountPKR,
         method,
         senderName,
@@ -125,20 +103,16 @@ export async function submitPayment(formData: FormData) {
   // so this alone keeps them from being demoted during the review window.
   // The plan itself (page/message caps) only changes once an admin verifies
   // the payment against the real bank statement — see approvePayment. Same
-  // policy applies to whatsappPeriodEnd/instagramPeriodEnd when that channel
-  // was included, or is the only thing being paid for.
-  const tenantUpdate: { periodEnd?: Date; whatsappPeriodEnd?: Date; instagramPeriodEnd?: Date } = {};
-  if (!whatsappOnly && !instagramOnly) {
+  // policy applies to whatsappPeriodEnd when WhatsApp was included, or is
+  // the only thing being paid for.
+  const tenantUpdate: { periodEnd?: Date; whatsappPeriodEnd?: Date } = {};
+  if (!whatsappOnly) {
     const base = tenant.periodEnd && tenant.periodEnd > now ? tenant.periodEnd : now;
     tenantUpdate.periodEnd = new Date(base.getTime() + 3 * DAY_MS);
   }
   if (whatsappOnly || includeWhatsapp) {
     const waBase = tenant.whatsappPeriodEnd && tenant.whatsappPeriodEnd > now ? tenant.whatsappPeriodEnd : now;
     tenantUpdate.whatsappPeriodEnd = new Date(waBase.getTime() + 3 * DAY_MS);
-  }
-  if (instagramOnly || includeInstagram) {
-    const igBase = tenant.instagramPeriodEnd && tenant.instagramPeriodEnd > now ? tenant.instagramPeriodEnd : now;
-    tenantUpdate.instagramPeriodEnd = new Date(igBase.getTime() + 3 * DAY_MS);
   }
   await prisma.tenant.update({ where: { id: tenant.id }, data: tenantUpdate });
 

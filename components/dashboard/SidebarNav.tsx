@@ -11,7 +11,6 @@ import {
   SlidersIcon,
   GlobeIcon,
   MessageCircleIcon,
-  CameraIcon,
   MessageSquareIcon,
   QuestionCircleIcon,
   UserPlusIcon,
@@ -48,7 +47,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/install", label: "Website", icon: GlobeIcon },
       { href: "/whatsapp", label: "WhatsApp", icon: MessageCircleIcon },
-      { href: "/instagram", label: "Instagram", icon: CameraIcon },
     ],
   },
   {

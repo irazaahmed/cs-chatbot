@@ -175,28 +175,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </StatusBanner>
           </div>
         )}
-        {tenant.instagramEnabled && tenant.instagramStatus === "past_due" && (
-          <div className="mb-6">
-            <StatusBanner tone="warning">
-              Your Instagram payment is past due. Instagram still works, but visit{" "}
-              <Link href="/billing" className="font-medium underline underline-offset-2">
-                Billing
-              </Link>{" "}
-              to keep it that way.
-            </StatusBanner>
-          </div>
-        )}
-        {tenant.instagramEnabled && tenant.instagramStatus === "suspended" && (
-          <div className="mb-6">
-            <StatusBanner tone="danger">
-              Your Instagram channel is currently suspended and not responding to messages. Visit{" "}
-              <Link href="/billing" className="font-medium underline underline-offset-2">
-                Billing
-              </Link>{" "}
-              to restore it.
-            </StatusBanner>
-          </div>
-        )}
         {children}
       </main>
     </div>
