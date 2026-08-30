@@ -597,6 +597,16 @@ upload, admin approval, status ladder, usage caps.
 the Cloudflare cache. Nightly `pg_dump` compressed to a second location. Uptime
 monitoring via UptimeRobot free tier.
 
+The main app resource (`cs-chatbot-app`) has a Docker healthcheck configured in
+Coolify (Application → Healthcheck): `GET http://localhost:3000/` expecting
+`200`, every 5s, 10 retries, 15s start period. This is Coolify-side config, not
+a file in this repo — Coolify writes it into the `docker-compose.yaml` it
+generates on every deploy, so it survives redeploys without any action here.
+Without it, a container that crashes right after boot (e.g. `prisma db push`
+failing due to a schema/data mismatch — this happened once when the Instagram
+tables were dropped while production still had rows) shows as a silent `Exited`
+with no warning, rather than `unhealthy`.
+
 ---
 
 ## 14. CONVENTIONS
