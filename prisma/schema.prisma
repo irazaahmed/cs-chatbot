@@ -18,6 +18,21 @@ model User {
   createdAt    DateTime @default(now())
 }
 
+// Holds a pending Credentials signup's OTP while the email is unverified.
+// Name/password never touch the database here — the client keeps them in
+// memory across the two-step signup form and resubmits them on verify, so no
+// unverified-account data sits in Postgres. Google sign-in skips this
+// entirely (Google already verifies the email). See lib/auth/actions.ts.
+model EmailVerification {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  codeHash   String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  lastSentAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+}
+
 model Tenant {
   id             String   @id @default(cuid())
   ownerId        String

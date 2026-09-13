@@ -28,24 +28,29 @@ export async function GET(request: Request): Promise<Response> {
     return json({ error: "Missing publicKey" }, 400);
   }
 
-  const tenant = await prisma.tenant.findUnique({ where: { publicKey: parsed.data.publicKey } });
-  if (!tenant) {
-    return json({ error: "Not found" }, 404);
+  try {
+    const tenant = await prisma.tenant.findUnique({ where: { publicKey: parsed.data.publicKey } });
+    if (!tenant) {
+      return json({ error: "Not found" }, 404);
+    }
+
+    if (!isOriginAllowed(origin, tenant.allowedDomains)) {
+      return json({ error: "Origin not allowed" }, 403);
+    }
+
+    // lib/billing/plans.ts sells "remove Powered by Cybrum branding" as a Pro+
+    // feature, so Starter must always carry it, not just once past_due — the
+    // grace-period clause below is on top of that, for Pro/Business tenants
+    // who fall behind on payment.
+    const forcedBranding =
+      tenant.planId === "starter" ||
+      (tenant.status === "past_due" &&
+        tenant.periodEnd !== null &&
+        Date.now() - tenant.periodEnd.getTime() >= PAST_DUE_BRANDING_GRACE_MS);
+
+    return json({ brandConfig: tenant.brandConfig, language: tenant.language, forcedBranding }, 200);
+  } catch (err) {
+    console.error("config lookup failed:", err instanceof Error ? err.message : err);
+    return json({ error: "Something went wrong. Please try again." }, 500);
   }
-
-  if (!isOriginAllowed(origin, tenant.allowedDomains)) {
-    return json({ error: "Origin not allowed" }, 403);
-  }
-
-  // lib/billing/plans.ts sells "remove Powered by Cybrum branding" as a Pro+
-  // feature, so Starter must always carry it, not just once past_due — the
-  // grace-period clause below is on top of that, for Pro/Business tenants
-  // who fall behind on payment.
-  const forcedBranding =
-    tenant.planId === "starter" ||
-    (tenant.status === "past_due" &&
-      tenant.periodEnd !== null &&
-      Date.now() - tenant.periodEnd.getTime() >= PAST_DUE_BRANDING_GRACE_MS);
-
-  return json({ brandConfig: tenant.brandConfig, language: tenant.language, forcedBranding }, 200);
 }

@@ -1,17 +1,9 @@
 import Link from "next/link";
-import { signUp, signInWithGoogle } from "@/lib/auth/actions";
+import { signInWithGoogle } from "@/lib/auth/actions";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { SignupForm } from "@/components/auth/SignupForm";
 
-const inputClass =
-  "w-full rounded-xl border border-border bg-surface/60 px-4 py-3 text-sm text-foreground placeholder:text-muted/70 outline-none transition-[border-color,box-shadow] duration-300 focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-accent)_18%,transparent)]";
-
-export default async function SignupPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const { error } = await searchParams;
-
+export default function SignupPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4 py-16">
       <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden bg-background">
@@ -50,38 +42,7 @@ export default async function SignupPage({
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        <form action={signUp} className="flex flex-col gap-4 text-left">
-          <input type="text" name="name" required placeholder="Full name" className={inputClass} />
-          <input type="email" name="email" required placeholder="Email address" className={inputClass} />
-          <input
-            type="password"
-            name="password"
-            required
-            minLength={8}
-            placeholder="Password (min 8 characters)"
-            className={inputClass}
-          />
-
-          {error === "exists" && (
-            <p className="text-sm text-red-400">
-              An account with that email already exists.{" "}
-              <Link href="/login" className="underline">
-                Log in instead
-              </Link>
-              .
-            </p>
-          )}
-          {error === "validation" && (
-            <p className="text-sm text-red-400">Please fill in every field (password: 8+ characters).</p>
-          )}
-
-          <button
-            type="submit"
-            className="btn-sheen mt-1 inline-flex h-12 w-full items-center justify-center rounded-full bg-accent font-medium text-white transition-all duration-300 hover:bg-accent-bright hover:shadow-[0_0_36px_-6px_var(--color-accent)]"
-          >
-            Create account
-          </button>
-        </form>
+        <SignupForm />
 
         <p className="mt-6 text-sm text-muted">
           Already have an account?{" "}

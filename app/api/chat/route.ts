@@ -74,56 +74,73 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "Invalid request body" }, 400);
   }
 
-  const tenant = await prisma.tenant.findUnique({ where: { publicKey: body.publicKey } });
+  let tenant: Awaited<ReturnType<typeof prisma.tenant.findUnique>> = null;
+  let existingConversation: Awaited<ReturnType<typeof prisma.conversation.findFirst>> = null;
+  let priorMessages: StoredMessage[] = [];
+  let leadCaptureEnabled = false;
+  let promptMessages: ChatMessage[] = [];
+  let citations: string[] = [];
+  let answered = false;
+
+  try {
+    tenant = await prisma.tenant.findUnique({ where: { publicKey: body.publicKey } });
+    if (!tenant) {
+      return json({ error: "Not found" }, 404);
+    }
+
+    if (!isOriginAllowed(origin, tenant.allowedDomains)) {
+      return json({ error: "Origin not allowed" }, 403);
+    }
+
+    if (!tenant.websiteEnabled) {
+      return disabledResponse("Chat is temporarily unavailable.");
+    }
+
+    const statusGate = checkTenantStatus(tenant.status);
+    if (!statusGate.allowed) {
+      return disabledResponse(statusGate.message ?? "Chat is temporarily unavailable.");
+    }
+
+    const usageGate = await checkMonthlyUsage(tenant.id, planConversationCap(tenant.planId), body.sessionId, "web");
+    if (!usageGate.allowed) {
+      return disabledResponse(usageGate.message ?? "This chatbot has reached its monthly limit.");
+    }
+
+    const ip = getClientIp(request);
+    const rateResult = await checkRateLimit(tenant.id, ip);
+    if (!rateResult.allowed) {
+      return json({ error: rateResult.reason }, 429);
+    }
+
+    existingConversation = await prisma.conversation.findFirst({
+      where: { tenantId: tenant.id, sessionId: body.sessionId },
+      orderBy: { createdAt: "desc" },
+    });
+    priorMessages = existingConversation ? parseHistory(existingConversation.messages) : [];
+
+    leadCaptureEnabled = parseBrandConfig(tenant.brandConfig).leadCapture;
+
+    const matches = await retrieveContext(tenant.id, body.message);
+    const contactMatches = await retrieveContactInfo(tenant.id);
+    promptMessages = buildMessages(
+      tenant.systemPrompt,
+      tenant.language,
+      matches,
+      priorMessages,
+      body.message,
+      contactMatches,
+      leadCaptureEnabled
+    );
+    citations = Array.from(new Set(matches.map((m) => m.sourceUrl)));
+    answered = hasUsableContext(matches);
+  } catch (err) {
+    console.error("chat setup failed:", err instanceof Error ? err.message : err);
+    return json({ error: "Something went wrong. Please try again." }, 500);
+  }
+
   if (!tenant) {
-    return json({ error: "Not found" }, 404);
+    return json({ error: "Something went wrong. Please try again." }, 500);
   }
-
-  if (!isOriginAllowed(origin, tenant.allowedDomains)) {
-    return json({ error: "Origin not allowed" }, 403);
-  }
-
-  if (!tenant.websiteEnabled) {
-    return disabledResponse("Chat is temporarily unavailable.");
-  }
-
-  const statusGate = checkTenantStatus(tenant.status);
-  if (!statusGate.allowed) {
-    return disabledResponse(statusGate.message ?? "Chat is temporarily unavailable.");
-  }
-
-  const usageGate = await checkMonthlyUsage(tenant.id, planConversationCap(tenant.planId), body.sessionId, "web");
-  if (!usageGate.allowed) {
-    return disabledResponse(usageGate.message ?? "This chatbot has reached its monthly limit.");
-  }
-
-  const ip = getClientIp(request);
-  const rateResult = await checkRateLimit(tenant.id, ip);
-  if (!rateResult.allowed) {
-    return json({ error: rateResult.reason }, 429);
-  }
-
-  const existingConversation = await prisma.conversation.findFirst({
-    where: { tenantId: tenant.id, sessionId: body.sessionId },
-    orderBy: { createdAt: "desc" },
-  });
-  const priorMessages = existingConversation ? parseHistory(existingConversation.messages) : [];
-
-  const leadCaptureEnabled = parseBrandConfig(tenant.brandConfig).leadCapture;
-
-  const matches = await retrieveContext(tenant.id, body.message);
-  const contactMatches = await retrieveContactInfo(tenant.id);
-  const promptMessages: ChatMessage[] = buildMessages(
-    tenant.systemPrompt,
-    tenant.language,
-    matches,
-    priorMessages,
-    body.message,
-    contactMatches,
-    leadCaptureEnabled
-  );
-  const citations = Array.from(new Set(matches.map((m) => m.sourceUrl)));
-  const answered = hasUsableContext(matches);
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {

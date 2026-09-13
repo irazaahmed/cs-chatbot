@@ -1,7 +1,8 @@
-import { sendEmail } from "@/lib/email/provider";
+import { sendEmail, type SendEmailResult } from "@/lib/email/provider";
 import {
   welcomeEmailHtml,
   trialEndedEmailHtml,
+  verificationCodeEmailHtml,
   paymentSubmittedEmailHtml,
   paymentApprovedEmailHtml,
   paymentRejectedEmailHtml,
@@ -34,6 +35,22 @@ export async function sendWelcomeEmail(to: string, tenantName: string): Promise<
   } catch {
     // best-effort, ignore
   }
+}
+
+// Unlike the other notify functions, this one is NOT best-effort: signup is
+// blocked on the visitor actually receiving the code, so a Resend outage or
+// missing RESEND_API_KEY must surface as a real error to the caller instead
+// of silently leaving them stuck on a code screen that can never succeed.
+export async function sendVerificationCodeEmail(
+  to: string,
+  name: string,
+  code: string
+): Promise<SendEmailResult> {
+  return sendEmail({
+    to,
+    subject: `${code} is your ${site.shortName} verification code`,
+    html: verificationCodeEmailHtml(name, code),
+  });
 }
 
 export async function sendTrialEndedEmail(to: string, tenantName: string): Promise<void> {

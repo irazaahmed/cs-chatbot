@@ -103,6 +103,25 @@ export function welcomeEmailHtml(tenantName: string, trialDays: number): string 
   return emailShell(body, `Your ${site.shortName} trial has started`);
 }
 
+export function verificationCodeEmailHtml(name: string, code: string): string {
+  const codeBlock = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 20px;">
+      <tr>
+        <td align="center" style="background:#f7f9fc;border:1px solid #e6e9f0;border-radius:12px;padding:18px;">
+          <span style="font-family:'Courier New',monospace;font-size:32px;font-weight:700;letter-spacing:8px;color:${INK};">${escapeHtml(code)}</span>
+        </td>
+      </tr>
+    </table>
+  `;
+  const body = `
+    ${greeting(name)}
+    ${paragraph(`Use this code to verify your email and finish creating your ${site.shortName} account. It expires in 10 minutes.`)}
+    ${codeBlock}
+    ${paragraph("If you didn't request this, you can safely ignore this email.")}
+  `;
+  return emailShell(body, `Your verification code: ${code}`);
+}
+
 export function trialEndedEmailHtml(tenantName: string): string {
   const body = `
     ${greeting(tenantName)}
