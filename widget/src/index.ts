@@ -61,10 +61,10 @@ async function init(): Promise<void> {
   };
   ui.input.addEventListener("input", autoGrow);
 
-  // Enter alone inserts a newline (the textarea's default, vital on mobile);
-  // Ctrl/Cmd+Enter sends, matching the Send button.
+  // Enter sends; Shift+Enter inserts a newline. isComposing guards IME
+  // confirmation keystrokes (e.g. typing Chinese/Japanese).
   ui.input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
       ui.form.requestSubmit();
     }

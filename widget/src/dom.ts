@@ -123,9 +123,8 @@ export function createWidgetUI(config: BrandConfig, forcedBranding: boolean): Wi
   form.className = "form";
   panel.appendChild(form);
 
-  // A textarea (not a single-line input) so Enter inserts a newline instead
-  // of submitting — essential on mobile, where the keyboard has no Ctrl key.
-  // Sending is the button or Ctrl/Cmd+Enter (wired up in index.ts).
+  // A textarea (not a single-line input) so multi-line messages can grow with
+  // autoGrow. Enter sends, Shift+Enter inserts a newline (wired up in index.ts).
   const input = document.createElement("textarea");
   input.className = "input";
   input.rows = 1;

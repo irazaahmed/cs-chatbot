@@ -130,9 +130,9 @@ export default function PlaygroundPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              // Enter inserts a newline everywhere (crucial on mobile, where
-              // there is no modifier key). Send is Ctrl/Cmd+Enter or the button.
-              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+              // Enter sends; Shift+Enter inserts a newline. isComposing guards
+              // IME confirmation keystrokes (e.g. typing Chinese/Japanese).
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 submitMessage();
               }
