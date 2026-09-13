@@ -10,12 +10,40 @@ export interface ExtractedPage {
 }
 
 /**
+ * Cloudflare's email obfuscation rewrites every visible email address into a
+ * "[email protected]" placeholder plus a hex-encoded data-cfemail attribute,
+ * decoded client-side by a script we deliberately never run (plain HTML
+ * fetch, no JS). Without this, real business emails vanish from the trained
+ * content and the bot can't answer "what's your email" or find leads. The
+ * decode is a fixed XOR cipher: the first byte is the key, applied to every
+ * following byte to recover the ASCII email.
+ */
+function decodeCfEmail(hex: string): string | null {
+  if (hex.length < 4 || hex.length % 2 !== 0) return null;
+  const key = parseInt(hex.slice(0, 2), 16);
+  let email = "";
+  for (let i = 2; i < hex.length; i += 2) {
+    email += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16) ^ key);
+  }
+  return email;
+}
+
+function decodeCloudflareEmails($: cheerio.CheerioAPI): void {
+  $("[data-cfemail]").each((_, el) => {
+    const hex = $(el).attr("data-cfemail");
+    const decoded = hex ? decodeCfEmail(hex) : null;
+    if (decoded) $(el).replaceWith(decoded);
+  });
+}
+
+/**
  * Pulls main readable content from raw HTML, dropping chrome (nav, header,
  * footer, script/style). Returns null if the page is too thin to be useful
  * (CLAUDE.md: skip pages under 100 words).
  */
 export function extractContent(html: string): ExtractedPage | null {
   const $ = cheerio.load(html);
+  decodeCloudflareEmails($);
   $(STRIP_SELECTORS.join(",")).remove();
 
   const title = $("title").first().text().trim() || $("h1").first().text().trim() || null;
@@ -39,7 +67,7 @@ export function extractLinks(html: string, baseUrl: string): string[] {
 
   $("a[href]").each((_, el) => {
     const href = $(el).attr("href");
-    if (!href) return;
+    if (!href || href.startsWith("/cdn-cgi/")) return;
     try {
       const resolved = new URL(href, baseUrl);
       if (resolved.protocol !== "http:" && resolved.protocol !== "https:") return;
