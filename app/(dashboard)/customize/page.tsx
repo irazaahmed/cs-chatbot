@@ -13,6 +13,7 @@ import { Label } from "@/components/dashboard/Label";
 import { Checkbox } from "@/components/dashboard/Checkbox";
 import { Button } from "@/components/dashboard/Button";
 import { ToastFlash } from "@/components/dashboard/ToastFlash";
+import { ColorPickerField } from "@/components/dashboard/ColorPickerField";
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -79,13 +80,7 @@ export default async function CustomizePage({
           <div className="flex flex-wrap gap-4">
             <div>
               <Label htmlFor="color">Color</Label>
-              <input
-                id="color"
-                name="color"
-                type="color"
-                defaultValue={brand.color}
-                className="mt-1.5 h-11 w-16 cursor-pointer rounded-xl border border-border bg-surface/60"
-              />
+              <ColorPickerField id="color" name="color" defaultValue={brand.color} />
             </div>
             <div>
               <Label htmlFor="position">Position</Label>
